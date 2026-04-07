@@ -53,12 +53,5 @@ See: `.planning/PROJECT.md` (updated 2026-04-07)
 - Verifier: enabled
 - Nyquist validation: enabled
 
-## Accumulated Context
-
-### Pending Todos
-
-- 1 pending todo
-- `2026-04-07-why-no-dynamic-ai-parameter-management-like-jmix-ai-backend.md` — investigate missing dynamic AI parameter management parity with the Jmix AI backend
-
 ---
-*Last updated: 2026-04-08 after shipping phase 1 and capturing a follow-up todo*
+*Last updated: 2026-04-08 after shipping phase 1*
