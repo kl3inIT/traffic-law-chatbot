@@ -41,11 +41,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **ADMIN-01**: Admin can view and manage ingested sources through an admin interface.
 - [ ] **ADMIN-02**: Admin can inspect vector-store content or indexed documents relevant to the knowledge base.
-- [ ] **ADMIN-03**: Admin can update an existing source item (such as PDF, Word, structured document, or website source), and the backend re-ingests the updated source into the vector store.
-- [ ] **ADMIN-04**: Admin can create, edit, copy, and activate AI parameter sets.
-- [ ] **ADMIN-05**: Admin can review chat logs for past conversations.
-- [ ] **ADMIN-06**: Admin can define and run answer checks to evaluate chatbot quality.
-- [ ] **ADMIN-07**: Admin can use a sidebar-style interface that combines chat and admin screens in one application.
+- [ ] **ADMIN-03**: Admin can create, edit, copy, and activate AI parameter sets.
+- [ ] **ADMIN-04**: Admin can review chat logs for past conversations.
+- [ ] **ADMIN-05**: Admin can define and run answer checks to evaluate chatbot quality.
+- [ ] **ADMIN-06**: Admin can use a sidebar-style interface that combines chat and admin screens in one application.
 
 ### Platform
 
@@ -91,40 +90,39 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CHAT-01 | Phase [TBD] | Pending |
-| CHAT-02 | Phase [TBD] | Pending |
-| CHAT-03 | Phase [TBD] | Pending |
-| CHAT-04 | Phase [TBD] | Pending |
-| LEGAL-01 | Phase [TBD] | Pending |
-| LEGAL-02 | Phase [TBD] | Pending |
-| LEGAL-03 | Phase [TBD] | Pending |
-| LEGAL-04 | Phase [TBD] | Pending |
-| CASE-01 | Phase [TBD] | Pending |
-| CASE-02 | Phase [TBD] | Pending |
-| CASE-03 | Phase [TBD] | Pending |
-| CASE-04 | Phase [TBD] | Pending |
-| KNOW-01 | Phase [TBD] | Pending |
-| KNOW-02 | Phase [TBD] | Pending |
-| KNOW-03 | Phase [TBD] | Pending |
-| KNOW-04 | Phase [TBD] | Pending |
-| KNOW-05 | Phase [TBD] | Pending |
-| KNOW-06 | Phase [TBD] | Pending |
-| ADMIN-01 | Phase [TBD] | Pending |
-| ADMIN-02 | Phase [TBD] | Pending |
-| ADMIN-03 | Phase [TBD] | Pending |
-| ADMIN-04 | Phase [TBD] | Pending |
-| ADMIN-05 | Phase [TBD] | Pending |
-| ADMIN-06 | Phase [TBD] | Pending |
-| ADMIN-07 | Phase [TBD] | Pending |
-| PLAT-01 | Phase [TBD] | Pending |
-| PLAT-02 | Phase [TBD] | Pending |
-| PLAT-03 | Phase [TBD] | Pending |
-| PLAT-04 | Phase [TBD] | Pending |
+| CHAT-01 | Phase 2 | Pending |
+| CHAT-02 | Phase 3 | Pending |
+| CHAT-03 | Phase 2 | Pending |
+| CHAT-04 | Phase 2 | Pending |
+| LEGAL-01 | Phase 2 | Pending |
+| LEGAL-02 | Phase 2 | Pending |
+| LEGAL-03 | Phase 2 | Pending |
+| LEGAL-04 | Phase 2 | Pending |
+| CASE-01 | Phase 3 | Pending |
+| CASE-02 | Phase 3 | Pending |
+| CASE-03 | Phase 3 | Pending |
+| CASE-04 | Phase 3 | Pending |
+| KNOW-01 | Phase 1 | Pending |
+| KNOW-02 | Phase 1 | Pending |
+| KNOW-03 | Phase 1 | Pending |
+| KNOW-04 | Phase 1 | Pending |
+| KNOW-05 | Phase 1 | Pending |
+| KNOW-06 | Phase 1 | Pending |
+| ADMIN-01 | Phase 4 | Pending |
+| ADMIN-02 | Phase 4 | Pending |
+| ADMIN-03 | Phase 4 | Pending |
+| ADMIN-04 | Phase 5 | Pending |
+| ADMIN-05 | Phase 5 | Pending |
+| ADMIN-06 | Phase 4 | Pending |
+| PLAT-01 | Phase 1 | Pending |
+| PLAT-02 | Phase 4 | Pending |
+| PLAT-03 | Phase 1 | Pending |
+| PLAT-04 | Phase 1 | Pending |
 
 **Coverage:**
-- v1 requirements: 29 total
-- Mapped to phases: 0
-- Unmapped: 29 ⚠️
+- v1 requirements: 28 total
+- Mapped to phases: 28
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-07*
