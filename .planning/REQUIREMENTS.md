@@ -102,22 +102,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CASE-02 | Phase 3 | Pending |
 | CASE-03 | Phase 3 | Pending |
 | CASE-04 | Phase 3 | Pending |
-| KNOW-01 | Phase 1 | Pending |
-| KNOW-02 | Phase 1 | Pending |
-| KNOW-03 | Phase 1 | Pending |
-| KNOW-04 | Phase 1 | Pending |
-| KNOW-05 | Phase 1 | Pending |
-| KNOW-06 | Phase 1 | Pending |
+| KNOW-01 | Phase 1 | Complete |
+| KNOW-02 | Phase 1 | Complete |
+| KNOW-03 | Phase 1 | Complete |
+| KNOW-04 | Phase 1 | Complete |
+| KNOW-05 | Phase 1 | Complete |
+| KNOW-06 | Phase 1 | Complete |
 | ADMIN-01 | Phase 4 | Pending |
 | ADMIN-02 | Phase 4 | Pending |
 | ADMIN-03 | Phase 4 | Pending |
 | ADMIN-04 | Phase 5 | Pending |
 | ADMIN-05 | Phase 5 | Pending |
 | ADMIN-06 | Phase 4 | Pending |
-| PLAT-01 | Phase 1 | Pending |
+| PLAT-01 | Phase 1 | Complete |
 | PLAT-02 | Phase 4 | Pending |
-| PLAT-03 | Phase 1 | Pending |
-| PLAT-04 | Phase 1 | Pending |
+| PLAT-03 | Phase 1 | Complete |
+| PLAT-04 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 28 total

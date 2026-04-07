@@ -38,3 +38,7 @@ out/
 
 # Claude Code project MCP config
 .mcp.json
+
+# Local environment
+.env
+.claude/
