@@ -26,6 +26,14 @@ This roadmap delivers the Vietnam Traffic Law Chatbot as a REST-first Spring + N
 
 **UI hint:** no
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 01-PLAN-01.md — Infrastructure foundation: Liquibase schema, pgvector config, REST conventions layer, async executor
+- [ ] 01-PLAN-02.md — Source registry domain: entities, service with approval lifecycle, REST endpoints
+- [ ] 01-PLAN-03.md — Async ingestion pipeline: Tika/JSoup parsers, chunker, orchestrator, ingestion REST endpoints
+- [ ] 01-PLAN-04.md — Chunk inspection, retrieval policy hard-filter, and chunk metadata updater
+
 **Success criteria:**
 1. Spring backend runs on Java 25 and exposes a stable REST API base for chatbot and admin capabilities.
 2. PostgreSQL and pgvector-backed persistence store source metadata, operational records, and embeddings reliably.
@@ -111,4 +119,4 @@ This roadmap delivers the Vietnam Traffic Law Chatbot as a REST-first Spring + N
 5. **Quality ops last, but not optional** — logs and answer checks complete the Jmix-like operational loop.
 
 ---
-*Last updated: 2026-04-07 after roadmap creation*
+*Last updated: 2026-04-08 after Phase 1 planning*
