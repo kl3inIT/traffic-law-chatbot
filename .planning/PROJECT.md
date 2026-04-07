@@ -20,7 +20,7 @@ Users can describe a Vietnam traffic-law situation in natural language and recei
 
 - [ ] Public users can ask Vietnam traffic-law questions in Vietnamese and receive source-backed answers.
 - [ ] Public users can describe real-life traffic cases and receive structured legal guidance grounded in retrieved sources.
-- [ ] Admins can ingest and manage trusted knowledge sources for the vector store, including PDF, Word, structured regulation documents, and website content.
+- [ ] Admins can ingest and manage trusted knowledge sources for the vector store, including PDF, Word, structured regulation documents, and website content, and can update existing sources so the backend re-ingests them into the vector store.
 - [ ] Admins can manage AI parameters, inspect chat logs, run answer checks, and monitor retrieval quality through an admin interface inspired by the Jmix AI backend.
 - [ ] The system preserves the main RAG/admin architecture intent from jmix-ai-backend while exposing capabilities through REST APIs and a Next.js frontend.
 
@@ -48,6 +48,7 @@ Knowledge ingestion in v1 must support trusted sources across PDF/Word legal doc
 
 - **Architecture**: REST-first Spring backend — must keep the main ideas from `jmix-ai-backend` but expose them through REST APIs instead of Jmix UI-driven flows.
 - **Alignment**: Follow migrated backend patterns — should stay structurally aligned with the shoes shopping backend's controller/service/API conventions where practical.
+- **Runtime**: Java 25 — backend should target Java 25.
 - **Frontend**: Next.js with existing AI UI library — should prefer stable, easy-to-implement, maintainable UI components rather than custom-heavy chat UI.
 - **Language**: Vietnamese-first — prompts, UX, and answer quality should prioritize Vietnamese usage in v1.
 - **Data sources**: Trusted legal content only — ingestion should prioritize official and trustworthy legal/regulatory materials.
