@@ -20,7 +20,7 @@ Users can describe a Vietnam traffic-law situation in natural language and recei
 
 - [ ] Public users can ask Vietnam traffic-law questions in Vietnamese and receive source-backed answers.
 - [ ] Public users can describe real-life traffic cases and receive structured legal guidance grounded in retrieved sources.
-- [ ] Admins can ingest and manage trusted knowledge sources for the vector store, including PDF, Word, structured regulation documents, and website content, and can update existing sources so the backend re-ingests them into the vector store.
+- [ ] Admins can ingest and manage trusted knowledge sources for the vector store, including PDF, Word, structured regulation documents, and website content.
 - [ ] Admins can manage AI parameters, inspect chat logs, run answer checks, and monitor retrieval quality through an admin interface inspired by the Jmix AI backend.
 - [ ] The system preserves the main RAG/admin architecture intent from jmix-ai-backend while exposing capabilities through REST APIs and a Next.js frontend.
 
