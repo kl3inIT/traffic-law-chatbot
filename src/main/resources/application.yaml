@@ -1,6 +1,14 @@
 spring:
   application:
     name: traffic-law-chatbot
+  config:
+    import: optional:file:.env[.properties]
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
+  docker:
+    compose:
+      enabled: false
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/traffic_law}
     username: ${DB_USERNAME:traffic_user}
@@ -8,7 +16,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: false
     open-in-view: false
   liquibase:
@@ -25,6 +33,9 @@ spring:
         index-type: HNSW
     openai:
       api-key: ${OPENAI_API_KEY:}
+
+server:
+  port: 8088
 
 management:
   endpoints:
