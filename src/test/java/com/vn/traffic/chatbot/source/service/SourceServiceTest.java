@@ -1,5 +1,6 @@
 package com.vn.traffic.chatbot.source.service;
 
+import com.vn.traffic.chatbot.chunk.service.ChunkMetadataUpdater;
 import com.vn.traffic.chatbot.common.error.AppException;
 import com.vn.traffic.chatbot.common.error.ErrorCode;
 import com.vn.traffic.chatbot.source.api.dto.ApprovalRequest;
@@ -37,6 +38,9 @@ class SourceServiceTest {
 
     @Mock
     private KbSourceApprovalEventRepository approvalEventRepo;
+
+    @Mock
+    private ChunkMetadataUpdater chunkMetadataUpdater;
 
     @InjectMocks
     private SourceService sourceService;
@@ -178,6 +182,7 @@ class SourceServiceTest {
 
         assertThat(source.getStatus()).isEqualTo(SourceStatus.ACTIVE);
         assertThat(source.getTrustedState()).isEqualTo(TrustedState.TRUSTED);
+        verify(chunkMetadataUpdater).updateChunkMetadata(sourceId.toString(), true, true);
     }
 
     // Test 7: activate() given PENDING source throws AppException(VALIDATION_ERROR)
@@ -211,6 +216,8 @@ class SourceServiceTest {
         sourceService.deactivate(sourceId, "admin");
 
         assertThat(source.getStatus()).isEqualTo(SourceStatus.DISABLED);
+        assertThat(source.getTrustedState()).isEqualTo(TrustedState.REVOKED);
+        verify(chunkMetadataUpdater).updateChunkMetadata(sourceId.toString(), false, false);
     }
 
     // Test 9: getById() given non-existent UUID throws AppException(SOURCE_NOT_FOUND)

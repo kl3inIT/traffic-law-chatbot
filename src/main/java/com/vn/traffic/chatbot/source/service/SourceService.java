@@ -1,5 +1,6 @@
 package com.vn.traffic.chatbot.source.service;
 
+import com.vn.traffic.chatbot.chunk.service.ChunkMetadataUpdater;
 import com.vn.traffic.chatbot.common.error.AppException;
 import com.vn.traffic.chatbot.common.error.ErrorCode;
 import com.vn.traffic.chatbot.source.api.dto.ApprovalRequest;
@@ -24,6 +25,7 @@ public class SourceService {
     private final KbSourceRepository sourceRepo;
     private final KbSourceVersionRepository versionRepo;
     private final KbSourceApprovalEventRepository approvalEventRepo;
+    private final ChunkMetadataUpdater chunkMetadataUpdater;
 
     public KbSource createSource(CreateSourceRequest req) {
         var source = KbSource.builder()
@@ -95,6 +97,7 @@ public class SourceService {
         }
         source.setStatus(SourceStatus.ACTIVE);
         source.setTrustedState(TrustedState.TRUSTED);
+        chunkMetadataUpdater.updateChunkMetadata(sourceId.toString(), true, true);
         approvalEventRepo.save(KbSourceApprovalEvent.builder()
                 .source(source)
                 .action("ACTIVATE")
@@ -110,6 +113,7 @@ public class SourceService {
         String previousStatus = source.getStatus().name();
         source.setStatus(SourceStatus.DISABLED);
         source.setTrustedState(TrustedState.REVOKED);
+        chunkMetadataUpdater.updateChunkMetadata(sourceId.toString(), false, false);
         approvalEventRepo.save(KbSourceApprovalEvent.builder()
                 .source(source)
                 .action("DEACTIVATE")
