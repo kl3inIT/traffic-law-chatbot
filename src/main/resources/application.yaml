@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: traffic-law-chatbot
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/traffic_law}
+    username: ${DB_USERNAME:traffic_user}
+    password: ${DB_PASSWORD:traffic_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+  ai:
+    vectorstore:
+      pgvector:
+        initialize-schema: false
+        schema-name: public
+        vector-table-name: kb_vector_store
+        dimensions: 1536
+        distance-type: COSINE_DISTANCE
+        index-type: HNSW
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+task:
+  execution:
+    pool:
+      core-size: 4
+      max-size: 10
+      queue-capacity: 100
+    thread-name-prefix: ingestion-
