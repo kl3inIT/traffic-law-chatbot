@@ -41,6 +41,19 @@ Plans:
 4. Ingested sources retain provenance metadata such as type and origin.
 5. Retrieval is constrained to active and trusted sources only.
 
+### Phase 01.1: Refactor ingestion parser architecture to a hybrid Spring AI approach while preserving SSRF safety, provenance, source_version/job boundaries, and fixing final_url tracking (INSERTED)
+
+**Goal:** Fix URL provenance first, then refactor URL HTML ingestion toward a hybrid Spring AI parser path without weakening SSRF safety, provenance guarantees, async job visibility, or retrieval-gating behavior.
+
+**Requirements**: PLAT-01, KNOW-01, KNOW-02, KNOW-03, KNOW-04, KNOW-05, KNOW-06
+**Depends on:** Phase 1
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01.1-01-PLAN.md — Fix final_url provenance with a safe fetch/result contract and URL snapshot regression coverage
+- [ ] 01.1-02-PLAN.md — Add adapter-based Spring AI HTML parsing behind ParsedDocument while preserving retrieval/inspection metadata
+- [ ] 01.1-03-PLAN.md — Run bounded PDF parser parity evaluation and adopt Spring AI PDF only if provenance compatibility is proven
+
 ### Phase 2: Grounded Legal Q&A Core
 **Goal:** Deliver Vietnamese-first source-backed legal Q&A with visible citations and practical legal guidance.
 
@@ -119,4 +132,4 @@ Plans:
 5. **Quality ops last, but not optional** — logs and answer checks complete the Jmix-like operational loop.
 
 ---
-*Last updated: 2026-04-08 after Phase 1 planning*
+*Last updated: 2026-04-08 after Phase 01.1 planning*

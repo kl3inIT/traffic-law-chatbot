@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 2
-status: Phase 1 shipped — PR #1
-last_updated: "2026-04-08T00:00:00.000Z"
+status: Ready to execute
+last_updated: "2026-04-08T03:17:13.007Z"
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 1
-  total_plans: 4
+  total_plans: 7
   completed_plans: 4
-  percent: 100
+  percent: 57
 ---
 
 # State: Vietnam Traffic Law Chatbot
@@ -52,6 +52,12 @@ See: `.planning/PROJECT.md` (updated 2026-04-07)
 - Plan check: enabled
 - Verifier: enabled
 - Nyquist validation: enabled
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 01.1 inserted after Phase 1: Refactor ingestion parser architecture to a hybrid Spring AI approach while preserving SSRF safety, provenance, source_version/job boundaries, and fixing final_url tracking (URGENT)
 
 ---
 *Last updated: 2026-04-08 after shipping phase 1*
