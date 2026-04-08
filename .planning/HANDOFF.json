@@ -1,0 +1,76 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-08T04:59:00.820Z",
+  "phase": "01.1",
+  "phase_name": "refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai",
+  "phase_dir": ".planning/phases/01.1-refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai",
+  "plan": 4,
+  "task": 1,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Expand phase 01.1 planning for Spring AI-first alignment",
+      "status": "done",
+      "commit": "uncommitted"
+    },
+    {
+      "id": 2,
+      "name": "Re-verify phase 01.1 on current main branch",
+      "status": "done",
+      "commit": "uncommitted"
+    },
+    {
+      "id": 3,
+      "name": "Plan 01.1-04 implementation approach",
+      "status": "done",
+      "commit": "uncommitted"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 1,
+      "name": "Rename implementation-branded ingestion components to domain-oriented names",
+      "status": "not_started"
+    },
+    {
+      "id": 2,
+      "name": "Promote Spring AI readers to the primary ingestion path and constrain Tika fallback",
+      "status": "not_started"
+    },
+    {
+      "id": 3,
+      "name": "Move chunking toward token splitting while preserving metadata and audit fields",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {
+      "decision": "Spring AI ETL/readers should be the default ingestion pipeline going forward",
+      "rationale": "User wants repo code to remain the policy/control layer while Spring AI becomes the primary ETL base",
+      "phase": "01.1"
+    },
+    {
+      "decision": "Avoid implementation-branded `SpringAi...` class names in ingestion code",
+      "rationale": "User wants domain-oriented naming based on responsibility rather than library choice",
+      "phase": "01.1"
+    },
+    {
+      "decision": "Add a new sub-phase plan 01.1-04 to finish the alignment work inside phase 01.1",
+      "rationale": "Current 01.1 implementation is only a partial step toward the desired architecture",
+      "phase": "01.1"
+    }
+  ],
+  "uncommitted_files": [
+    ".planning/PROJECT.md",
+    ".planning/ROADMAP.md",
+    ".planning/phases/01.1-refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai/01.1-CONTEXT.md",
+    ".planning/phases/01.1-refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai/01.1-04-PLAN.md",
+    ".planning/phases/01.1-refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai/01.1-VERIFICATION.md"
+  ],
+  "next_action": "Start implementation of 01.1-04 with the lowest-risk pass: rename SpringAi-branded parser classes and TextChunker, then extract parser selection into a resolver before changing chunking internals.",
+  "context_notes": "Implementation has not started yet. Exploration and plan-mode work are complete. Context was getting tight, so work paused at the safest checkpoint before code edits. Context7 research confirmed Spring AI ETL APIs needed for token splitting and readers."
+}
