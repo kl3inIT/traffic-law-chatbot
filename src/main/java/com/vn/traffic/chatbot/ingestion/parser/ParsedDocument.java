@@ -10,6 +10,10 @@ public record ParsedDocument(
         String parserVersion,
         List<PageSection> sections
 ) {
+    public ParsedDocument {
+        sections = sections == null ? List.of() : List.copyOf(sections);
+    }
+
     public record PageSection(
             int pageNumber,
             String sectionRef,

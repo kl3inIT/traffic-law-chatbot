@@ -52,6 +52,7 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-advisors-vector-store'
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-pgvector'
     implementation 'org.springframework.ai:spring-ai-rag'
+    implementation 'org.springframework.ai:spring-ai-jsoup-document-reader'
     implementation 'org.liquibase:liquibase-core'
     implementation 'org.apache.tika:tika-core:3.3.0'
     implementation 'org.jsoup:jsoup:1.19.1'
