@@ -47,11 +47,11 @@ Plans:
 
 **Requirements**: PLAT-01, KNOW-01, KNOW-02, KNOW-03, KNOW-04, KNOW-05, KNOW-06
 **Depends on:** Phase 1
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] 01.1-01-PLAN.md — Fix final_url provenance with a safe fetch/result contract and URL snapshot regression coverage
-- [ ] 01.1-02-PLAN.md — Add adapter-based Spring AI HTML parsing behind ParsedDocument while preserving retrieval/inspection metadata
+- [x] 01.1-02-PLAN.md — Add adapter-based Spring AI HTML parsing behind ParsedDocument while preserving retrieval/inspection metadata
 - [ ] 01.1-03-PLAN.md — Run bounded PDF parser parity evaluation and adopt Spring AI PDF only if provenance compatibility is proven
 
 ### Phase 2: Grounded Legal Q&A Core

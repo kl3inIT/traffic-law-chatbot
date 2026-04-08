@@ -33,9 +33,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **KNOW-01**: Admin can ingest PDF legal documents into the knowledge base.
 - [ ] **KNOW-02**: Admin can ingest Word legal documents into the knowledge base.
 - [ ] **KNOW-03**: Admin can ingest structured policy or regulation documents into the knowledge base.
-- [ ] **KNOW-04**: Admin can ingest website content from trusted sources into the knowledge base.
-- [ ] **KNOW-05**: Ingested knowledge items retain provenance metadata including source type and origin.
-- [ ] **KNOW-06**: Only active and trusted knowledge sources are eligible for retrieval in production answers.
+- [x] **KNOW-04**: Admin can ingest website content from trusted sources into the knowledge base.
+- [x] **KNOW-05**: Ingested knowledge items retain provenance metadata including source type and origin.
+- [x] **KNOW-06**: Only active and trusted knowledge sources are eligible for retrieval in production answers.
 
 ### Admin Operations
 
@@ -48,7 +48,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Platform
 
-- [ ] **PLAT-01**: Backend exposes the core chatbot and admin capabilities through REST APIs.
+- [x] **PLAT-01**: Backend exposes the core chatbot and admin capabilities through REST APIs.
 - [ ] **PLAT-02**: Frontend is implemented in Next.js and supports the v1 chat and admin workflows.
 - [ ] **PLAT-03**: System stores operational data, source metadata, and vector embeddings in a persistent backend data layer.
 - [ ] **PLAT-04**: Backend targets Java 25.
