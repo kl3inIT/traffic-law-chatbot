@@ -3,6 +3,8 @@ package com.vn.traffic.chatbot.ingestion.orchestrator;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionStep;
 import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
+import com.vn.traffic.chatbot.ingestion.fetch.FetchResult;
+import com.vn.traffic.chatbot.ingestion.fetch.SafeUrlFetcher;
 import com.vn.traffic.chatbot.ingestion.parser.ParsedDocument;
 import com.vn.traffic.chatbot.ingestion.parser.TikaDocumentParser;
 import com.vn.traffic.chatbot.ingestion.parser.UrlPageParser;
@@ -49,6 +51,7 @@ public class IngestionOrchestrator {
     private final KbSourceFetchSnapshotRepository fetchSnapshotRepo;
     private final TikaDocumentParser tikaDocumentParser;
     private final UrlPageParser urlPageParser;
+    private final SafeUrlFetcher safeUrlFetcher;
     private final TextChunker textChunker;
     private final VectorStore vectorStore;
 
@@ -68,15 +71,21 @@ public class IngestionOrchestrator {
 
             switch (job.getJobType()) {
                 case URL_IMPORT -> {
-                    parsedDoc = urlPageParser.fetchAndParse(version.getCanonicalUrl());
+                    FetchResult fetchResult = safeUrlFetcher.fetch(version.getCanonicalUrl());
                     fetchSnapshotRepo.save(KbSourceFetchSnapshot.builder()
                             .sourceVersionId(version.getId())
-                            .requestedUrl(version.getCanonicalUrl())
-                            .finalUrl(parsedDoc.rawText().isEmpty() ? version.getCanonicalUrl() : version.getCanonicalUrl())
-                            .httpStatus(200)
+                            .requestedUrl(fetchResult.requestedUrl())
+                            .finalUrl(fetchResult.finalUrl())
+                            .httpStatus(fetchResult.httpStatus())
+                            .etag(fetchResult.etag())
+                            .lastModified(fetchResult.lastModified())
                             .build());
-                    // --- PARSE (already done by JSoup) ---
                     transitionStep(job, IngestionStep.PARSE);
+                    parsedDoc = urlPageParser.parseFetchedPage(fetchResult);
+                    version.setParserName(parsedDoc.parserName());
+                    version.setParserVersion(parsedDoc.parserVersion());
+                    version.setMimeType(parsedDoc.mimeType());
+                    versionRepo.save(version);
                 }
                 case FILE_UPLOAD, REINGEST -> {
                     InputStream inputStream = loadFileStream(version.getStorageUri(),
