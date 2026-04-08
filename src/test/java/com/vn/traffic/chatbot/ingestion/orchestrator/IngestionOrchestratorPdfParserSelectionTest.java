@@ -228,6 +228,35 @@ class IngestionOrchestratorPdfParserSelectionTest {
         assertThat(indexedDocument.getMetadata()).containsEntry("contentHash", "hash-1");
     }
 
+    @Test
+    void runPipeline_omitsNullMetadataValuesBeforeVectorStoreInsert() {
+        PipelineFixture fixture = arrangeFileFixture("application/pdf", "law.pdf");
+        fixture.source().setOriginValue(null);
+        ParsedDocument springDoc = new ParsedDocument(
+                "Điều 1",
+                "law.pdf",
+                "application/pdf",
+                "spring-ai-pdf-reader",
+                "2.0.0-M4",
+                List.of(new ParsedDocument.PageSection(1, "page-1", "Điều 1"))
+        );
+        ChunkResult chunk = new ChunkResult("Điều 1", 0, 1, "page-1", "hash-1", "1.0", fixture.source().getId().toString(), fixture.version().getId().toString());
+
+        when(fileIngestionParserResolver.resolve("application/pdf", "law.pdf")).thenReturn(pdfDocumentParser);
+        when(pdfDocumentParser.parse(any(InputStream.class), anyString(), anyString())).thenReturn(springDoc);
+        when(tokenChunkingService.chunk(springDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
+                .thenReturn(List.of(chunk));
+
+        orchestrator.runPipeline(fixture.job().getId()).join();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Document>> documentsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(vectorStore).add(documentsCaptor.capture());
+        Document indexedDocument = documentsCaptor.getValue().getFirst();
+        assertThat(indexedDocument.getMetadata()).doesNotContainKey("origin");
+        assertThat(indexedDocument.getMetadata()).containsEntry("pageNumber", 1);
+    }
+
     private PipelineFixture arrangeFileFixture(String mimeType, String fileName) {
         UUID sourceId = UUID.randomUUID();
         UUID versionId = UUID.randomUUID();

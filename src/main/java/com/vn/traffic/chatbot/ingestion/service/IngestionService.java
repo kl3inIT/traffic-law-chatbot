@@ -23,6 +23,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -108,8 +110,7 @@ public class IngestionService {
                 .build();
         job = jobRepo.save(job);
 
-        // Trigger async pipeline
-        orchestrator.runPipeline(job.getId());
+        schedulePipelineAfterCommit(job.getId());
 
         return new IngestionAcceptedResponse(source.getId(), job.getId(), "QUEUED");
     }
@@ -145,7 +146,7 @@ public class IngestionService {
                 .build();
         job = jobRepo.save(job);
 
-        orchestrator.runPipeline(job.getId());
+        schedulePipelineAfterCommit(job.getId());
 
         return new IngestionAcceptedResponse(source.getId(), job.getId(), "QUEUED");
     }
@@ -187,6 +188,19 @@ public class IngestionService {
         }
         job.setStatus(IngestionJobStatus.CANCELLED);
         return jobRepo.save(job);
+    }
+
+    private void schedulePipelineAfterCommit(UUID jobId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            orchestrator.runPipeline(jobId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                orchestrator.runPipeline(jobId);
+            }
+        });
     }
 
     private SourceType resolveSourceType(String mimeType) {

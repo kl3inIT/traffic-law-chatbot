@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="003" author="system">
+        <sql>CREATE EXTENSION IF NOT EXISTS hstore;</sql>
+        <sql>CREATE EXTENSION IF NOT EXISTS "uuid-ossp";</sql>
+
+        <createTable tableName="kb_vector_store">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="content" type="TEXT"/>
+            <column name="metadata" type="JSONB"/>
+            <column name="embedding" type="vector(1536)"/>
+        </createTable>
+
+        <sql>CREATE INDEX IF NOT EXISTS idx_kb_vector_store_embedding_hnsw ON kb_vector_store USING HNSW (embedding vector_cosine_ops);</sql>
+        <sql>CREATE INDEX IF NOT EXISTS idx_kb_vector_store_metadata_gin ON kb_vector_store USING GIN (metadata jsonb_path_ops);</sql>
+    </changeSet>
+
+</databaseChangeLog>

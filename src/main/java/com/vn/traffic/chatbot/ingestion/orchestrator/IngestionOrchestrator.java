@@ -159,20 +159,26 @@ public class IngestionOrchestrator {
      */
     Map<String, Object> buildMetadata(ChunkResult c, KbSource s) {
         Map<String, Object> meta = new HashMap<>();
-        meta.put("sourceId", s.getId().toString());
-        meta.put("sourceVersionId", c.sourceVersionId());
-        meta.put("sourceType", s.getSourceType().name());
+        putIfNotNull(meta, "sourceId", s.getId() != null ? s.getId().toString() : null);
+        putIfNotNull(meta, "sourceVersionId", c.sourceVersionId());
+        putIfNotNull(meta, "sourceType", s.getSourceType() != null ? s.getSourceType().name() : null);
         meta.put("trusted", "false");
         meta.put("active", "false");
-        meta.put("approvalState", s.getApprovalState().name());
-        meta.put("origin", s.getOriginValue());
+        putIfNotNull(meta, "approvalState", s.getApprovalState() != null ? s.getApprovalState().name() : null);
+        putIfNotNull(meta, "origin", s.getOriginValue());
         meta.put("locationType", c.pageNumber() > 0 ? "page" : "section");
         meta.put("pageNumber", c.pageNumber());
-        meta.put("sectionRef", c.sectionRef());
-        meta.put("contentHash", c.contentHash());
-        meta.put("processingVersion", c.processingVersion());
+        putIfNotNull(meta, "sectionRef", c.sectionRef());
+        putIfNotNull(meta, "contentHash", c.contentHash());
+        putIfNotNull(meta, "processingVersion", c.processingVersion());
         meta.put("chunkOrdinal", c.chunkOrdinal());
         return meta;
+    }
+
+    private void putIfNotNull(Map<String, Object> metadata, String key, Object value) {
+        if (value != null) {
+            metadata.put(key, value);
+        }
     }
 
     private InputStream loadFileStream(String storageUri, String mimeType, String fileName) {
