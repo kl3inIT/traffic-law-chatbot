@@ -16,8 +16,8 @@ java {
 
 repositories {
     mavenCentral()
-    maven { url 'https://repo.spring.io/milestone' }
-    maven { url 'https://repo.spring.io/snapshot' }
+    maven { url = 'https://repo.spring.io/milestone' }
+    maven { url = 'https://repo.spring.io/snapshot' }
 }
 
 ext {
@@ -52,7 +52,9 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-advisors-vector-store'
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-pgvector'
     implementation 'org.springframework.ai:spring-ai-rag'
-    implementation 'org.liquibase:liquibase-core'
+    implementation 'org.springframework.ai:spring-ai-jsoup-document-reader'
+    implementation 'org.springframework.ai:spring-ai-pdf-document-reader'
+    implementation 'org.springframework.boot:spring-boot-starter-liquibase'
     implementation 'org.apache.tika:tika-core:3.3.0'
     implementation 'org.jsoup:jsoup:1.19.1'
     implementation 'org.springframework.boot:spring-boot-starter-validation'

@@ -6,4 +6,5 @@
     https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
     <include file="db/changelog/001-schema-foundation.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/002-ingestion-job-indexes.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/003-vector-store-schema.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>
