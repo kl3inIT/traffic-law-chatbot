@@ -11,6 +11,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,9 +27,13 @@ public class ChatService {
     private final CitationMapper citationMapper;
     private final AnswerComposer answerComposer;
     private final ChatPromptFactory chatPromptFactory;
+    @Value("${app.chat.retrieval.top-k:5}")
+    private int retrievalTopK;
+    @Value("${app.chat.grounding.limited-threshold:2}")
+    private int limitedGroundingThreshold;
 
     public ChatAnswerResponse answer(String question) {
-        SearchRequest request = retrievalPolicy.buildRequest(question, 5);
+        SearchRequest request = retrievalPolicy.buildRequest(question, retrievalTopK);
         List<Document> documents = vectorStore.similaritySearch(request);
         GroundingStatus groundingStatus = determineGroundingStatus(documents.size());
         List<CitationResponse> citations = citationMapper.toCitations(documents);
@@ -52,7 +57,7 @@ public class ChatService {
         if (documentCount <= 0) {
             return GroundingStatus.REFUSED;
         }
-        if (documentCount <= 2) {
+        if (documentCount <= limitedGroundingThreshold) {
             return GroundingStatus.LIMITED_GROUNDING;
         }
         return GroundingStatus.GROUNDED;

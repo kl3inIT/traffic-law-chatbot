@@ -34,6 +34,13 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY:}
 
+app:
+  chat:
+    retrieval:
+      top-k: 5
+    grounding:
+      limited-threshold: 2
+
 server:
   port: 8088
 

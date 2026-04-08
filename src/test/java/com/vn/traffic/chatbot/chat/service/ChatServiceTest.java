@@ -16,6 +16,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -68,6 +69,8 @@ class ChatServiceTest {
                 answerComposer,
                 chatPromptFactory
         );
+        ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
+        ReflectionTestUtils.setField(chatService, "limitedGroundingThreshold", 2);
     }
 
     @Test
