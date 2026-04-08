@@ -5,6 +5,7 @@ public final class ApiPaths {
     private ApiPaths() {}
 
     public static final String ADMIN_BASE = "/api/v1/admin";
+    public static final String CHAT = "/api/v1/chat";
 
     // Source endpoints
     public static final String SOURCES = ADMIN_BASE + "/sources";
