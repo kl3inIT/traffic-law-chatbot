@@ -41,18 +41,19 @@ Plans:
 4. Ingested sources retain provenance metadata such as type and origin.
 5. Retrieval is constrained to active and trusted sources only.
 
-### Phase 01.1: Refactor ingestion parser architecture to a hybrid Spring AI approach while preserving SSRF safety, provenance, source_version/job boundaries, and fixing final_url tracking (INSERTED)
+### Phase 01.1: Refactor ingestion parser architecture toward a Spring AI-first ETL pipeline while preserving SSRF safety, provenance, source_version/job boundaries, and fixing final_url tracking (INSERTED)
 
-**Goal:** Fix URL provenance first, then refactor URL HTML ingestion toward a hybrid Spring AI parser path without weakening SSRF safety, provenance guarantees, async job visibility, or retrieval-gating behavior.
+**Goal:** Fix URL provenance first, then promote Spring AI ETL/readers toward the primary ingestion path without weakening SSRF safety, provenance guarantees, async job visibility, retrieval-gating behavior, or auditability.
 
 **Requirements**: PLAT-01, KNOW-01, KNOW-02, KNOW-03, KNOW-04, KNOW-05, KNOW-06
 **Depends on:** Phase 1
-**Plans:** 1/3 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
-- [ ] 01.1-01-PLAN.md — Fix final_url provenance with a safe fetch/result contract and URL snapshot regression coverage
+- [x] 01.1-01-PLAN.md — Fix final_url provenance with a safe fetch/result contract and URL snapshot regression coverage
 - [x] 01.1-02-PLAN.md — Add adapter-based Spring AI HTML parsing behind ParsedDocument while preserving retrieval/inspection metadata
-- [ ] 01.1-03-PLAN.md — Run bounded PDF parser parity evaluation and adopt Spring AI PDF only if provenance compatibility is proven
+- [x] 01.1-03-PLAN.md — Run bounded PDF parser parity evaluation and adopt Spring AI PDF only if provenance compatibility is proven
+- [ ] 01.1-04-PLAN.md — Promote Spring AI ETL/readers to the primary ingestion path, replace safe remaining default Tika paths, and move chunking toward token splitting while preserving metadata and auditability
 
 ### Phase 2: Grounded Legal Q&A Core
 **Goal:** Deliver Vietnamese-first source-backed legal Q&A with visible citations and practical legal guidance.

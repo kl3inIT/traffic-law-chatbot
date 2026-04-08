@@ -2,7 +2,7 @@ package com.vn.traffic.chatbot.ingestion.parser;
 
 import com.vn.traffic.chatbot.ingestion.fetch.FetchResult;
 import com.vn.traffic.chatbot.ingestion.fetch.SafeUrlFetcher;
-import com.vn.traffic.chatbot.ingestion.parser.springai.SpringAiHtmlParser;
+import com.vn.traffic.chatbot.ingestion.parser.springai.HtmlDocumentParser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class UrlPageParser {
 
     private final SafeUrlFetcher safeUrlFetcher;
-    private final SpringAiHtmlParser springAiHtmlParser;
+    private final HtmlDocumentParser htmlDocumentParser;
 
     public void validateHost(String rawUrl) {
         safeUrlFetcher.validateHost(rawUrl);
@@ -26,6 +26,6 @@ public class UrlPageParser {
     }
 
     public ParsedDocument parseFetchedPage(FetchResult fetchResult) {
-        return springAiHtmlParser.parse(fetchResult);
+        return htmlDocumentParser.parse(fetchResult);
     }
 }

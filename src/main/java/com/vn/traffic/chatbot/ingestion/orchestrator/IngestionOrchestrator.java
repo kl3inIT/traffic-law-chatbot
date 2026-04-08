@@ -4,13 +4,12 @@ import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionStep;
 import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
 import com.vn.traffic.chatbot.ingestion.chunking.ChunkResult;
-import com.vn.traffic.chatbot.ingestion.chunking.TextChunker;
+import com.vn.traffic.chatbot.ingestion.chunking.TokenChunkingService;
 import com.vn.traffic.chatbot.ingestion.fetch.FetchResult;
 import com.vn.traffic.chatbot.ingestion.fetch.SafeUrlFetcher;
 import com.vn.traffic.chatbot.ingestion.parser.ParsedDocument;
-import com.vn.traffic.chatbot.ingestion.parser.TikaDocumentParser;
+import com.vn.traffic.chatbot.ingestion.parser.FileIngestionParserResolver;
 import com.vn.traffic.chatbot.ingestion.parser.UrlPageParser;
-import com.vn.traffic.chatbot.ingestion.parser.springai.SpringAiPdfParser;
 import com.vn.traffic.chatbot.ingestion.repo.KbIngestionJobRepository;
 import com.vn.traffic.chatbot.ingestion.repo.KbSourceFetchSnapshotRepository;
 import com.vn.traffic.chatbot.ingestion.domain.KbSourceFetchSnapshot;
@@ -50,11 +49,10 @@ public class IngestionOrchestrator {
     private final KbIngestionJobRepository jobRepo;
     private final KbSourceVersionRepository versionRepo;
     private final KbSourceFetchSnapshotRepository fetchSnapshotRepo;
-    private final TikaDocumentParser tikaDocumentParser;
-    private final SpringAiPdfParser springAiPdfParser;
+    private final FileIngestionParserResolver fileIngestionParserResolver;
     private final UrlPageParser urlPageParser;
     private final SafeUrlFetcher safeUrlFetcher;
-    private final TextChunker textChunker;
+    private final TokenChunkingService tokenChunkingService;
     private final VectorStore vectorStore;
 
     @Async("ingestionExecutor")
@@ -94,7 +92,7 @@ public class IngestionOrchestrator {
                             version.getMimeType(), version.getFileName());
                     // --- PARSE ---
                     transitionStep(job, IngestionStep.PARSE);
-                    parsedDoc = selectFileParser(version.getMimeType(), version.getFileName())
+                    parsedDoc = fileIngestionParserResolver.resolve(version.getMimeType(), version.getFileName())
                             .parse(inputStream, version.getMimeType(), version.getFileName());
                     version.setParserName(parsedDoc.parserName());
                     version.setParserVersion(parsedDoc.parserVersion());
@@ -107,10 +105,13 @@ public class IngestionOrchestrator {
             transitionStep(job, IngestionStep.CHUNK);
             String processingVersion = version.getProcessingVersion() != null
                     ? version.getProcessingVersion() : "1.0";
-            List<ChunkResult> chunks = textChunker.chunk(parsedDoc,
+            List<ChunkResult> chunks = tokenChunkingService.chunk(parsedDoc,
                     source.getId().toString(),
                     version.getId().toString(),
                     processingVersion);
+            version.setChunkingStrategy(tokenChunkingService.strategy());
+            version.setChunkingVersion(tokenChunkingService.version());
+            versionRepo.save(version);
 
             // --- EMBED + INDEX ---
             transitionStep(job, IngestionStep.EMBED);
@@ -140,13 +141,6 @@ public class IngestionOrchestrator {
         }
 
         return CompletableFuture.completedFuture(null);
-    }
-
-    private com.vn.traffic.chatbot.ingestion.parser.DocumentParser selectFileParser(String mimeType, String fileName) {
-        if (springAiPdfParser.isSupported(mimeType, fileName)) {
-            return springAiPdfParser;
-        }
-        return tikaDocumentParser;
     }
 
     private void transitionStep(KbIngestionJob job, IngestionStep step) {

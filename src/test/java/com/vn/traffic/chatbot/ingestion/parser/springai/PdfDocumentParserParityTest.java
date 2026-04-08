@@ -1,7 +1,7 @@
 package com.vn.traffic.chatbot.ingestion.parser.springai;
 
 import com.vn.traffic.chatbot.ingestion.chunking.ChunkResult;
-import com.vn.traffic.chatbot.ingestion.chunking.TextChunker;
+import com.vn.traffic.chatbot.ingestion.chunking.TokenChunkingService;
 import com.vn.traffic.chatbot.ingestion.parser.ParsedDocument;
 import com.vn.traffic.chatbot.ingestion.parser.TikaDocumentParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -18,14 +18,14 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SpringAiPdfParserParityTest {
+class PdfDocumentParserParityTest {
 
     private final TikaDocumentParser tikaDocumentParser = new TikaDocumentParser();
-    private final TextChunker textChunker = new TextChunker();
+    private final TokenChunkingService tokenChunkingService = new TokenChunkingService();
 
     @Test
     void parse_mapsMultipagePdfIntoPageAwareSectionsWithStableRefs() throws Exception {
-        SpringAiPdfParser parser = new SpringAiPdfParser();
+        PdfDocumentParser parser = new PdfDocumentParser();
 
         ParsedDocument parsedDocument = parser.parse(
                 new ByteArrayInputStream(multiPagePdfBytes()),
@@ -45,7 +45,7 @@ class SpringAiPdfParserParityTest {
 
     @Test
     void parse_exposesExplicitParserIdentityAndVersionForPersistence() throws Exception {
-        SpringAiPdfParser parser = new SpringAiPdfParser();
+        PdfDocumentParser parser = new PdfDocumentParser();
 
         ParsedDocument parsedDocument = parser.parse(
                 new ByteArrayInputStream(singlePagePdfBytes("Speed limit article 10")),
@@ -59,14 +59,14 @@ class SpringAiPdfParserParityTest {
 
     @Test
     void parse_preservesChunkMetadataCompatibilityThroughExistingChunker() throws Exception {
-        SpringAiPdfParser parser = new SpringAiPdfParser();
+        PdfDocumentParser parser = new PdfDocumentParser();
         ParsedDocument parsedDocument = parser.parse(
                 new ByteArrayInputStream(multiPagePdfBytes()),
                 "application/pdf",
                 "traffic-law.pdf"
         );
 
-        List<ChunkResult> chunks = textChunker.chunk(parsedDocument, "source-1", "version-1", "1.0");
+        List<ChunkResult> chunks = tokenChunkingService.chunk(parsedDocument, "source-1", "version-1", "1.0");
 
         assertThat(chunks).isNotEmpty();
         assertThat(chunks).allSatisfy(chunk -> {
@@ -80,14 +80,14 @@ class SpringAiPdfParserParityTest {
     @Test
     void parse_matchesCurrentTikaPdfProvenanceContractForMultipageSections() throws Exception {
         byte[] pdfBytes = multiPagePdfBytes();
-        SpringAiPdfParser springAiParser = new SpringAiPdfParser();
+        PdfDocumentParser pdfDocumentParser = new PdfDocumentParser();
 
         ParsedDocument tikaDocument = tikaDocumentParser.parse(
                 new ByteArrayInputStream(pdfBytes),
                 "application/pdf",
                 "traffic-law.pdf"
         );
-        ParsedDocument springAiDocument = springAiParser.parse(
+        ParsedDocument pdfDocument = pdfDocumentParser.parse(
                 new ByteArrayInputStream(pdfBytes),
                 "application/pdf",
                 "traffic-law.pdf"
@@ -95,12 +95,12 @@ class SpringAiPdfParserParityTest {
 
         assertThat(tikaDocument.parserName()).isEqualTo("tika");
         assertThat(tikaDocument.parserVersion()).isEqualTo("3.3.0");
-        assertThat(springAiDocument.sections()).hasSize(2);
-        assertThat(springAiDocument.sections()).extracting(ParsedDocument.PageSection::pageNumber)
+        assertThat(pdfDocument.sections()).hasSize(2);
+        assertThat(pdfDocument.sections()).extracting(ParsedDocument.PageSection::pageNumber)
                 .containsExactly(1, 2);
-        assertThat(springAiDocument.sections()).extracting(ParsedDocument.PageSection::sectionRef)
+        assertThat(pdfDocument.sections()).extracting(ParsedDocument.PageSection::sectionRef)
                 .containsExactly("page-1", "page-2");
-        assertThat(textChunker.chunk(springAiDocument, "source-1", "version-1", "1.0"))
+        assertThat(tokenChunkingService.chunk(pdfDocument, "source-1", "version-1", "1.0"))
                 .allSatisfy(chunk -> {
                     assertThat(chunk.pageNumber()).isGreaterThan(0);
                     assertThat(chunk.sectionRef()).startsWith("page-");

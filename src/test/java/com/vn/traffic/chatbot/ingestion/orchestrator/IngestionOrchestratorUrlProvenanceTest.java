@@ -1,6 +1,6 @@
 package com.vn.traffic.chatbot.ingestion.orchestrator;
 
-import com.vn.traffic.chatbot.ingestion.chunking.TextChunker;
+import com.vn.traffic.chatbot.ingestion.chunking.TokenChunkingService;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionStep;
 import com.vn.traffic.chatbot.ingestion.domain.JobType;
@@ -58,7 +58,7 @@ class IngestionOrchestratorUrlProvenanceTest {
     private SafeUrlFetcher safeUrlFetcher;
 
     @Mock
-    private TextChunker textChunker;
+    private TokenChunkingService tokenChunkingService;
 
     @Mock
     private VectorStore vectorStore;
@@ -115,7 +115,7 @@ class IngestionOrchestratorUrlProvenanceTest {
         when(versionRepo.findById(versionId)).thenReturn(Optional.of(version));
         when(safeUrlFetcher.fetch(requestedUrl)).thenReturn(fetchResult);
         when(urlPageParser.parseFetchedPage(fetchResult)).thenReturn(parsedDocument);
-        when(textChunker.chunk(parsedDocument, sourceId.toString(), versionId.toString(), "1.0"))
+        when(tokenChunkingService.chunk(parsedDocument, sourceId.toString(), versionId.toString(), "1.0"))
                 .thenReturn(List.of());
         when(versionRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jobRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -182,7 +182,7 @@ class IngestionOrchestratorUrlProvenanceTest {
         when(versionRepo.findById(versionId)).thenReturn(Optional.of(version));
         when(safeUrlFetcher.fetch(canonicalUrl)).thenReturn(fetchResult);
         when(urlPageParser.parseFetchedPage(fetchResult)).thenReturn(parsedDocument);
-        when(textChunker.chunk(parsedDocument, sourceId.toString(), versionId.toString(), "1.0"))
+        when(tokenChunkingService.chunk(parsedDocument, sourceId.toString(), versionId.toString(), "1.0"))
                 .thenReturn(List.of());
         when(versionRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         doAnswer(invocation -> {

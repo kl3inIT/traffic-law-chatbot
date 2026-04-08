@@ -52,6 +52,8 @@ Knowledge ingestion in v1 must support trusted sources across PDF/Word legal doc
 - **Frontend**: Next.js with existing AI UI library — should prefer stable, easy-to-implement, maintainable UI components rather than custom-heavy chat UI.
 - **Language**: Vietnamese-first — prompts, UX, and answer quality should prioritize Vietnamese usage in v1.
 - **Data sources**: Trusted legal content only — ingestion should prioritize official and trustworthy legal/regulatory materials.
+- **Ingestion architecture**: Spring AI ETL/readers should be the default ingestion pipeline, while repo-owned code remains the policy/control layer for SSRF-safe fetch, provenance, orchestration, metadata compatibility, and auditability.
+- **Naming**: Prefer domain-oriented class/component names based on responsibility; avoid implementation-specific `SpringAi...` prefixes in new or renamed ingestion components.
 - **Scope**: Traffic law first — traffic-condition features should not drive v1 architecture or delivery scope.
 
 ## Key Decisions

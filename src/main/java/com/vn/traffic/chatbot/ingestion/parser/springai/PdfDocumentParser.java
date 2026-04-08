@@ -19,7 +19,7 @@ import java.util.Map;
 
 @Component
 @Slf4j
-public class SpringAiPdfParser implements DocumentParser {
+public class PdfDocumentParser implements DocumentParser {
 
     static final String PARSER_NAME = "spring-ai-pdf-reader";
     static final String PARSER_VERSION = "2.0.0-M4";
@@ -31,7 +31,7 @@ public class SpringAiPdfParser implements DocumentParser {
     @Override
     public ParsedDocument parse(InputStream content, String mimeType, String fileName) {
         if (!isSupported(mimeType, fileName)) {
-            throw new UnsupportedOperationException("SpringAiPdfParser supports PDF inputs only");
+            throw new UnsupportedOperationException("PdfDocumentParser supports PDF inputs only");
         }
 
         try {

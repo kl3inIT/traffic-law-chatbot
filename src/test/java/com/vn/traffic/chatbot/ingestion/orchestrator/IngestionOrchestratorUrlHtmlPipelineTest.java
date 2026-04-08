@@ -1,7 +1,7 @@
 package com.vn.traffic.chatbot.ingestion.orchestrator;
 
 import com.vn.traffic.chatbot.ingestion.chunking.ChunkResult;
-import com.vn.traffic.chatbot.ingestion.chunking.TextChunker;
+import com.vn.traffic.chatbot.ingestion.chunking.TokenChunkingService;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.JobType;
 import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
@@ -58,7 +58,7 @@ class IngestionOrchestratorUrlHtmlPipelineTest {
     private SafeUrlFetcher safeUrlFetcher;
 
     @Mock
-    private TextChunker textChunker;
+    private TokenChunkingService tokenChunkingService;
 
     @Mock
     private VectorStore vectorStore;
@@ -72,11 +72,11 @@ class IngestionOrchestratorUrlHtmlPipelineTest {
 
         orchestrator.runPipeline(fixture.job().getId()).join();
 
-        InOrder inOrder = inOrder(safeUrlFetcher, fetchSnapshotRepo, urlPageParser, textChunker, vectorStore);
+        InOrder inOrder = inOrder(safeUrlFetcher, fetchSnapshotRepo, urlPageParser, tokenChunkingService, vectorStore);
         inOrder.verify(safeUrlFetcher).fetch(fixture.version().getCanonicalUrl());
         inOrder.verify(fetchSnapshotRepo).save(any());
         inOrder.verify(urlPageParser).parseFetchedPage(fixture.fetchResult());
-        inOrder.verify(textChunker).chunk(fixture.parsedDocument(), fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0");
+        inOrder.verify(tokenChunkingService).chunk(fixture.parsedDocument(), fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0");
         inOrder.verify(vectorStore).add(any());
     }
 
@@ -126,6 +126,8 @@ class IngestionOrchestratorUrlHtmlPipelineTest {
 
         assertThat(fixture.version().getParserName()).isEqualTo("spring-ai-jsoup-reader");
         assertThat(fixture.version().getParserVersion()).isEqualTo("2.0.0-M4");
+        assertThat(fixture.version().getChunkingStrategy()).isEqualTo("spring-ai-token-text-splitter");
+        assertThat(fixture.version().getChunkingVersion()).isEqualTo("2.0.0-M4");
         assertThat(fixture.version().getMimeType()).isEqualTo("text/html");
         assertThat(fixture.version().getIndexStatus()).isEqualTo("INDEXED");
         assertThat(fixture.job().getStatus()).isEqualTo(IngestionJobStatus.SUCCEEDED);
@@ -190,8 +192,10 @@ class IngestionOrchestratorUrlHtmlPipelineTest {
         when(versionRepo.findById(versionId)).thenReturn(Optional.of(version));
         when(safeUrlFetcher.fetch(canonicalUrl)).thenReturn(fetchResult);
         when(urlPageParser.parseFetchedPage(fetchResult)).thenReturn(parsedDocument);
-        when(textChunker.chunk(parsedDocument, sourceId.toString(), versionId.toString(), "1.0"))
+        when(tokenChunkingService.chunk(parsedDocument, sourceId.toString(), versionId.toString(), "1.0"))
                 .thenReturn(List.of(chunkResult));
+        when(tokenChunkingService.strategy()).thenReturn("spring-ai-token-text-splitter");
+        when(tokenChunkingService.version()).thenReturn("2.0.0-M4");
         when(versionRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jobRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 

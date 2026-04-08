@@ -1,14 +1,17 @@
 package com.vn.traffic.chatbot.ingestion.orchestrator;
 
 import com.vn.traffic.chatbot.ingestion.chunking.ChunkResult;
-import com.vn.traffic.chatbot.ingestion.chunking.TextChunker;
+import com.vn.traffic.chatbot.ingestion.chunking.TokenChunkingService;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.JobType;
 import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
+import com.vn.traffic.chatbot.common.error.AppException;
+import com.vn.traffic.chatbot.common.error.ErrorCode;
+import com.vn.traffic.chatbot.ingestion.parser.DocumentParser;
+import com.vn.traffic.chatbot.ingestion.parser.FileIngestionParserResolver;
 import com.vn.traffic.chatbot.ingestion.parser.ParsedDocument;
-import com.vn.traffic.chatbot.ingestion.parser.TikaDocumentParser;
 import com.vn.traffic.chatbot.ingestion.parser.UrlPageParser;
-import com.vn.traffic.chatbot.ingestion.parser.springai.SpringAiPdfParser;
+import com.vn.traffic.chatbot.ingestion.parser.springai.PdfDocumentParser;
 import com.vn.traffic.chatbot.ingestion.repo.KbIngestionJobRepository;
 import com.vn.traffic.chatbot.ingestion.repo.KbSourceFetchSnapshotRepository;
 import com.vn.traffic.chatbot.source.domain.KbSource;
@@ -30,6 +33,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -49,16 +53,16 @@ class IngestionOrchestratorPdfParserSelectionTest {
     private KbSourceFetchSnapshotRepository fetchSnapshotRepo;
 
     @Mock
-    private TikaDocumentParser tikaDocumentParser;
+    private FileIngestionParserResolver fileIngestionParserResolver;
 
     @Mock
-    private SpringAiPdfParser springAiPdfParser;
+    private PdfDocumentParser pdfDocumentParser;
 
     @Mock
     private UrlPageParser urlPageParser;
 
     @Mock
-    private TextChunker textChunker;
+    private TokenChunkingService tokenChunkingService;
 
     @Mock
     private VectorStore vectorStore;
@@ -67,7 +71,7 @@ class IngestionOrchestratorPdfParserSelectionTest {
     private IngestionOrchestrator orchestrator;
 
     @Test
-    void runPipeline_usesSpringAiPdfParserForPdfWhenParityIsAvailable() {
+    void runPipeline_usesPdfDocumentParserForPdfWhenParityIsAvailable() {
         PipelineFixture fixture = arrangeFileFixture("application/pdf", "law.pdf");
         ParsedDocument springDoc = new ParsedDocument(
                 "Điều 1\fĐiều 2",
@@ -82,17 +86,19 @@ class IngestionOrchestratorPdfParserSelectionTest {
         );
         ChunkResult chunk = new ChunkResult("Điều 1", 0, 1, "page-1", "hash-1", "1.0", fixture.source().getId().toString(), fixture.version().getId().toString());
 
-        when(springAiPdfParser.isSupported("application/pdf", "law.pdf")).thenReturn(true);
-        when(springAiPdfParser.parse(any(InputStream.class), anyString(), anyString())).thenReturn(springDoc);
-        when(textChunker.chunk(springDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
+        when(fileIngestionParserResolver.resolve("application/pdf", "law.pdf")).thenReturn(pdfDocumentParser);
+        when(pdfDocumentParser.parse(any(InputStream.class), anyString(), anyString())).thenReturn(springDoc);
+        when(tokenChunkingService.chunk(springDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
                 .thenReturn(List.of(chunk));
 
         orchestrator.runPipeline(fixture.job().getId()).join();
 
-        verify(springAiPdfParser).parse(any(InputStream.class), anyString(), anyString());
-        verify(tikaDocumentParser, never()).parse(any(InputStream.class), anyString(), anyString());
+        verify(pdfDocumentParser).parse(any(InputStream.class), anyString(), anyString());
+        verify(fileIngestionParserResolver).resolve("application/pdf", "law.pdf");
         assertThat(fixture.version().getParserName()).isEqualTo("spring-ai-pdf-reader");
         assertThat(fixture.version().getParserVersion()).isEqualTo("2.0.0-M4");
+        assertThat(fixture.version().getChunkingStrategy()).isEqualTo("spring-ai-token-text-splitter");
+        assertThat(fixture.version().getChunkingVersion()).isEqualTo("2.0.0-M4");
     }
 
     @Test
@@ -108,16 +114,16 @@ class IngestionOrchestratorPdfParserSelectionTest {
         );
         ChunkResult chunk = new ChunkResult("Word content", 0, 1, "full", "hash-1", "1.0", fixture.source().getId().toString(), fixture.version().getId().toString());
 
-        when(springAiPdfParser.isSupported("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "law.docx"))
-                .thenReturn(false);
-        when(tikaDocumentParser.parse(any(InputStream.class), anyString(), anyString())).thenReturn(tikaDoc);
-        when(textChunker.chunk(tikaDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
+        DocumentParser tikaFallbackParser = (content, mimeType, fileName) -> tikaDoc;
+        when(fileIngestionParserResolver.resolve("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "law.docx"))
+                .thenReturn(tikaFallbackParser);
+        when(tokenChunkingService.chunk(tikaDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
                 .thenReturn(List.of(chunk));
 
         orchestrator.runPipeline(fixture.job().getId()).join();
 
-        verify(tikaDocumentParser).parse(any(InputStream.class), anyString(), anyString());
-        verify(springAiPdfParser, never()).parse(any(InputStream.class), anyString(), anyString());
+        verify(fileIngestionParserResolver).resolve("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "law.docx");
+        verify(pdfDocumentParser, never()).parse(any(InputStream.class), anyString(), anyString());
         assertThat(fixture.version().getParserName()).isEqualTo("tika");
         assertThat(fixture.version().getParserVersion()).isEqualTo("3.3.0");
     }
@@ -138,16 +144,58 @@ class IngestionOrchestratorPdfParserSelectionTest {
         );
         ChunkResult chunk = new ChunkResult("Điều 1", 0, 1, "page-1", "hash-1", "1.0", fixture.source().getId().toString(), fixture.version().getId().toString());
 
-        when(springAiPdfParser.isSupported("application/pdf", "law.pdf")).thenReturn(false);
-        when(tikaDocumentParser.parse(any(InputStream.class), anyString(), anyString())).thenReturn(tikaDoc);
-        when(textChunker.chunk(tikaDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
+        DocumentParser tikaFallbackParser = (content, mimeType, fileName) -> tikaDoc;
+        when(fileIngestionParserResolver.resolve("application/pdf", "law.pdf"))
+                .thenReturn(tikaFallbackParser);
+        when(tokenChunkingService.chunk(tikaDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
                 .thenReturn(List.of(chunk));
 
         orchestrator.runPipeline(fixture.job().getId()).join();
 
-        verify(tikaDocumentParser).parse(any(InputStream.class), anyString(), anyString());
-        verify(springAiPdfParser, never()).parse(any(InputStream.class), anyString(), anyString());
+        verify(fileIngestionParserResolver).resolve("application/pdf", "law.pdf");
+        verify(pdfDocumentParser, never()).parse(any(InputStream.class), anyString(), anyString());
         assertThat(fixture.version().getParserName()).isEqualTo("tika");
+    }
+
+    @Test
+    void runPipeline_rejectsUnsupportedFormatsWhenNoFallbackIsAllowed() {
+        UUID sourceId = UUID.randomUUID();
+        UUID versionId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+
+        KbSource source = KbSource.builder()
+                .id(sourceId)
+                .sourceType(SourceType.STRUCTURED_REGULATION)
+                .originValue("law.txt")
+                .approvalState(com.vn.traffic.chatbot.source.domain.ApprovalState.PENDING)
+                .title("law.txt")
+                .build();
+        KbSourceVersion version = KbSourceVersion.builder()
+                .id(versionId)
+                .source(source)
+                .storageUri("")
+                .mimeType("text/plain")
+                .fileName("law.txt")
+                .processingVersion("1.0")
+                .build();
+        KbIngestionJob job = KbIngestionJob.builder()
+                .id(jobId)
+                .source(source)
+                .sourceVersionId(versionId)
+                .jobType(JobType.FILE_UPLOAD)
+                .status(IngestionJobStatus.QUEUED)
+                .build();
+
+        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
+        when(versionRepo.findById(versionId)).thenReturn(Optional.of(version));
+        when(jobRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(fileIngestionParserResolver.resolve("text/plain", "law.txt"))
+                .thenThrow(new AppException(ErrorCode.VALIDATION_ERROR, "Unsupported ingestion format: text/plain"));
+
+        orchestrator.runPipeline(jobId).join();
+
+        assertThat(job.getStatus()).isEqualTo(IngestionJobStatus.FAILED);
+        assertThat(job.getErrorMessage()).contains("Unsupported ingestion format");
     }
 
     @Test
@@ -163,9 +211,9 @@ class IngestionOrchestratorPdfParserSelectionTest {
         );
         ChunkResult chunk = new ChunkResult("Điều 1", 0, 1, "page-1", "hash-1", "1.0", fixture.source().getId().toString(), fixture.version().getId().toString());
 
-        when(springAiPdfParser.isSupported("application/pdf", "law.pdf")).thenReturn(true);
-        when(springAiPdfParser.parse(any(InputStream.class), anyString(), anyString())).thenReturn(springDoc);
-        when(textChunker.chunk(springDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
+        when(fileIngestionParserResolver.resolve("application/pdf", "law.pdf")).thenReturn(pdfDocumentParser);
+        when(pdfDocumentParser.parse(any(InputStream.class), anyString(), anyString())).thenReturn(springDoc);
+        when(tokenChunkingService.chunk(springDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
                 .thenReturn(List.of(chunk));
 
         orchestrator.runPipeline(fixture.job().getId()).join();
@@ -210,6 +258,8 @@ class IngestionOrchestratorPdfParserSelectionTest {
 
         when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
         when(versionRepo.findById(versionId)).thenReturn(Optional.of(version));
+        when(tokenChunkingService.strategy()).thenReturn("spring-ai-token-text-splitter");
+        when(tokenChunkingService.version()).thenReturn("2.0.0-M4");
         when(versionRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jobRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 

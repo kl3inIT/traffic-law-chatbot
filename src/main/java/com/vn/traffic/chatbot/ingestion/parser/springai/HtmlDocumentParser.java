@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Component
 @Slf4j
-public class SpringAiHtmlParser implements DocumentParser {
+public class HtmlDocumentParser implements DocumentParser {
 
     static final String PARSER_NAME = "spring-ai-jsoup-reader";
     static final String PARSER_VERSION = "2.0.0-M4";
@@ -33,7 +33,7 @@ public class SpringAiHtmlParser implements DocumentParser {
 
     @Override
     public ParsedDocument parse(java.io.InputStream content, String mimeType, String fileName) {
-        throw new UnsupportedOperationException("SpringAiHtmlParser expects a FetchResult input");
+        throw new UnsupportedOperationException("HtmlDocumentParser expects a FetchResult input");
     }
 
     @Override

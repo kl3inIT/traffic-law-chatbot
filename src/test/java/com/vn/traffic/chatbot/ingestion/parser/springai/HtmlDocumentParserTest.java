@@ -9,9 +9,9 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SpringAiHtmlParserTest {
+class HtmlDocumentParserTest {
 
-    private final SpringAiHtmlParser parser = new SpringAiHtmlParser();
+    private final HtmlDocumentParser parser = new HtmlDocumentParser();
 
     @Test
     void parse_mapsFetchedHtmlIntoParsedDocumentWithoutLeakingSpringAiTypes() {
