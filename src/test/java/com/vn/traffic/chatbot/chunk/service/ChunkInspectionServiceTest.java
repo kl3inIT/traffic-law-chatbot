@@ -106,8 +106,10 @@ class ChunkInspectionServiceTest {
 
     @Test
     void getIndexSummary_returnsAggregatedCounts() {
+        // getRetrievalReadinessCounts: approved=4, trusted=3, active=2, eligible=1
+        // getIndexSummary: totalChunks=10, pendingApproval=6
         when(jdbcTemplate.queryForObject(anyString(), eq(Long.class)))
-                .thenReturn(10L, 4L, 3L, 2L, 6L);
+                .thenReturn(4L, 3L, 2L, 1L, 10L, 6L);
 
         IndexSummaryResponse result = chunkInspectionService.getIndexSummary();
 
@@ -116,7 +118,7 @@ class ChunkInspectionServiceTest {
         assertThat(result.trustedChunks()).isEqualTo(3L);
         assertThat(result.activeChunks()).isEqualTo(2L);
         assertThat(result.pendingApprovalChunks()).isEqualTo(6L);
-        assertThat(result.failedChunks()).isEqualTo(0L);
-        verify(jdbcTemplate, times(5)).queryForObject(anyString(), eq(Long.class));
+        assertThat(result.eligibleChunks()).isEqualTo(1L);
+        verify(jdbcTemplate, times(6)).queryForObject(anyString(), eq(Long.class));
     }
 }

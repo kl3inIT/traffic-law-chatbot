@@ -1,5 +1,6 @@
 package com.vn.traffic.chatbot.ingestion.orchestrator;
 
+import com.vn.traffic.chatbot.ingestion.chunking.ChunkResult;
 import com.vn.traffic.chatbot.ingestion.chunking.TokenChunkingService;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionStep;
@@ -9,7 +10,7 @@ import com.vn.traffic.chatbot.ingestion.domain.KbSourceFetchSnapshot;
 import com.vn.traffic.chatbot.ingestion.fetch.FetchResult;
 import com.vn.traffic.chatbot.ingestion.fetch.SafeUrlFetcher;
 import com.vn.traffic.chatbot.ingestion.parser.ParsedDocument;
-import com.vn.traffic.chatbot.ingestion.parser.TikaDocumentParser;
+import com.vn.traffic.chatbot.ingestion.parser.FileIngestionParserResolver;
 import com.vn.traffic.chatbot.ingestion.parser.UrlPageParser;
 import com.vn.traffic.chatbot.ingestion.repo.KbIngestionJobRepository;
 import com.vn.traffic.chatbot.ingestion.repo.KbSourceFetchSnapshotRepository;
@@ -49,7 +50,7 @@ class IngestionOrchestratorUrlProvenanceTest {
     private KbSourceFetchSnapshotRepository fetchSnapshotRepo;
 
     @Mock
-    private TikaDocumentParser tikaDocumentParser;
+    private FileIngestionParserResolver fileIngestionParserResolver;
 
     @Mock
     private UrlPageParser urlPageParser;
@@ -116,7 +117,9 @@ class IngestionOrchestratorUrlProvenanceTest {
         when(safeUrlFetcher.fetch(requestedUrl)).thenReturn(fetchResult);
         when(urlPageParser.parseFetchedPage(fetchResult)).thenReturn(parsedDocument);
         when(tokenChunkingService.chunk(parsedDocument, sourceId.toString(), versionId.toString(), "1.0"))
-                .thenReturn(List.of());
+                .thenReturn(List.of(new ChunkResult("Noi dung", 1, 1, "full", "hash1", "1.0", sourceId.toString(), versionId.toString())));
+        when(tokenChunkingService.strategy()).thenReturn("token");
+        when(tokenChunkingService.version()).thenReturn("1.0");
         when(versionRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jobRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -183,7 +186,9 @@ class IngestionOrchestratorUrlProvenanceTest {
         when(safeUrlFetcher.fetch(canonicalUrl)).thenReturn(fetchResult);
         when(urlPageParser.parseFetchedPage(fetchResult)).thenReturn(parsedDocument);
         when(tokenChunkingService.chunk(parsedDocument, sourceId.toString(), versionId.toString(), "1.0"))
-                .thenReturn(List.of());
+                .thenReturn(List.of(new ChunkResult("Noi dung", 1, 1, "full", "hash1", "1.0", sourceId.toString(), versionId.toString())));
+        when(tokenChunkingService.strategy()).thenReturn("token");
+        when(tokenChunkingService.version()).thenReturn("1.0");
         when(versionRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         doAnswer(invocation -> {
             KbIngestionJob saved = invocation.getArgument(0);
