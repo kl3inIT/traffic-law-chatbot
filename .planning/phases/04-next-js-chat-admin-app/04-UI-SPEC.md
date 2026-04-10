@@ -66,13 +66,13 @@ Uses Inter font loaded via `next/font/google`. All sizes in px; Tailwind class e
 | Role | Size | Tailwind | Weight | Line Height | Usage |
 |------|------|----------|--------|-------------|-------|
 | Body | 14px | `text-sm` | 400 (regular) | 1.5 | Chat bubbles, table cell content, form field values |
-| Label | 12px | `text-xs` | 500 (medium) | 1.4 | Badges, table headers, sidebar nav items, timestamp |
+| Label | 12px | `text-xs` | 400 (regular) | 1.4 | Badges, table headers, sidebar nav items, timestamp — size alone differentiates from body |
 | Heading | 20px | `text-xl` | 600 (semibold) | 1.2 | Page titles, dialog titles, section headings |
-| Display | 28px | `text-3xl` | 700 (bold) | 1.1 | Empty state headings only |
+| Display | 28px | `text-3xl` | 600 (semibold) | 1.1 | Empty state headings only — 28px at semibold provides sufficient visual weight |
 
-**Weight constraint:** Only weight 400 and 600 are used in the main UI. Weight 500 is permitted only for labels/badges. Weight 700 is reserved for empty state display headings only.
+**Weight constraint:** Exactly 2 weights are used across the entire UI: 400 (regular) for body and label text, 600 (semibold) for all headings and display text. No other weights are permitted.
 
-**Source:** Default sensible values aligned with shadcn/ui defaults; no override in upstream artifacts.
+**Source:** Default sensible values aligned with shadcn/ui defaults; no override in upstream artifacts. Weights collapsed from 4 to 2 per checker revision 2026-04-10.
 
 ---
 
@@ -151,6 +151,17 @@ All components come from shadcn/ui official registry only (no third-party regist
 
 ## Interaction Contracts
 
+### Visual Hierarchy
+
+The primary focal point in each screen context is:
+
+- **Chat thread view:** The active AI message bubble at the bottom of the scroll area — the most recently rendered response is the user's goal. The Send button (`bg-primary`) is the dominant interactive anchor.
+- **Admin DataTable screens:** The action column is the rightmost column and uses `DropdownMenu` to avoid visual noise; the status `Badge` in each row is the primary scan target for operators.
+- **Admin Knowledge Index:** The "Sẵn sàng truy xuất" card is the dominant card (top or left) because retrieval readiness is the most operationally critical stat.
+- **Dialogs:** The primary CTA button (create / activate) sits at the bottom-right; the destructive confirm button uses `variant="destructive"` and is visually weighted to signal risk.
+
+Across all screens: `--primary` accent draws the eye to the single most important action available in the current context. Do not place two `variant="default"` (primary) buttons in the same visible region.
+
 ### Chat — Thread List (D-06, D-09)
 - Thread list renders in the sidebar under the "Chat" nav section
 - Each thread row shows: thread title (derived from first user message, max 40 chars, truncated with ellipsis) + relative timestamp
@@ -178,7 +189,7 @@ All components come from shadcn/ui official registry only (no third-party regist
 ### Chat — Input Area
 - Sticky at the bottom of the thread view
 - `Textarea` with auto-resize up to 5 rows then scrolls
-- "Gửi" (Send) button to the right, `variant="default"`, disabled when input is empty or when AI is responding
+- "Gửi tin nhắn" (Send) button to the right, `variant="default"`, disabled when input is empty or when AI is responding
 - Press Enter to send; Shift+Enter for newline
 - Minimum touch target for Send button: 44px × 44px
 
@@ -236,7 +247,7 @@ All copy is Vietnamese. Formal register (second-person "bạn" omitted in favor 
 
 | Element | Copy (Vietnamese) |
 |---------|-------------------|
-| Primary CTA — send message | Gửi |
+| Primary CTA — send message | Gửi tin nhắn |
 | Primary CTA — new thread | + Cuộc hội thoại mới |
 | Primary CTA — create param set | Tạo bộ tham số |
 | Primary CTA — activate param set | Kích hoạt |
@@ -261,7 +272,7 @@ All copy is Vietnamese. Formal register (second-person "bạn" omitted in favor 
 | Nav item — Index | Chỉ mục kiến thức |
 | Nav item — Parameters | Bộ tham số AI |
 
-**Source:** Requirement text (CHAT-04, LEGAL-01–LEGAL-04), CONTEXT.md D-07, D-08, D-10. Default Vietnamese register applied.
+**Source:** Requirement text (CHAT-04, LEGAL-01–LEGAL-04), CONTEXT.md D-07, D-08, D-10. Default Vietnamese register applied. "Gửi" expanded to "Gửi tin nhắn" per checker revision 2026-04-10.
 
 ---
 
