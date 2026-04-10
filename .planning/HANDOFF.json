@@ -1,58 +1,95 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-08T06:25:00.000Z",
-  "phase": "01.1",
-  "phase_name": "refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai",
-  "phase_dir": ".planning/phases/01.1-refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai",
-  "plan": 4,
+  "timestamp": "2026-04-10T10:07:06.044Z",
+  "phase": "3",
+  "phase_name": "03-multi-turn-case-analysis",
+  "phase_dir": ".planning/phases/03-multi-turn-case-analysis",
+  "plan": 3,
   "task": 3,
   "total_tasks": 3,
-  "status": "completed",
+  "status": "paused",
   "completed_tasks": [
     {
       "id": 1,
-      "name": "Rename implementation-branded ingestion components to domain-oriented names",
+      "name": "Thread/persistence foundation and Wave 0 test scaffolds",
       "status": "done",
-      "commit": "146a22c"
+      "commit": "84a6aa5"
     },
     {
       "id": 2,
-      "name": "Promote Spring AI readers to the primary ingestion path and constrain Tika fallback",
+      "name": "Durable thread schema and thread-aware contracts/endpoints",
       "status": "done",
-      "commit": "146a22c"
+      "commit": "c251d99"
     },
     {
       "id": 3,
-      "name": "Move chunking toward token splitting while preserving metadata and audit fields",
+      "name": "Explicit fact memory and clarification policy",
       "status": "done",
-      "commit": "146a22c"
+      "commit": "c87e1fe"
+    },
+    {
+      "id": 4,
+      "name": "Grounded final scenario composition and serialization lock",
+      "status": "done",
+      "commit": "fb90fc5"
+    },
+    {
+      "id": 5,
+      "name": "Live API verification from merged main branch",
+      "status": "in_progress",
+      "progress": "Wave 3 is merged to main, pgvector Postgres container is running, but live API verification is incomplete because local app startup was blocked by env-loading issues, bash/WSL Java toolchain mismatch, and repeated Gradle/bootstrap launch problems."
     }
   ],
-  "remaining_tasks": [],
-  "blockers": [],
+  "remaining_tasks": [
+    {
+      "id": 6,
+      "name": "Boot merged main branch application locally with env loaded and alternate port",
+      "status": "not_started"
+    },
+    {
+      "id": 7,
+      "name": "Run thread API verification flow",
+      "status": "not_started"
+    },
+    {
+      "id": 8,
+      "name": "Update Phase 3 planning/state artifacts after successful verification",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Live API verification has not completed. The merged app still needs a clean local boot path from main with env variables loaded correctly.",
+      "type": "technical",
+      "workaround": "Use Windows gradlew.bat from the main repo with JAVA_HOME pointed at Temurin 25 and env variables parsed from .env instead of using bash/WSL startup paths."
+    },
+    {
+      "description": ".env contains an extra invalid trailing line ('to'), which breaks plain shell sourcing.",
+      "type": "technical",
+      "workaround": "Parse only valid KEY=value lines or remove the stray line before sourcing."
+    }
+  ],
   "human_actions_pending": [],
   "decisions": [
     {
-      "decision": "Spring AI ETL/readers are now the default ingestion pipeline for covered formats",
-      "rationale": "Repo-owned code remains the policy and control layer while Spring AI handles covered reader and chunking behavior",
-      "phase": "01.1"
+      "decision": "Merged Phase 3 Wave 3 onto main before finishing live verification.",
+      "rationale": "User explicitly asked to merge to main to run there instead of continuing from the worktree.",
+      "phase": "3"
     },
     {
-      "decision": "Ingestion naming is domain-oriented instead of implementation-branded",
-      "rationale": "Responsibility-based names are easier to maintain than library-branded names",
-      "phase": "01.1"
+      "decision": "Use pgvector/pgvector:pg16 for local verification database.",
+      "rationale": "Liquibase requires the vector extension; plain postgres:16 failed during startup.",
+      "phase": "3"
     },
     {
-      "decision": "Chunking provenance is persisted on KbSourceVersion",
-      "rationale": "Admins need parser and chunking auditability for ingestion review",
-      "phase": "01.1"
+      "decision": "Do not trust worktree-local .env loading.",
+      "rationale": "The worktree had no .env, so repo-root env had to be parsed explicitly for OpenAI and DB settings.",
+      "phase": "3"
     }
   ],
   "uncommitted_files": [
-    ".planning/HANDOFF.json",
-    ".planning/STATE.md",
-    ".planning/phases/01.1-refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai/01.1-04-SUMMARY.md"
+    ".claude-vn-chat-request.json"
   ],
-  "next_action": "Begin the next planned workflow after Phase 01.1 completion, likely Phase 2 grounded legal Q&A work or formal phase transition updates.",
-  "context_notes": "Plan 01.1-04 has been implemented and committed in 146a22c. Parser selection is resolver-based, Spring AI is primary for covered formats, token chunking is active, and chunking provenance is persisted. Remaining work is workflow and phase progression rather than ingestion refactor implementation."
+  "next_action": "Start the merged main app with Windows gradlew.bat, JAVA_HOME set to C:/Users/admin/.jdks/temurin-25.0.2, env variables parsed from D:/ai/traffic-law-chatbot/.env, then run POST /api/v1/chat/threads and POST /api/v1/chat/threads/{threadId}/messages on an alternate port to complete the CLARIFICATION_NEEDED -> FINAL_ANALYSIS verification.",
+  "context_notes": "Phase 3 code is on main through fb90fc5. The remaining work is operational verification, not implementation. Keep the focus narrow: boot app, hit APIs, confirm threadId reuse, responseMode transitions, pendingFacts presence, final scenarioAnalysis structure, citations/sources, and cautious Vietnamese tone."
 }
