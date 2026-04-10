@@ -45,7 +45,7 @@ public class ChatService {
 
         if (groundingStatus == GroundingStatus.REFUSED || !containsAnyLegalCitation(citations)) {
             chunkInspectionService.getRetrievalReadinessCounts();
-            return answerComposer.compose(GroundingStatus.REFUSED, emptyDraft(), List.of(), List.of());
+            return refusalResponse();
         }
 
         String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations);
@@ -56,6 +56,10 @@ public class ChatService {
 
         LegalAnswerDraft draft = parseDraft(modelPayload, groundingStatus, citations, sources);
         return answerComposer.compose(groundingStatus, draft, citations, sources);
+    }
+
+    public ChatAnswerResponse refusalResponse() {
+        return answerComposer.compose(GroundingStatus.REFUSED, emptyDraft(), List.of(), List.of());
     }
 
     private GroundingStatus determineGroundingStatus(int documentCount) {
