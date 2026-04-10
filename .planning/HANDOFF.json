@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-10T10:07:06.044Z",
+  "timestamp": "2026-04-10T14:57:44.164Z",
   "phase": "3",
   "phase_name": "03-multi-turn-case-analysis",
   "phase_dir": ".planning/phases/03-multi-turn-case-analysis",
@@ -35,61 +35,73 @@
     },
     {
       "id": 5,
-      "name": "Live API verification from merged main branch",
-      "status": "in_progress",
-      "progress": "Wave 3 is merged to main, pgvector Postgres container is running, but live API verification is incomplete because local app startup was blocked by env-loading issues, bash/WSL Java toolchain mismatch, and repeated Gradle/bootstrap launch problems."
+      "name": "UTF-8 thread request fix",
+      "status": "done",
+      "progress": "Added servlet UTF-8 encoding config in application.yaml, added Vietnamese JSON controller regressions in ChatThreadControllerTest, and verified Vietnamese create/post thread requests work live on port 18090 without UTF-8 parse errors."
+    },
+    {
+      "id": 6,
+      "name": "Clarification-to-final-analysis mapper fix",
+      "status": "done",
+      "progress": "Updated ChatThreadMapper to preserve structured scenario fields and effective sources during thread remapping, and tightened ChatScenarioAnalysisIntegrationTest and ChatThreadFlowIntegrationTest fixtures so focused clarification-flow tests now pass."
     }
   ],
   "remaining_tasks": [
     {
-      "id": 6,
-      "name": "Boot merged main branch application locally with env loaded and alternate port",
-      "status": "not_started"
-    },
-    {
       "id": 7,
-      "name": "Run thread API verification flow",
+      "name": "Diagnose live post-clarification fallback in ChatService/model-output path",
       "status": "not_started"
     },
     {
       "id": 8,
-      "name": "Update Phase 3 planning/state artifacts after successful verification",
+      "name": "Fix live CLARIFICATION_NEEDED -> FINAL_ANALYSIS behavior",
+      "status": "not_started"
+    },
+    {
+      "id": 9,
+      "name": "Re-run live Phase 3 API verification and update planning/state artifacts",
       "status": "not_started"
     }
   ],
   "blockers": [
     {
-      "description": "Live API verification has not completed. The merged app still needs a clean local boot path from main with env variables loaded correctly.",
+      "description": "Live post-clarification responses still fall back to SCENARIO_ANALYSIS with scenarioAnalysis=null instead of FINAL_ANALYSIS.",
       "type": "technical",
-      "workaround": "Use Windows gradlew.bat from the main repo with JAVA_HOME pointed at Temurin 25 and env variables parsed from .env instead of using bash/WSL startup paths."
+      "workaround": "None yet. Mapper preservation bug is fixed; next investigation must focus on ChatService/model output and fallback drafting after clarification."
     },
     {
       "description": ".env contains an extra invalid trailing line ('to'), which breaks plain shell sourcing.",
       "type": "technical",
-      "workaround": "Parse only valid KEY=value lines or remove the stray line before sourcing."
+      "workaround": "Parse only valid KEY=value lines or avoid sourcing .env directly."
     }
   ],
   "human_actions_pending": [],
   "decisions": [
     {
-      "decision": "Merged Phase 3 Wave 3 onto main before finishing live verification.",
-      "rationale": "User explicitly asked to merge to main to run there instead of continuing from the worktree.",
+      "decision": "Use Windows gradlew.bat with JAVA_HOME=C:/Users/admin/.jdks/temurin-25.0.2 for all live verification.",
+      "rationale": "WSL/bash launch paths previously broke Java 25 toolchain detection and wrapper behavior.",
       "phase": "3"
     },
     {
-      "decision": "Use pgvector/pgvector:pg16 for local verification database.",
-      "rationale": "Liquibase requires the vector extension; plain postgres:16 failed during startup.",
+      "decision": "Add explicit servlet UTF-8 encoding in application.yaml before touching broader request logic.",
+      "rationale": "Live Vietnamese JSON thread requests were failing with Jackson UTF-8 parse errors while ASCII succeeded.",
       "phase": "3"
     },
     {
-      "decision": "Do not trust worktree-local .env loading.",
-      "rationale": "The worktree had no .env, so repo-root env had to be parsed explicitly for OpenAI and DB settings.",
+      "decision": "Fix ChatThreadMapper before broader scenario-flow changes.",
+      "rationale": "The mapper was dropping scenarioFacts/scenarioRule/scenarioOutcome/scenarioActions during thread remapping, which was a real code bug even though it did not fully resolve the live acceptance failure.",
       "phase": "3"
     }
   ],
   "uncommitted_files": [
+    "src/main/java/com/vn/traffic/chatbot/chat/service/ChatThreadMapper.java",
+    "src/main/java/com/vn/traffic/chatbot/common/config/AsyncConfig.java",
+    "src/main/resources/application.yaml",
+    "src/test/java/com/vn/traffic/chatbot/chat/ChatScenarioAnalysisIntegrationTest.java",
+    "src/test/java/com/vn/traffic/chatbot/chat/ChatThreadFlowIntegrationTest.java",
+    "src/test/java/com/vn/traffic/chatbot/chat/api/ChatThreadControllerTest.java",
     ".claude-vn-chat-request.json"
   ],
-  "next_action": "Start the merged main app with Windows gradlew.bat, JAVA_HOME set to C:/Users/admin/.jdks/temurin-25.0.2, env variables parsed from D:/ai/traffic-law-chatbot/.env, then run POST /api/v1/chat/threads and POST /api/v1/chat/threads/{threadId}/messages on an alternate port to complete the CLARIFICATION_NEEDED -> FINAL_ANALYSIS verification.",
-  "context_notes": "Phase 3 code is on main through fb90fc5. The remaining work is operational verification, not implementation. Keep the focus narrow: boot app, hit APIs, confirm threadId reuse, responseMode transitions, pendingFacts presence, final scenarioAnalysis structure, citations/sources, and cautious Vietnamese tone."
+  "next_action": "Start from the already-running local verification setup, reproduce the clarified thread case on port 18090, and inspect ChatService/fallback drafting to determine why post-clarification live responses still come back as LIMITED_GROUNDING + SCENARIO_ANALYSIS with scenarioAnalysis=null.",
+  "context_notes": "The UTF-8 transport bug is resolved and the mapper bug is resolved. Focus next on why the live path still emits fallback-style answers after clarification even though focused tests are green. The likely gap is between real model output / parseDraft fallback behavior and the structured scenario composition expectations. Also note there is an unexpected unrelated modification in src/main/java/com/vn/traffic/chatbot/common/config/AsyncConfig.java that was not part of this work and should be reviewed before any commit beyond handoff files."
 }
