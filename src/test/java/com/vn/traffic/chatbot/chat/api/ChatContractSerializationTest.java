@@ -26,7 +26,7 @@ class ChatContractSerializationTest {
         ChatAnswerResponse response = new ChatAnswerResponse(
                 GroundingStatus.GROUNDED,
                 java.util.UUID.fromString("11111111-1111-1111-1111-111111111111"),
-                ResponseMode.SCENARIO_ANALYSIS,
+                ResponseMode.FINAL_ANALYSIS,
                 "Kết luận [Nguồn 1]",
                 "Người điều khiển xe máy có thể bị xử phạt.",
                 "Thông tin chỉ nhằm mục đích tham khảo, không thay thế tư vấn pháp lý chính thức.",
@@ -40,8 +40,8 @@ class ChatContractSerializationTest {
                 List.of(new RememberedFactResponse("vehicleType", "xe máy", "ACTIVE")),
                 new ScenarioAnalysisResponse(
                         List.of("Người dùng điều khiển xe máy"),
-                        List.of("Áp dụng Điều 6"),
-                        List.of("Có thể bị xử phạt"),
+                        "Áp dụng Điều 6",
+                        "Có thể bị xử phạt",
                         List.of("Đối chiếu biên bản"),
                         List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 100", "https://vbpl.vn/nd100", 4, "Điều 6"))
                 ),
@@ -67,7 +67,7 @@ class ChatContractSerializationTest {
         );
 
         assertThat(response.threadId()).isNotNull();
-        assertThat(response.responseMode()).isEqualTo(ResponseMode.SCENARIO_ANALYSIS);
+        assertThat(response.responseMode()).isEqualTo(ResponseMode.FINAL_ANALYSIS);
 
         JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(response));
 
