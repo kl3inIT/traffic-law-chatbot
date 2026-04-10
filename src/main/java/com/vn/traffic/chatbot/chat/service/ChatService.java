@@ -5,6 +5,7 @@ import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
+import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
@@ -27,6 +28,7 @@ public class ChatService {
     private final CitationMapper citationMapper;
     private final AnswerComposer answerComposer;
     private final ChatPromptFactory chatPromptFactory;
+    private final ChunkInspectionService chunkInspectionService;
     @Value("${app.chat.retrieval.top-k:5}")
     private int retrievalTopK;
     @Value("${app.chat.grounding.limited-threshold:2}")
@@ -34,12 +36,13 @@ public class ChatService {
 
     public ChatAnswerResponse answer(String question) {
         SearchRequest request = retrievalPolicy.buildRequest(question, retrievalTopK);
-        List<Document> documents = vectorStore.similaritySearch(request);
+        List<Document> documents = safeDocuments(vectorStore.similaritySearch(request));
         GroundingStatus groundingStatus = determineGroundingStatus(documents.size());
         List<CitationResponse> citations = citationMapper.toCitations(documents);
         List<SourceReferenceResponse> sources = citationMapper.toSources(citations);
 
         if (groundingStatus == GroundingStatus.REFUSED) {
+            chunkInspectionService.getRetrievalReadinessCounts();
             return answerComposer.compose(groundingStatus, emptyDraft(), List.of(), List.of());
         }
 
@@ -61,6 +64,10 @@ public class ChatService {
             return GroundingStatus.LIMITED_GROUNDING;
         }
         return GroundingStatus.GROUNDED;
+    }
+
+    private List<Document> safeDocuments(List<Document> documents) {
+        return documents == null ? List.of() : documents;
     }
 
     private LegalAnswerDraft parseDraft(String modelPayload) {

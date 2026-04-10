@@ -7,6 +7,7 @@ import com.vn.traffic.chatbot.chat.config.ChatClientConfig;
 import com.vn.traffic.chatbot.chat.service.AnswerComposer;
 import com.vn.traffic.chatbot.chat.service.ChatPromptFactory;
 import com.vn.traffic.chatbot.chat.service.ChatService;
+import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.common.error.GlobalExceptionHandler;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,9 @@ class ChatFlowIntegrationTest {
     @Mock
     private VectorStore vectorStore;
 
+    @Mock
+    private ChunkInspectionService chunkInspectionService;
+
     private AnnotationConfigApplicationContext context;
     private MockMvc mockMvc;
     private ChatClient chatClient;
@@ -59,6 +63,7 @@ class ChatFlowIntegrationTest {
         context.registerBean(VectorStore.class, () -> vectorStore);
         context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
         context.registerBean(AnswerComposer.class, AnswerComposer::new);
+        context.registerBean(ChunkInspectionService.class, () -> chunkInspectionService);
         context.register(ChatClientConfig.class, CitationMapper.class, ChatPromptFactory.class, RetrievalPolicy.class, ChatService.class);
         context.refresh();
 
@@ -78,7 +83,7 @@ class ChatFlowIntegrationTest {
     }
 
     @Test
-    void groundedFlowReturnsCitationsSourcesAndDisclaimer() throws Exception {
+    void groundedLegalBasisPenaltyAndProcedureQuestionReturnsStructured200Response() throws Exception {
         assertThat(chatClient).isNotNull();
 
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(
@@ -128,16 +133,22 @@ class ChatFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.groundingStatus").value("GROUNDED"))
                 .andExpect(jsonPath("$.disclaimer").isNotEmpty())
+                .andExpect(jsonPath("$.citations[0].inlineLabel").value("Nguồn 1"))
                 .andExpect(jsonPath("$.citations[0].sourceId").value("source-1"))
                 .andExpect(jsonPath("$.citations[0].sourceVersionId").value("version-1"))
+                .andExpect(jsonPath("$.legalBasis[0]").value("Điều 7 [Nguồn 1]"))
+                .andExpect(jsonPath("$.penalties[0]").value("Phạt tiền từ 4.000.000 đồng đến 6.000.000 đồng [Nguồn 1]"))
+                .andExpect(jsonPath("$.procedureSteps[0]").value("Làm việc với cơ quan có thẩm quyền khi được yêu cầu"))
                 .andExpect(jsonPath("$.sources[0].sourceId").exists())
                 .andExpect(jsonPath("$.sources[0].sourceVersionId").exists());
     }
 
     @Test
-    void refusedFlowReturnsRefusedAndEmptyCitationsWhenNoDocumentsMatch() throws Exception {
+    void refusedFlowReturns200InsteadOf500WhenNoEligibleDocumentsMatch() throws Exception {
         assertThat(chatClient).isNotNull();
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
+        when(chunkInspectionService.getRetrievalReadinessCounts())
+                .thenReturn(new ChunkInspectionService.RetrievalReadinessCounts(5L, 5L, 5L, 0L));
 
         mockMvc.perform(post("/api/v1/chat")
                         .contentType("application/json")

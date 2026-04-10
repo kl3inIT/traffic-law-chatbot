@@ -66,20 +66,41 @@ public class ChunkInspectionService {
     }
 
     public IndexSummaryResponse getIndexSummary() {
+        RetrievalReadinessCounts readinessCounts = getRetrievalReadinessCounts();
         long totalChunks = countBySql("SELECT COUNT(*) FROM kb_vector_store");
-        long approvedChunks = countBySql("SELECT COUNT(*) FROM kb_vector_store WHERE metadata->>'approvalState' = 'APPROVED'");
-        long trustedChunks = countBySql("SELECT COUNT(*) FROM kb_vector_store WHERE metadata->>'trusted' = 'true'");
-        long activeChunks = countBySql("SELECT COUNT(*) FROM kb_vector_store WHERE metadata->>'active' = 'true'");
         long pendingApprovalChunks = countBySql("SELECT COUNT(*) FROM kb_vector_store WHERE metadata->>'approvalState' = 'PENDING'");
 
         return new IndexSummaryResponse(
                 totalChunks,
-                approvedChunks,
-                trustedChunks,
-                activeChunks,
+                readinessCounts.approvedChunks(),
+                readinessCounts.trustedChunks(),
+                readinessCounts.activeChunks(),
                 pendingApprovalChunks,
-                0L
+                readinessCounts.eligibleChunks()
         );
+    }
+
+    public RetrievalReadinessCounts getRetrievalReadinessCounts() {
+        return new RetrievalReadinessCounts(
+                countBySql("SELECT COUNT(*) FROM kb_vector_store WHERE metadata->>'approvalState' = 'APPROVED'"),
+                countBySql("SELECT COUNT(*) FROM kb_vector_store WHERE metadata->>'trusted' = 'true'"),
+                countBySql("SELECT COUNT(*) FROM kb_vector_store WHERE metadata->>'active' = 'true'"),
+                countBySql("""
+                        SELECT COUNT(*)
+                        FROM kb_vector_store
+                        WHERE metadata->>'approvalState' = 'APPROVED'
+                          AND metadata->>'trusted' = 'true'
+                          AND metadata->>'active' = 'true'
+                        """)
+        );
+    }
+
+    public record RetrievalReadinessCounts(
+            long approvedChunks,
+            long trustedChunks,
+            long activeChunks,
+            long eligibleChunks
+    ) {
     }
 
     private long countBySql(String sql) {

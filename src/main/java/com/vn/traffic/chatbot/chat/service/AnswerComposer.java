@@ -17,9 +17,10 @@ public class AnswerComposer {
             List<SourceReferenceResponse> sources
     ) {
         if (groundingStatus == GroundingStatus.REFUSED) {
+            List<String> nextSteps = refusalNextSteps();
             return new ChatAnswerResponse(
                     GroundingStatus.REFUSED,
-                    AnswerCompositionPolicy.REFUSAL_MESSAGE,
+                    buildAnswer(null, List.of(), List.of(), List.of(), List.of(), nextSteps),
                     null,
                     AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
                     null,
@@ -27,7 +28,7 @@ public class AnswerComposer {
                     List.of(),
                     List.of(),
                     List.of(),
-                    List.of(),
+                    nextSteps,
                     List.of(),
                     List.of()
             );
@@ -93,6 +94,14 @@ public class AnswerComposer {
             return;
         }
         sections.add(label + ":\n- " + String.join("\n- ", items));
+    }
+
+    private List<String> refusalNextSteps() {
+        return List.of(
+                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
+                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
+                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
+        );
     }
 
     private List<String> mergeSections(List<String> first, List<String> second) {

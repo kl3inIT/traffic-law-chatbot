@@ -5,6 +5,7 @@ import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
+import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,9 @@ class ChatServiceTest {
     @Mock
     private ChatPromptFactory chatPromptFactory;
 
+    @Mock
+    private ChunkInspectionService chunkInspectionService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private ChatService chatService;
@@ -67,7 +71,8 @@ class ChatServiceTest {
                 retrievalPolicy,
                 citationMapper,
                 answerComposer,
-                chatPromptFactory
+                chatPromptFactory,
+                chunkInspectionService
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
         ReflectionTestUtils.setField(chatService, "limitedGroundingThreshold", 2);
@@ -224,12 +229,12 @@ class ChatServiceTest {
     }
 
     @Test
-    void answerReturnsRefusedWithoutModelCallWhenNoDocumentsExist() {
+    void answerReturnsRefusedWithoutModelCallWhenNoDocumentsExistAndCollectsReadinessDiagnostics() {
         String question = "Tình huống không có căn cứ";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
         ChatAnswerResponse expected = new ChatAnswerResponse(
                 GroundingStatus.REFUSED,
-                AnswerCompositionPolicy.REFUSAL_MESSAGE,
+                "refusal answer",
                 null,
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
                 null,
@@ -237,7 +242,11 @@ class ChatServiceTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of(),
+                List.of(
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
+                ),
                 List.of(),
                 List.of()
         );
@@ -246,6 +255,8 @@ class ChatServiceTest {
         when(vectorStore.similaritySearch(request)).thenReturn(List.of());
         when(citationMapper.toCitations(List.of())).thenReturn(List.of());
         when(citationMapper.toSources(List.of())).thenReturn(List.of());
+        when(chunkInspectionService.getRetrievalReadinessCounts())
+                .thenReturn(new ChunkInspectionService.RetrievalReadinessCounts(12L, 9L, 8L, 0L));
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
 
         ChatAnswerResponse response = chatService.answer(question);
@@ -266,8 +277,56 @@ class ChatServiceTest {
                 org.mockito.ArgumentMatchers.eq(List.of()),
                 org.mockito.ArgumentMatchers.eq(List.of())
         );
+        assertThat(response.disclaimer()).isEqualTo(AnswerCompositionPolicy.DEFAULT_DISCLAIMER);
+        assertThat(response.nextSteps())
+                .containsExactly(
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
+                );
+        verify(chunkInspectionService).getRetrievalReadinessCounts();
         verify(chatClient, never()).prompt();
         verify(chatPromptFactory, never()).buildPrompt(any(), any(), any());
+    }
+
+    @Test
+    void answerTreatsNullSimilaritySearchResultsAsHandledRefusalInsteadOfThrowing() {
+        String question = "Không có dữ liệu đủ điều kiện";
+        SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
+        ChatAnswerResponse expected = new ChatAnswerResponse(
+                GroundingStatus.REFUSED,
+                "refusal answer",
+                null,
+                AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
+                null,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
+                ),
+                List.of(),
+                List.of()
+        );
+
+        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
+        when(vectorStore.similaritySearch(request)).thenReturn(null);
+        when(citationMapper.toCitations(List.of())).thenReturn(List.of());
+        when(citationMapper.toSources(List.of())).thenReturn(List.of());
+        when(chunkInspectionService.getRetrievalReadinessCounts())
+                .thenReturn(new ChunkInspectionService.RetrievalReadinessCounts(0L, 0L, 0L, 0L));
+        when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
+
+        ChatAnswerResponse response = chatService.answer(question);
+
+        assertThat(response).isSameAs(expected);
+        assertThat(response.disclaimer()).isEqualTo(AnswerCompositionPolicy.DEFAULT_DISCLAIMER);
+        assertThat(response.nextSteps()).isNotEmpty();
+        verify(chunkInspectionService).getRetrievalReadinessCounts();
+        verify(chatClient, never()).prompt();
     }
 
     private Document document(String suffix) {
