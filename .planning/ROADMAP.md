@@ -76,6 +76,13 @@ Plans:
 
 **UI hint:** yes
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Thread/persistence foundation, Wave 0 test scaffolds, and thread-aware REST contract
+- [ ] 03-02-PLAN.md — Explicit-fact memory and clarification-needed orchestration with correction-wins behavior
+- [ ] 03-03-PLAN.md — Grounded final scenario composition, regression lock, and end-to-end workflow verification
+
 **Success criteria:**
 1. Users can continue a multi-turn thread without losing the key facts of the case.
 2. The system can analyze a real-life traffic scenario rather than only direct FAQ-style questions.
@@ -133,4 +140,4 @@ Plans:
 5. **Quality ops last, but not optional** — logs and answer checks complete the Jmix-like operational loop.
 
 ---
-*Last updated: 2026-04-08 after Phase 01.1 planning*
+*Last updated: 2026-04-10 after Phase 3 planning*
