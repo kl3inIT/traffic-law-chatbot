@@ -33,6 +33,18 @@ spring:
         table-name: kb_vector_store
     openai:
       api-key: ${OPENAI_API_KEY:}
+  servlet:
+    encoding:
+      enabled: true
+      charset: UTF-8
+      force: true
+  task:
+    execution:
+      pool:
+        core-size: 4
+        max-size: 10
+        queue-capacity: 100
+      thread-name-prefix: ingestion-
 
 app:
   chat:
@@ -55,10 +67,3 @@ management:
     health:
       show-details: when-authorized
 
-task:
-  execution:
-    pool:
-      core-size: 4
-      max-size: 10
-      queue-capacity: 100
-    thread-name-prefix: ingestion-

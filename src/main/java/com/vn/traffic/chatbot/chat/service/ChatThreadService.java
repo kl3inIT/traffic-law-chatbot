@@ -78,7 +78,8 @@ public class ChatThreadService {
         if (clarificationDecision.shouldRefuse()) {
             return chatThreadMapper.attachThreadContext(chatService.refusalResponse(), thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
-        ChatAnswerResponse answer = chatService.answer(factMemoryService.buildThreadAwareQuestion(question, activeFacts));
+        String retrievalQuestion = buildRetrievalQuestion(threadId, question, activeFacts);
+        ChatAnswerResponse answer = chatService.answer(retrievalQuestion);
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
 
@@ -103,6 +104,15 @@ public class ChatThreadService {
                 .filter(message -> message.getMessageType() == ChatMessageType.ANSWER)
                 .filter(message -> message.getContent() != null && message.getContent().contains("[CLARIFICATION]"))
                 .count();
+    }
+
+    private String buildRetrievalQuestion(UUID threadId, String currentQuestion, List<ThreadFact> activeFacts) {
+        String originalQuestion = chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId).stream()
+                .filter(m -> m.getRole() == ChatMessageRole.USER)
+                .map(ChatMessage::getContent)
+                .findFirst()
+                .orElse(currentQuestion);
+        return factMemoryService.buildThreadAwareQuestion(originalQuestion, activeFacts);
     }
 
     private ChatAnswerResponse clarificationResponse(ChatThread thread, List<PendingFactResponse> pendingFacts) {

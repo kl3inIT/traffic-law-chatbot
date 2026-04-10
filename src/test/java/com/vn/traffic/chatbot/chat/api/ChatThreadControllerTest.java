@@ -23,9 +23,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -77,6 +79,22 @@ class ChatThreadControllerTest {
     }
 
     @Test
+    void createThreadAcceptsVietnameseUtf8JsonPayload() throws Exception {
+        String question = "Tôi vượt đèn đỏ bằng xe máy thì sao?";
+        UUID threadId = UUID.randomUUID();
+        when(chatThreadService.createThread(question)).thenReturn(threadResponse(threadId));
+
+        mockMvc.perform(post(ApiPaths.CHAT_THREADS)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .content(("{\"question\":\"" + question + "\"}").getBytes(StandardCharsets.UTF_8)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.threadId").value(threadId.toString()));
+
+        verify(chatThreadService, times(1)).createThread(question);
+    }
+
+    @Test
     void continueThreadRequiresValidUuidPathParameter() throws Exception {
         mockMvc.perform(post(ApiPaths.CHAT + "/threads/not-a-uuid/messages")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,6 +104,22 @@ class ChatThreadControllerTest {
                 .andExpect(jsonPath("$.properties.errors.threadId").value("Invalid value"));
 
         verifyNoInteractions(chatThreadService);
+    }
+
+    @Test
+    void continueThreadAcceptsVietnameseUtf8JsonPayload() throws Exception {
+        UUID threadId = UUID.randomUUID();
+        String question = "Tôi có bị giữ bằng lái không?";
+        when(chatThreadService.postMessage(threadId, question)).thenReturn(threadResponse(threadId));
+
+        mockMvc.perform(post(ApiPaths.CHAT + "/threads/" + threadId + "/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .content(("{\"question\":\"" + question + "\"}").getBytes(StandardCharsets.UTF_8)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.threadId").value(threadId.toString()));
+
+        verify(chatThreadService, times(1)).postMessage(threadId, question);
     }
 
     @Test

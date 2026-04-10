@@ -47,7 +47,7 @@ class ScenarioAnswerComposerTest {
     }
 
     @Test
-    void doesNotFinalizeWhenGroundingIsLimited() {
+    void finalizesLimitedGroundingWhenRememberedFactsExist() {
         LegalAnswerDraft draft = new LegalAnswerDraft(
                 "Kết luận tạm thời",
                 "",
@@ -67,6 +67,36 @@ class ScenarioAnswerComposerTest {
                 GroundingStatus.LIMITED_GROUNDING,
                 draft,
                 List.of(new RememberedFactResponse("documentStatus", "không mang đăng ký xe", "ACTIVE")),
+                List.of()
+        );
+
+        assertThat(composition.responseMode()).isEqualTo(ResponseMode.FINAL_ANALYSIS);
+        assertThat(composition.scenarioAnalysis()).isNotNull();
+        assertThat(composition.scenarioAnalysis().facts()).contains("documentStatus: không mang đăng ký xe");
+        assertThat(composition.scenarioAnalysis().rule()).contains("Điều 58");
+    }
+
+    @Test
+    void doesNotFinalizeLimitedGroundingWithoutRememberedFacts() {
+        LegalAnswerDraft draft = new LegalAnswerDraft(
+                "Kết luận tạm thời",
+                "",
+                null,
+                List.of("Điều 58 [Nguồn 1]"),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of("Bổ sung thêm thông tin"),
+                List.of("Thiếu giấy tờ xe"),
+                "Áp dụng Điều 58 [Nguồn 1]",
+                "Có thể bị xử lý",
+                List.of("Kiểm tra lại giấy tờ")
+        );
+
+        ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
+                GroundingStatus.LIMITED_GROUNDING,
+                draft,
+                List.of(),
                 List.of()
         );
 

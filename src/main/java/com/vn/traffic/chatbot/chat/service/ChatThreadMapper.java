@@ -59,24 +59,13 @@ public class ChatThreadMapper {
             List<SourceReferenceResponse> sources
     ) {
         List<RememberedFactResponse> rememberedFacts = mapFacts(facts);
+        List<SourceReferenceResponse> effectiveSources = sources == null ? answer.sources() : sources;
+        LegalAnswerDraft draft = toDraft(answer);
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
                 answer.groundingStatus(),
-                new LegalAnswerDraft(
-                        answer.conclusion(),
-                        answer.answer(),
-                        answer.uncertaintyNotice(),
-                        answer.legalBasis(),
-                        answer.penalties(),
-                        answer.requiredDocuments(),
-                        answer.procedureSteps(),
-                        answer.nextSteps(),
-                        List.of(),
-                        null,
-                        null,
-                        List.of()
-                ),
+                draft,
                 rememberedFacts,
-                sources == null ? answer.sources() : sources
+                effectiveSources
         );
         return new ChatAnswerResponse(
                 answer.groundingStatus(),
@@ -95,7 +84,24 @@ public class ChatThreadMapper {
                 rememberedFacts,
                 composition.scenarioAnalysis(),
                 answer.citations(),
-                answer.sources()
+                effectiveSources
+        );
+    }
+
+    private LegalAnswerDraft toDraft(ChatAnswerResponse answer) {
+        return new LegalAnswerDraft(
+                answer.conclusion(),
+                answer.answer(),
+                answer.uncertaintyNotice(),
+                answer.legalBasis(),
+                answer.penalties(),
+                answer.requiredDocuments(),
+                answer.procedureSteps(),
+                answer.nextSteps(),
+                answer.scenarioAnalysis() == null ? List.of() : answer.scenarioAnalysis().facts(),
+                answer.scenarioAnalysis() == null ? null : answer.scenarioAnalysis().rule(),
+                answer.scenarioAnalysis() == null ? null : answer.scenarioAnalysis().outcome(),
+                answer.scenarioAnalysis() == null ? List.of() : answer.scenarioAnalysis().actions()
         );
     }
 

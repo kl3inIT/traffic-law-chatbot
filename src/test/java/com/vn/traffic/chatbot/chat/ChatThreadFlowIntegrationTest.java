@@ -140,7 +140,13 @@ class ChatThreadFlowIntegrationTest {
                 List.of("Đối chiếu biên bản"),
                 List.of(),
                 List.of(),
-                null,
+                new com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse(
+                        List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
+                        "Áp dụng Điều 7 [Nguồn 1]",
+                        "Có thể bị xử phạt theo khung tương ứng [Nguồn 1]",
+                        List.of("Giữ lại biên bản để đối chiếu"),
+                        List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))
+                ),
                 List.of(new CitationResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "Trích dẫn")),
                 List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))
         );
