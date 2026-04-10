@@ -56,6 +56,7 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-pdf-document-reader'
     implementation 'org.springframework.boot:spring-boot-starter-liquibase'
     implementation 'org.apache.tika:tika-core:3.3.0'
+    implementation 'org.apache.tika:tika-parser-microsoft-module:3.3.0'
     implementation 'org.jsoup:jsoup:1.19.1'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 }

@@ -59,7 +59,7 @@ class ChatFlowIntegrationTest {
     @BeforeEach
     void setUp() {
         context = new AnnotationConfigApplicationContext();
-        context.registerBean(ChatModel.class, () -> chatModel);
+        context.registerBean("openAiChatModel", ChatModel.class, () -> chatModel);
         context.registerBean(VectorStore.class, () -> vectorStore);
         context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
         context.registerBean(AnswerComposer.class, AnswerComposer::new);
@@ -162,5 +162,52 @@ class ChatFlowIntegrationTest {
                 .andExpect(jsonPath("$.citations").isEmpty())
                 .andExpect(jsonPath("$.sources").isArray())
                 .andExpect(jsonPath("$.sources").isEmpty());
+    }
+
+    @Test
+    void malformedModelPayloadReturnsStructuredResponseInsteadOf500() throws Exception {
+        assertThat(chatClient).isNotNull();
+
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(
+                new org.springframework.ai.document.Document("Điều 7 quy định xử phạt vượt đèn đỏ", Map.of(
+                        "sourceId", "source-1",
+                        "sourceVersionId", "version-1",
+                        "sourceTitle", "Nghị định 168",
+                        "origin", "https://vbpl.vn/nd168",
+                        "pageNumber", 4,
+                        "sectionRef", "Điều 7"
+                )),
+                new org.springframework.ai.document.Document("Căn cứ pháp lý bổ sung", Map.of(
+                        "sourceId", "source-2",
+                        "sourceVersionId", "version-2",
+                        "sourceTitle", "Luật Trật tự, an toàn giao thông đường bộ",
+                        "origin", "https://vbpl.vn/law-2",
+                        "pageNumber", 12,
+                        "sectionRef", "Khoản 3 Điều 11"
+                )),
+                new org.springframework.ai.document.Document("Hướng dẫn xử lý", Map.of(
+                        "sourceId", "source-3",
+                        "sourceVersionId", "version-3",
+                        "sourceTitle", "Văn bản hướng dẫn",
+                        "origin", "https://vbpl.vn/guide-3",
+                        "pageNumber", 2,
+                        "sectionRef", "Mục 1"
+                ))
+        ));
+        when(chatModel.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(new AssistantMessage("không phải json")))));
+
+        mockMvc.perform(post("/api/v1/chat")
+                        .contentType("application/json")
+                        .content("""
+                                {"question":"Cho tôi căn cứ pháp lý về lỗi vượt đèn đỏ xe máy."}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundingStatus").value("GROUNDED"))
+                .andExpect(jsonPath("$.disclaimer").isNotEmpty())
+                .andExpect(jsonPath("$.uncertaintyNotice").isNotEmpty())
+                .andExpect(jsonPath("$.legalBasis[0]").exists())
+                .andExpect(jsonPath("$.nextSteps[0]").isNotEmpty())
+                .andExpect(jsonPath("$.citations[0].inlineLabel").value("Nguồn 1"))
+                .andExpect(jsonPath("$.sources[0].sourceId").value("source-1"));
     }
 }

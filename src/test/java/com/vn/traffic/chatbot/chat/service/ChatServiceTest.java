@@ -290,6 +290,51 @@ class ChatServiceTest {
     }
 
     @Test
+    void answerRefusesIrrelevantApprovedContentWithoutCallingModel() {
+        String question = "Xe máy vượt đèn đỏ bị phạt thế nào?";
+        SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
+        List<Document> documents = List.of(document("1"), document("2"), document("3"));
+        List<CitationResponse> irrelevantCitations = List.of(
+                new CitationResponse("Nguồn 1", "source-1", "version-1", "Chapter 1", null, 12, "page-12", "The Evolution of Database Systems"),
+                new CitationResponse("Nguồn 2", "source-2", "version-2", "Chapter 1", null, 8, "page-8", "Relational Database Systems"),
+                new CitationResponse("Nguồn 3", "source-3", "version-3", "Chapter 1", null, 4, "page-4", "Overview of DBMS")
+        );
+        ChatAnswerResponse expected = new ChatAnswerResponse(
+                GroundingStatus.REFUSED,
+                "refusal answer",
+                null,
+                AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
+                null,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
+                ),
+                List.of(),
+                List.of()
+        );
+
+        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
+        when(vectorStore.similaritySearch(request)).thenReturn(documents);
+        when(citationMapper.toCitations(documents)).thenReturn(irrelevantCitations);
+        when(citationMapper.toSources(irrelevantCitations)).thenReturn(List.of());
+        when(chunkInspectionService.getRetrievalReadinessCounts())
+                .thenReturn(new ChunkInspectionService.RetrievalReadinessCounts(3L, 3L, 3L, 3L));
+        when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
+
+        ChatAnswerResponse response = chatService.answer(question);
+
+        assertThat(response).isSameAs(expected);
+        verify(chunkInspectionService).getRetrievalReadinessCounts();
+        verify(chatClient, never()).prompt();
+        verify(chatPromptFactory, never()).buildPrompt(any(), any(), any());
+    }
+
+    @Test
     void answerTreatsNullSimilaritySearchResultsAsHandledRefusalInsteadOfThrowing() {
         String question = "Không có dữ liệu đủ điều kiện";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();

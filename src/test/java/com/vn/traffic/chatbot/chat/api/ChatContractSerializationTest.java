@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
+import com.vn.traffic.chatbot.chat.service.AnswerCompositionPolicy;
 import com.vn.traffic.chatbot.chat.service.GroundingStatus;
 import org.junit.jupiter.api.Test;
 
@@ -64,6 +65,35 @@ class ChatContractSerializationTest {
         assertThat(json.has("requiredDocuments")).isTrue();
         assertThat(json.has("procedureSteps")).isTrue();
         assertThat(json.has("nextSteps")).isTrue();
+    }
+
+    @Test
+    void serializesRefusalResponseWithDisclaimerAndNextSteps() throws Exception {
+        ChatAnswerResponse response = new ChatAnswerResponse(
+                GroundingStatus.REFUSED,
+                AnswerCompositionPolicy.REFUSAL_MESSAGE,
+                null,
+                AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
+                null,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
+                ),
+                List.of(),
+                List.of()
+        );
+
+        JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(response));
+
+        assertThat(json.get("disclaimer").asText()).isEqualTo(AnswerCompositionPolicy.DEFAULT_DISCLAIMER);
+        assertThat(json.get("nextSteps").isArray()).isTrue();
+        assertThat(json.get("nextSteps").size()).isEqualTo(3);
+        assertThat(json.get("nextSteps").get(0).asText()).isEqualTo(AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE);
     }
 
     @Test

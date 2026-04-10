@@ -119,6 +119,7 @@ class SourceServiceTest {
         sourceService.approve(sourceId, approvalReq);
 
         assertThat(source.getApprovalState()).isEqualTo(ApprovalState.APPROVED);
+        verify(chunkMetadataUpdater).updateApprovalState(sourceId.toString(), ApprovalState.APPROVED.name());
         var event = eventCaptor.getValue();
         assertThat(event.getAction()).isEqualTo("APPROVE");
         assertThat(event.getPreviousState()).isEqualTo("PENDING");
@@ -160,6 +161,7 @@ class SourceServiceTest {
         sourceService.reject(sourceId, req);
 
         assertThat(source.getApprovalState()).isEqualTo(ApprovalState.REJECTED);
+        verify(chunkMetadataUpdater).updateApprovalState(sourceId.toString(), ApprovalState.REJECTED.name());
         assertThat(eventCaptor.getValue().getAction()).isEqualTo("REJECT");
     }
 

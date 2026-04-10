@@ -61,6 +61,7 @@ public class SourceService {
         }
         String previousState = source.getApprovalState().name();
         source.setApprovalState(ApprovalState.APPROVED);
+        chunkMetadataUpdater.updateApprovalState(sourceId.toString(), ApprovalState.APPROVED.name());
         approvalEventRepo.save(KbSourceApprovalEvent.builder()
                 .source(source)
                 .action("APPROVE")
@@ -79,6 +80,7 @@ public class SourceService {
         }
         String previousState = source.getApprovalState().name();
         source.setApprovalState(ApprovalState.REJECTED);
+        chunkMetadataUpdater.updateApprovalState(sourceId.toString(), ApprovalState.REJECTED.name());
         approvalEventRepo.save(KbSourceApprovalEvent.builder()
                 .source(source)
                 .action("REJECT")

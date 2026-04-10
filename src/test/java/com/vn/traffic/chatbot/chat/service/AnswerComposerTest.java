@@ -109,13 +109,20 @@ class AnswerComposerTest {
         );
 
         assertThat(response.groundingStatus()).isEqualTo(GroundingStatus.REFUSED);
-        assertThat(response.answer()).isEqualTo("Tôi chưa thể trả lời chắc chắn vì chưa tìm thấy đủ căn cứ đáng tin cậy trong nguồn pháp lý đã được phê duyệt. Bạn hãy nêu rõ hơn câu hỏi hoặc bổ sung bối cảnh để tôi tra cứu chính xác hơn.");
+        assertThat(response.answer()).contains("Các bước nên làm tiếp:");
+        assertThat(response.answer()).contains(AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE);
+        assertThat(response.answer()).contains(AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT);
+        assertThat(response.answer()).contains(AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE);
         assertThat(response.disclaimer()).isEqualTo("Thông tin chỉ nhằm mục đích tham khảo, không thay thế tư vấn pháp lý chính thức.");
         assertThat(response.legalBasis()).isEmpty();
         assertThat(response.penalties()).isEmpty();
         assertThat(response.requiredDocuments()).isEmpty();
         assertThat(response.procedureSteps()).isEmpty();
-        assertThat(response.nextSteps()).isEmpty();
+        assertThat(response.nextSteps()).containsExactly(
+                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
+                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
+                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
+        );
         assertThat(response.citations()).isEmpty();
         assertThat(response.sources()).isEmpty();
     }
@@ -139,5 +146,30 @@ class AnswerComposerTest {
         );
 
         assertThat(response.disclaimer()).isEqualTo("Thông tin chỉ nhằm mục đích tham khảo, không thay thế tư vấn pháp lý chính thức.");
+    }
+
+    @Test
+    void composeStripsDuplicatedConclusionLabelFromConclusionAndAnswer() {
+        ChatAnswerResponse response = answerComposer.compose(
+                GroundingStatus.LIMITED_GROUNDING,
+                new LegalAnswerDraft(
+                        "Kết luận: Người điều khiển xe mô tô vượt đèn tín hiệu màu đỏ bị xử phạt tiền từ 4.000.000 đồng đến 6.000.000 đồng. [Nguồn 1]",
+                        "",
+                        null,
+                        List.of("Điều 7 Nghị định 168/2024/NĐ-CP. [Nguồn 1]"),
+                        List.of("Phạt tiền từ 4.000.000 đồng đến 6.000.000 đồng. [Nguồn 1]"),
+                        List.of(),
+                        List.of(),
+                        List.of()
+                ),
+                List.of(),
+                List.of()
+        );
+
+        assertThat(response.conclusion())
+                .isEqualTo("Người điều khiển xe mô tô vượt đèn tín hiệu màu đỏ bị xử phạt tiền từ 4.000.000 đồng đến 6.000.000 đồng. [Nguồn 1]");
+        assertThat(response.answer())
+                .startsWith("Kết luận:\nNgười điều khiển xe mô tô vượt đèn tín hiệu màu đỏ bị xử phạt tiền từ 4.000.000 đồng đến 6.000.000 đồng. [Nguồn 1]")
+                .doesNotContain("Kết luận:\nKết luận:");
     }
 }

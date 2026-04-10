@@ -5,6 +5,7 @@ import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.ChatQuestionRequest;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
+import com.vn.traffic.chatbot.chat.service.AnswerCompositionPolicy;
 import com.vn.traffic.chatbot.chat.service.ChatService;
 import com.vn.traffic.chatbot.chat.service.GroundingStatus;
 import com.vn.traffic.chatbot.common.api.ApiPaths;
@@ -99,6 +100,40 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.sources[0].sourceVersionId").value("version-1"));
 
         verify(chatService, times(1)).answer("Xe máy vượt đèn đỏ bị phạt thế nào?");
+        verifyNoMoreInteractions(chatService);
+    }
+
+    @Test
+    void postChatReturnsHandledRefusalWithoutHttp500WhenGroundingIsInsufficient() throws Exception {
+        ChatAnswerResponse response = new ChatAnswerResponse(
+                GroundingStatus.REFUSED,
+                AnswerCompositionPolicy.REFUSAL_MESSAGE,
+                null,
+                AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
+                null,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
+                        AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
+                ),
+                List.of(),
+                List.of()
+        );
+        when(chatService.answer("Không đủ căn cứ")).thenReturn(response);
+
+        mockMvc.perform(post(ApiPaths.CHAT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ChatQuestionRequest("Không đủ căn cứ"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundingStatus").value("REFUSED"))
+                .andExpect(jsonPath("$.disclaimer").value(AnswerCompositionPolicy.DEFAULT_DISCLAIMER))
+                .andExpect(jsonPath("$.nextSteps[0]").value(AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE));
+
+        verify(chatService, times(1)).answer("Không đủ căn cứ");
         verifyNoMoreInteractions(chatService);
     }
 

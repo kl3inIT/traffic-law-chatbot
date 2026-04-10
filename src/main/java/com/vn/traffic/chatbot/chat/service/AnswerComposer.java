@@ -3,11 +3,13 @@ package com.vn.traffic.chatbot.chat.service;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@Component
 public class AnswerComposer {
 
     public ChatAnswerResponse compose(
@@ -45,16 +47,19 @@ public class AnswerComposer {
         List<String> nextSteps = safeList(safeDraft.nextSteps());
         List<CitationResponse> safeCitations = safeList(citations);
         List<SourceReferenceResponse> safeSources = safeList(sources);
-        String uncertaintyNotice = groundingStatus == GroundingStatus.LIMITED_GROUNDING
+        String uncertaintyNotice = hasText(safeDraft.uncertaintyNotice())
+                ? safeDraft.uncertaintyNotice().trim()
+                : groundingStatus == GroundingStatus.LIMITED_GROUNDING
                 ? AnswerCompositionPolicy.LIMITED_NOTICE
                 : null;
+        String normalizedConclusion = normalizeConclusion(safeDraft.conclusion());
 
-        String answer = buildAnswer(safeDraft.conclusion(), legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps);
+        String answer = buildAnswer(normalizedConclusion, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps);
 
         return new ChatAnswerResponse(
                 groundingStatus,
                 answer,
-                safeDraft.conclusion(),
+                normalizedConclusion,
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
                 uncertaintyNotice,
                 legalBasis,
@@ -108,6 +113,17 @@ public class AnswerComposer {
         List<String> merged = new ArrayList<>(first);
         merged.addAll(second);
         return merged;
+    }
+
+    private String normalizeConclusion(String conclusion) {
+        if (!hasText(conclusion)) {
+            return conclusion;
+        }
+        String trimmed = conclusion.trim();
+        if (trimmed.regionMatches(true, 0, "Kết luận:", 0, "Kết luận:".length())) {
+            return trimmed.substring("Kết luận:".length()).trim();
+        }
+        return trimmed;
     }
 
     private boolean hasText(String value) {

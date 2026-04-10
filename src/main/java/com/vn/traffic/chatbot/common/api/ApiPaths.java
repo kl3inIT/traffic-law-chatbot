@@ -26,6 +26,7 @@ public final class ApiPaths {
 
     // Chunk endpoints
     public static final String CHUNKS = ADMIN_BASE + "/chunks";
+    public static final String CHUNK_READINESS = CHUNKS + "/readiness";
     public static final String CHUNK_BY_ID = CHUNKS + "/{chunkId}";
 
     // Index summary
