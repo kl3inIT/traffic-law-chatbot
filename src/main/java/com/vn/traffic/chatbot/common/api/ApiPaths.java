@@ -6,6 +6,9 @@ public final class ApiPaths {
 
     public static final String ADMIN_BASE = "/api/v1/admin";
     public static final String CHAT = "/api/v1/chat";
+    public static final String CHAT_THREADS = CHAT + "/threads";
+    public static final String CHAT_THREAD_BY_ID = CHAT_THREADS + "/{threadId}";
+    public static final String CHAT_THREAD_MESSAGES = CHAT_THREAD_BY_ID + "/messages";
 
     // Source endpoints
     public static final String SOURCES = ADMIN_BASE + "/sources";

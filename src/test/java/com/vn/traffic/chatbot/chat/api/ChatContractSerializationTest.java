@@ -4,7 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
+import com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse;
+import com.vn.traffic.chatbot.chat.api.dto.RememberedFactResponse;
+import com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
+import com.vn.traffic.chatbot.chat.domain.ResponseMode;
 import com.vn.traffic.chatbot.chat.service.AnswerCompositionPolicy;
 import com.vn.traffic.chatbot.chat.service.GroundingStatus;
 import org.junit.jupiter.api.Test;
@@ -21,6 +25,8 @@ class ChatContractSerializationTest {
     void serializesChatAnswerResponseWithLockedPhase2FieldNamesForInlineAndSourceListCitations() throws Exception {
         ChatAnswerResponse response = new ChatAnswerResponse(
                 GroundingStatus.GROUNDED,
+                java.util.UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                ResponseMode.SCENARIO_ANALYSIS,
                 "Kết luận [Nguồn 1]",
                 "Người điều khiển xe máy có thể bị xử phạt.",
                 "Thông tin chỉ nhằm mục đích tham khảo, không thay thế tư vấn pháp lý chính thức.",
@@ -30,6 +36,15 @@ class ChatContractSerializationTest {
                 List.of("Giấy phép lái xe"),
                 List.of("Chuẩn bị giấy tờ theo yêu cầu"),
                 List.of("Đối chiếu tình huống với cơ quan có thẩm quyền"),
+                List.of(new PendingFactResponse("vehicleType", "Bạn điều khiển loại phương tiện nào?", "Thiếu loại phương tiện")),
+                List.of(new RememberedFactResponse("vehicleType", "xe máy", "ACTIVE")),
+                new ScenarioAnalysisResponse(
+                        List.of("Người dùng điều khiển xe máy"),
+                        List.of("Áp dụng Điều 6"),
+                        List.of("Có thể bị xử phạt"),
+                        List.of("Đối chiếu biên bản"),
+                        List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 100", "https://vbpl.vn/nd100", 4, "Điều 6"))
+                ),
                 List.of(new CitationResponse(
                         "[Nguồn 1]",
                         "source-1",
@@ -51,13 +66,21 @@ class ChatContractSerializationTest {
                 ))
         );
 
+        assertThat(response.threadId()).isNotNull();
+        assertThat(response.responseMode()).isEqualTo(ResponseMode.SCENARIO_ANALYSIS);
+
         JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(response));
 
         assertThat(json.has("groundingStatus")).isTrue();
+        assertThat(json.has("threadId")).isTrue();
+        assertThat(json.has("responseMode")).isTrue();
         assertThat(json.has("answer")).isTrue();
         assertThat(json.has("conclusion")).isTrue();
         assertThat(json.has("disclaimer")).isTrue();
         assertThat(json.has("uncertaintyNotice")).isTrue();
+        assertThat(json.has("pendingFacts")).isTrue();
+        assertThat(json.has("rememberedFacts")).isTrue();
+        assertThat(json.has("scenarioAnalysis")).isTrue();
         assertThat(json.has("citations")).isTrue();
         assertThat(json.has("sources")).isTrue();
         assertThat(json.has("legalBasis")).isTrue();
@@ -71,6 +94,8 @@ class ChatContractSerializationTest {
     void serializesRefusalResponseWithDisclaimerAndNextSteps() throws Exception {
         ChatAnswerResponse response = new ChatAnswerResponse(
                 GroundingStatus.REFUSED,
+                null,
+                ResponseMode.STANDARD,
                 AnswerCompositionPolicy.REFUSAL_MESSAGE,
                 null,
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
@@ -84,6 +109,9 @@ class ChatContractSerializationTest {
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
                 ),
+                List.of(),
+                List.of(),
+                null,
                 List.of(),
                 List.of()
         );

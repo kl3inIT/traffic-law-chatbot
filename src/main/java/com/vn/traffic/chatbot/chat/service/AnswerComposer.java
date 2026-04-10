@@ -3,6 +3,7 @@ package com.vn.traffic.chatbot.chat.service;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
+import com.vn.traffic.chatbot.chat.domain.ResponseMode;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -22,6 +23,8 @@ public class AnswerComposer {
             List<String> nextSteps = refusalNextSteps();
             return new ChatAnswerResponse(
                     GroundingStatus.REFUSED,
+                    null,
+                    ResponseMode.STANDARD,
                     buildAnswer(null, List.of(), List.of(), List.of(), List.of(), nextSteps),
                     null,
                     AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
@@ -31,6 +34,9 @@ public class AnswerComposer {
                     List.of(),
                     List.of(),
                     nextSteps,
+                    List.of(),
+                    List.of(),
+                    null,
                     List.of(),
                     List.of()
             );
@@ -58,6 +64,8 @@ public class AnswerComposer {
 
         return new ChatAnswerResponse(
                 groundingStatus,
+                null,
+                ResponseMode.STANDARD,
                 answer,
                 normalizedConclusion,
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
@@ -67,6 +75,9 @@ public class AnswerComposer {
                 requiredDocuments,
                 procedureSteps,
                 nextSteps,
+                List.of(),
+                List.of(),
+                null,
                 safeCitations,
                 safeSources
         );

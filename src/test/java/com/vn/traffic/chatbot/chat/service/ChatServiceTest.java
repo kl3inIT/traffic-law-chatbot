@@ -97,6 +97,8 @@ class ChatServiceTest {
         );
         ChatAnswerResponse expected = new ChatAnswerResponse(
                 GroundingStatus.GROUNDED,
+                null,
+                com.vn.traffic.chatbot.chat.domain.ResponseMode.STANDARD,
                 "final answer",
                 "Kết luận [Nguồn 1].",
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
@@ -106,6 +108,9 @@ class ChatServiceTest {
                 draft.requiredDocuments(),
                 draft.procedureSteps(),
                 draft.nextSteps(),
+                List.of(),
+                List.of(),
+                null,
                 citations,
                 sources
         );
@@ -173,6 +178,8 @@ class ChatServiceTest {
         );
         ChatAnswerResponse expected = new ChatAnswerResponse(
                 GroundingStatus.LIMITED_GROUNDING,
+                null,
+                com.vn.traffic.chatbot.chat.domain.ResponseMode.STANDARD,
                 "limited answer",
                 draft.conclusion(),
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
@@ -182,6 +189,9 @@ class ChatServiceTest {
                 List.of(),
                 List.of(),
                 draft.nextSteps(),
+                List.of(),
+                List.of(),
+                null,
                 citations,
                 sources
         );
@@ -234,6 +244,8 @@ class ChatServiceTest {
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
         ChatAnswerResponse expected = new ChatAnswerResponse(
                 GroundingStatus.REFUSED,
+                null,
+                com.vn.traffic.chatbot.chat.domain.ResponseMode.STANDARD,
                 "refusal answer",
                 null,
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
@@ -247,6 +259,9 @@ class ChatServiceTest {
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
                 ),
+                List.of(),
+                List.of(),
+                null,
                 List.of(),
                 List.of()
         );
@@ -301,6 +316,8 @@ class ChatServiceTest {
         );
         ChatAnswerResponse expected = new ChatAnswerResponse(
                 GroundingStatus.REFUSED,
+                null,
+                com.vn.traffic.chatbot.chat.domain.ResponseMode.STANDARD,
                 "refusal answer",
                 null,
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
@@ -314,6 +331,9 @@ class ChatServiceTest {
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
                 ),
+                List.of(),
+                List.of(),
+                null,
                 List.of(),
                 List.of()
         );
@@ -340,6 +360,8 @@ class ChatServiceTest {
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
         ChatAnswerResponse expected = new ChatAnswerResponse(
                 GroundingStatus.REFUSED,
+                null,
+                com.vn.traffic.chatbot.chat.domain.ResponseMode.STANDARD,
                 "refusal answer",
                 null,
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
@@ -353,6 +375,9 @@ class ChatServiceTest {
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
                 ),
+                List.of(),
+                List.of(),
+                null,
                 List.of(),
                 List.of()
         );

@@ -7,4 +7,5 @@
     <include file="db/changelog/001-schema-foundation.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/002-ingestion-job-indexes.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/003-vector-store-schema.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/004-chat-thread-schema.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>
