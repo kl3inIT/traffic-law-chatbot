@@ -4,5 +4,6 @@ public enum ResponseMode {
     STANDARD,
     CLARIFICATION_NEEDED,
     SCENARIO_ANALYSIS,
+    FINAL_ANALYSIS,
     REFUSED
 }

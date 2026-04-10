@@ -19,6 +19,7 @@ import com.vn.traffic.chatbot.chat.service.ChatThreadService;
 import com.vn.traffic.chatbot.chat.service.ClarificationPolicy;
 import com.vn.traffic.chatbot.chat.service.FactMemoryService;
 import com.vn.traffic.chatbot.chat.service.GroundingStatus;
+import com.vn.traffic.chatbot.chat.service.ScenarioAnswerComposer;
 import com.vn.traffic.chatbot.common.error.AppException;
 import com.vn.traffic.chatbot.common.error.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +60,7 @@ class ChatThreadFlowIntegrationTest {
                 chatMessageRepository,
                 threadFactRepository,
                 chatService,
-                new ChatThreadMapper(),
+                new ChatThreadMapper(new ScenarioAnswerComposer()),
                 factMemoryService,
                 clarificationPolicy
         );
@@ -106,7 +107,7 @@ class ChatThreadFlowIntegrationTest {
 
         ChatAnswerResponse response = chatThreadService.postMessage(threadId, "Tôi đi xe máy vượt đèn đỏ.");
 
-        assertThat(response.responseMode()).isEqualTo(ResponseMode.SCENARIO_ANALYSIS);
+        assertThat(response.responseMode()).isEqualTo(ResponseMode.FINAL_ANALYSIS);
         assertThat(response.rememberedFacts()).extracting(r -> r.key()).contains("vehicleType", "violationType");
         assertThat(response.scenarioAnalysis()).isNotNull();
     }

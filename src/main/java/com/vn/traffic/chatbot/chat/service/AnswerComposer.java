@@ -43,7 +43,7 @@ public class AnswerComposer {
         }
 
         LegalAnswerDraft safeDraft = draft == null
-                ? new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of())
+                ? new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null, null, List.of())
                 : draft;
 
         List<String> legalBasis = safeList(safeDraft.legalBasis());

@@ -146,10 +146,23 @@ public class ChatService {
                 AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                 AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
         );
-        return new LegalAnswerDraft(conclusion, "", uncertaintyNotice, legalBasis, List.of(), List.of(), List.of(), nextSteps);
+        return new LegalAnswerDraft(
+                conclusion,
+                "",
+                uncertaintyNotice,
+                legalBasis,
+                List.of(),
+                List.of(),
+                List.of(),
+                nextSteps,
+                List.of(),
+                null,
+                null,
+                List.of()
+        );
     }
 
     private LegalAnswerDraft emptyDraft() {
-        return new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of());
+        return new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null, null, List.of());
     }
 }

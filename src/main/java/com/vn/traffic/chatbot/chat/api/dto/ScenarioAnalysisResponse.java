@@ -4,8 +4,8 @@ import java.util.List;
 
 public record ScenarioAnalysisResponse(
         List<String> facts,
-        List<String> rules,
-        List<String> outcomes,
+        String rule,
+        String outcome,
         List<String> actions,
         List<SourceReferenceResponse> sources
 ) {

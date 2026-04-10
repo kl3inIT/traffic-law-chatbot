@@ -52,7 +52,7 @@ public class ChatThreadService {
             return chatThreadMapper.attachThreadContext(chatService.refusalResponse(), thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         ChatAnswerResponse answer = chatService.answer(factMemoryService.buildThreadAwareQuestion(question, activeFacts));
-        return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.citations(), answer.sources());
+        return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
 
     @Transactional
@@ -79,7 +79,7 @@ public class ChatThreadService {
             return chatThreadMapper.attachThreadContext(chatService.refusalResponse(), thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         ChatAnswerResponse answer = chatService.answer(factMemoryService.buildThreadAwareQuestion(question, activeFacts));
-        return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.citations(), answer.sources());
+        return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
 
     @Transactional(readOnly = true)

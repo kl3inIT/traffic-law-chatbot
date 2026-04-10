@@ -3,7 +3,6 @@ package com.vn.traffic.chatbot.chat.service;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.ChatThreadResponse;
 import com.vn.traffic.chatbot.chat.api.dto.RememberedFactResponse;
-import com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.domain.ChatThread;
 import com.vn.traffic.chatbot.chat.domain.ResponseMode;
@@ -15,6 +14,12 @@ import java.util.UUID;
 
 @Component
 public class ChatThreadMapper {
+
+    private final ScenarioAnswerComposer scenarioAnswerComposer;
+
+    public ChatThreadMapper(ScenarioAnswerComposer scenarioAnswerComposer) {
+        this.scenarioAnswerComposer = scenarioAnswerComposer;
+    }
 
     public ChatThreadResponse toThreadResponse(ChatThread thread) {
         return new ChatThreadResponse(thread.getId(), thread.getCreatedAt(), thread.getUpdatedAt());
@@ -51,20 +56,32 @@ public class ChatThreadMapper {
             ChatAnswerResponse answer,
             UUID threadId,
             List<ThreadFact> facts,
-            List<?> citations,
             List<SourceReferenceResponse> sources
     ) {
-        ScenarioAnalysisResponse scenarioAnalysis = new ScenarioAnalysisResponse(
-                mapFacts(facts).stream().map(fact -> fact.key() + ": " + fact.value()).toList(),
-                answer.legalBasis(),
-                answer.conclusion() == null ? List.of() : List.of(answer.conclusion()),
-                answer.nextSteps(),
-                sources == null ? List.of() : sources
+        List<RememberedFactResponse> rememberedFacts = mapFacts(facts);
+        ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
+                answer.groundingStatus(),
+                new LegalAnswerDraft(
+                        answer.conclusion(),
+                        answer.answer(),
+                        answer.uncertaintyNotice(),
+                        answer.legalBasis(),
+                        answer.penalties(),
+                        answer.requiredDocuments(),
+                        answer.procedureSteps(),
+                        answer.nextSteps(),
+                        List.of(),
+                        null,
+                        null,
+                        List.of()
+                ),
+                rememberedFacts,
+                sources == null ? answer.sources() : sources
         );
         return new ChatAnswerResponse(
                 answer.groundingStatus(),
                 threadId,
-                ResponseMode.SCENARIO_ANALYSIS,
+                composition.responseMode(),
                 answer.answer(),
                 answer.conclusion(),
                 answer.disclaimer(),
@@ -75,8 +92,8 @@ public class ChatThreadMapper {
                 answer.procedureSteps(),
                 answer.nextSteps(),
                 answer.pendingFacts(),
-                mapFacts(facts),
-                scenarioAnalysis,
+                rememberedFacts,
+                composition.scenarioAnalysis(),
                 answer.citations(),
                 answer.sources()
         );
