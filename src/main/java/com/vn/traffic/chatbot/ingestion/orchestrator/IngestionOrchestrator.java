@@ -1,5 +1,7 @@
 package com.vn.traffic.chatbot.ingestion.orchestrator;
 
+import com.vn.traffic.chatbot.common.error.AppException;
+import com.vn.traffic.chatbot.common.error.ErrorCode;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionStep;
 import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
@@ -113,6 +115,11 @@ public class IngestionOrchestrator {
             version.setChunkingVersion(tokenChunkingService.version());
             versionRepo.save(version);
 
+            if (chunks.isEmpty()) {
+                throw new AppException(ErrorCode.INGESTION_FAILED,
+                        "No indexable content extracted from source " + source.getId());
+            }
+
             // --- EMBED + INDEX ---
             transitionStep(job, IngestionStep.EMBED);
             List<Document> documents = chunks.stream()
@@ -162,6 +169,7 @@ public class IngestionOrchestrator {
         putIfNotNull(meta, "sourceId", s.getId() != null ? s.getId().toString() : null);
         putIfNotNull(meta, "sourceVersionId", c.sourceVersionId());
         putIfNotNull(meta, "sourceType", s.getSourceType() != null ? s.getSourceType().name() : null);
+        putIfNotNull(meta, "sourceTitle", s.getTitle());
         meta.put("trusted", "false");
         meta.put("active", "false");
         putIfNotNull(meta, "approvalState", s.getApprovalState() != null ? s.getApprovalState().name() : null);

@@ -3,6 +3,7 @@ package com.vn.traffic.chatbot.chunk.api;
 import com.vn.traffic.chatbot.chunk.api.dto.ChunkDetailResponse;
 import com.vn.traffic.chatbot.chunk.api.dto.ChunkSummaryResponse;
 import com.vn.traffic.chatbot.chunk.api.dto.IndexSummaryResponse;
+import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService.RetrievalReadinessCounts;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.common.api.ApiPaths;
 import com.vn.traffic.chatbot.common.api.PageResponse;
@@ -34,6 +35,11 @@ public class ChunkAdminController {
         long totalCount = chunkInspectionService.countChunks(sourceId, sourceVersionId);
         var page = new PageImpl<>(chunks, pageable, totalCount);
         return ResponseEntity.ok(PageResponse.from(page));
+    }
+
+    @GetMapping(ApiPaths.CHUNK_READINESS)
+    public ResponseEntity<RetrievalReadinessCounts> getReadiness() {
+        return ResponseEntity.ok(chunkInspectionService.getRetrievalReadinessCounts());
     }
 
     @GetMapping(ApiPaths.CHUNK_BY_ID)

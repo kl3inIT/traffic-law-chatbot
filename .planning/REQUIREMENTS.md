@@ -9,17 +9,17 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Chat Foundation
 
-- [ ] **CHAT-01**: User can ask a Vietnam traffic-law question in Vietnamese and receive a source-backed answer.
+- [x] **CHAT-01**: User can ask a Vietnam traffic-law question in Vietnamese and receive a source-backed answer.
 - [ ] **CHAT-02**: User can continue a conversation across multiple turns within the same thread.
-- [ ] **CHAT-03**: User can view cited source references used to support an answer.
-- [ ] **CHAT-04**: User receives a clear disclaimer when the system provides informational legal guidance rather than formal legal advice.
+- [x] **CHAT-03**: User can view cited source references used to support an answer.
+- [x] **CHAT-04**: User receives a clear disclaimer when the system provides informational legal guidance rather than formal legal advice.
 
 ### Legal Guidance
 
-- [ ] **LEGAL-01**: User receives the relevant legal basis for an answer, tied to retrieved source content.
-- [ ] **LEGAL-02**: User receives likely fine, penalty, or administrative consequence information when relevant to the question.
-- [ ] **LEGAL-03**: User receives required documents, procedure, or compliance steps when relevant to the question.
-- [ ] **LEGAL-04**: User receives recommended next steps based on the described traffic-law situation.
+- [x] **LEGAL-01**: User receives the relevant legal basis for an answer, tied to retrieved source content.
+- [x] **LEGAL-02**: User receives likely fine, penalty, or administrative consequence information when relevant to the question.
+- [x] **LEGAL-03**: User receives required documents, procedure, or compliance steps when relevant to the question.
+- [x] **LEGAL-04**: User receives recommended next steps based on the described traffic-law situation.
 
 ### Case Analysis
 
@@ -90,14 +90,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CHAT-01 | Phase 2 | Pending |
+| CHAT-01 | Phase 2 | Complete |
 | CHAT-02 | Phase 3 | Pending |
-| CHAT-03 | Phase 2 | Pending |
-| CHAT-04 | Phase 2 | Pending |
-| LEGAL-01 | Phase 2 | Pending |
-| LEGAL-02 | Phase 2 | Pending |
-| LEGAL-03 | Phase 2 | Pending |
-| LEGAL-04 | Phase 2 | Pending |
+| CHAT-03 | Phase 2 | Complete |
+| CHAT-04 | Phase 2 | Complete |
+| LEGAL-01 | Phase 2 | Complete |
+| LEGAL-02 | Phase 2 | Complete |
+| LEGAL-03 | Phase 2 | Complete |
+| LEGAL-04 | Phase 2 | Complete |
 | CASE-01 | Phase 3 | Pending |
 | CASE-02 | Phase 3 | Pending |
 | CASE-03 | Phase 3 | Pending |

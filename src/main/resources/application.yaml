@@ -27,12 +27,19 @@ spring:
       pgvector:
         initialize-schema: false
         schema-name: public
-        vector-table-name: kb_vector_store
         dimensions: 1536
         distance-type: COSINE_DISTANCE
         index-type: HNSW
+        table-name: kb_vector_store
     openai:
       api-key: ${OPENAI_API_KEY:}
+
+app:
+  chat:
+    retrieval:
+      top-k: 5
+    grounding:
+      limited-threshold: 2
 
 server:
   port: 8088

@@ -199,6 +199,31 @@ class IngestionOrchestratorPdfParserSelectionTest {
     }
 
     @Test
+    void runPipeline_marksJobFailedWhenNoIndexableChunksAreProduced() {
+        PipelineFixture fixture = arrangeFileFixture("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "law.docx");
+        ParsedDocument tikaDoc = new ParsedDocument(
+                "Word content",
+                "law.docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "tika",
+                "3.3.0",
+                List.of(new ParsedDocument.PageSection(1, "full", "Word content"))
+        );
+
+        DocumentParser tikaFallbackParser = (content, mimeType, fileName) -> tikaDoc;
+        when(fileIngestionParserResolver.resolve("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "law.docx"))
+                .thenReturn(tikaFallbackParser);
+        when(tokenChunkingService.chunk(tikaDoc, fixture.source().getId().toString(), fixture.version().getId().toString(), "1.0"))
+                .thenReturn(List.of());
+
+        orchestrator.runPipeline(fixture.job().getId()).join();
+
+        assertThat(fixture.job().getStatus()).isEqualTo(IngestionJobStatus.FAILED);
+        assertThat(fixture.job().getErrorMessage()).contains("No indexable content extracted from source");
+        verify(vectorStore, never()).add(any());
+    }
+
+    @Test
     void runPipeline_indexesChunkMetadataWithoutChangingExistingKeys() {
         PipelineFixture fixture = arrangeFileFixture("application/pdf", "law.pdf");
         ParsedDocument springDoc = new ParsedDocument(

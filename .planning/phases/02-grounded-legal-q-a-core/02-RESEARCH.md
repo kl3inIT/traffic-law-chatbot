@@ -325,22 +325,16 @@ Use a small number of executable plan files: [ASSUMED]
 
 This decomposition is small enough to execute and review, while separating core capability, data-contract shaping, and validation hardening. [ASSUMED]
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should Phase 2 use `QuestionAnswerAdvisor` first or go directly to `RetrievalAugmentationAdvisor`?** [CITED: https://docs.spring.io/spring-ai/reference/api/retrieval-augmented-generation.html]
-   - What we know: both are official; `RetrievalAugmentationAdvisor` has the strongest documented empty-context refusal behavior. [CITED: https://docs.spring.io/spring-ai/reference/api/retrieval-augmented-generation.html]
-   - What's unclear: whether the team prefers simpler first delivery or more configurable grounding hooks immediately. [ASSUMED]
-   - Recommendation: start with `RetrievalAugmentationAdvisor` if citation access from execution context is straightforward; otherwise use `QuestionAnswerAdvisor` plus explicit refusal checks in service code. [ASSUMED]
+   - Resolution: Phase 2 shipped with explicit service-level retrieval orchestration and refusal handling in `ChatService`, so the gap-closure plan should preserve that path rather than re-open advisor selection. [VERIFIED: .planning/phases/02-grounded-legal-q-a-core/02-02-PLAN.md] [VERIFIED: .planning/phases/02-grounded-legal-q-a-core/02-VERIFICATION.md]
 
 2. **What exact Vietnamese disclaimer text is product-approved?** [VERIFIED: .planning/REQUIREMENTS.md]
-   - What we know: CHAT-04 requires a clear informational-guidance disclaimer. [VERIFIED: .planning/REQUIREMENTS.md]
-   - What's unclear: exact wording, length, and whether it should always appear or only on substantive answers. [ASSUMED]
-   - Recommendation: lock one consistent disclaimer string in planning before implementation. [ASSUMED]
+   - Resolution: The disclaimer string is now locked by Phase 2 implementation and tests in `AnswerCompositionPolicy.DEFAULT_DISCLAIMER`; gap closure must preserve that exact wording. [VERIFIED: .planning/phases/02-grounded-legal-q-a-core/02-VERIFICATION.md]
 
 3. **What should the public chat route be?** [VERIFIED: src/main/java/com/vn/traffic/chatbot/common/api/ApiPaths.java]
-   - What we know: existing constants cover only admin APIs. [VERIFIED: src/main/java/com/vn/traffic/chatbot/common/api/ApiPaths.java]
-   - What's unclear: whether the public API should live under `/api/v1/chat` or another user-facing namespace. [ASSUMED]
-   - Recommendation: add a non-admin `/api/v1/chat` base to keep public and admin contracts clearly separated. [ASSUMED]
+   - Resolution: Phase 2 already locked the public route to `/api/v1/chat`; gap closure must keep that route stable and avoid admin namespace drift. [VERIFIED: .planning/phases/02-grounded-legal-q-a-core/02-03-PLAN.md] [VERIFIED: .planning/phases/02-grounded-legal-q-a-core/02-VERIFICATION.md]
 
 ## Environment Availability
 
