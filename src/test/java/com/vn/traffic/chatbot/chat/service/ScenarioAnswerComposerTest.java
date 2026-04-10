@@ -25,8 +25,8 @@ class ScenarioAnswerComposerTest {
                 List.of(),
                 List.of("Đối chiếu biên bản"),
                 List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
-                "Áp dụng Điều 7 Nghị định 168 [Nguồn 1]",
-                "Có thể bị xử phạt tiền theo khung dành cho xe máy [Nguồn 1]",
+                List.of("Áp dụng Điều 7 Nghị định 168 [Nguồn 1]"),
+                List.of("Có thể bị xử phạt tiền theo khung dành cho xe máy [Nguồn 1]"),
                 List.of("Giữ lại biên bản để đối chiếu")
         );
 
@@ -58,8 +58,8 @@ class ScenarioAnswerComposerTest {
                 List.of(),
                 List.of("Bổ sung thêm thông tin"),
                 List.of("Thiếu giấy tờ xe"),
-                "Áp dụng Điều 58 [Nguồn 1]",
-                "Có thể bị xử lý",
+                List.of("Áp dụng Điều 58 [Nguồn 1]"),
+                List.of("Có thể bị xử lý"),
                 List.of("Kiểm tra lại giấy tờ")
         );
 
@@ -88,8 +88,8 @@ class ScenarioAnswerComposerTest {
                 List.of(),
                 List.of("Bổ sung thêm thông tin"),
                 List.of("Thiếu giấy tờ xe"),
-                "Áp dụng Điều 58 [Nguồn 1]",
-                "Có thể bị xử lý",
+                List.of("Áp dụng Điều 58 [Nguồn 1]"),
+                List.of("Có thể bị xử lý"),
                 List.of("Kiểm tra lại giấy tờ")
         );
 

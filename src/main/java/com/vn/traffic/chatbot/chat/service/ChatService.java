@@ -1,5 +1,6 @@
 package com.vn.traffic.chatbot.chat.service;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
@@ -8,6 +9,7 @@ import com.vn.traffic.chatbot.chat.citation.CitationMapper;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService {
@@ -123,8 +126,12 @@ public class ChatService {
             List<SourceReferenceResponse> sources
     ) {
         try {
-            return objectMapper.readValue(extractJson(modelPayload), LegalAnswerDraft.class);
+            ObjectMapper lenient = objectMapper.copy()
+                    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            return lenient.readValue(extractJson(modelPayload), LegalAnswerDraft.class);
         } catch (Exception ex) {
+            log.warn("parseDraft failed ({}), raw payload: {}", ex.getMessage(), modelPayload);
             return fallbackDraft(groundingStatus, citations, sources);
         }
     }

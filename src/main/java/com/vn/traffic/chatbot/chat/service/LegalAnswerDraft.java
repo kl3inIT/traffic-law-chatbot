@@ -12,8 +12,8 @@ public record LegalAnswerDraft(
         List<String> procedureSteps,
         List<String> nextSteps,
         List<String> scenarioFacts,
-        String scenarioRule,
-        String scenarioOutcome,
+        List<String> scenarioRule,
+        List<String> scenarioOutcome,
         List<String> scenarioActions
 ) {
 }

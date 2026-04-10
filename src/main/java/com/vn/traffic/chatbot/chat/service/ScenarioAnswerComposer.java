@@ -21,8 +21,8 @@ public class ScenarioAnswerComposer {
             List<SourceReferenceResponse> sources
     ) {
         List<String> facts = buildFacts(draft, rememberedFacts);
-        String rule = firstNonBlank(draft == null ? null : draft.scenarioRule(), joinLines(draft == null ? null : draft.legalBasis()));
-        String outcome = firstNonBlank(draft == null ? null : draft.scenarioOutcome(), draft == null ? null : draft.conclusion());
+        String rule = firstNonBlank(joinLines(draft == null ? null : draft.scenarioRule()), joinLines(draft == null ? null : draft.legalBasis()));
+        String outcome = firstNonBlank(joinLines(draft == null ? null : draft.scenarioOutcome()), draft == null ? null : draft.conclusion());
         List<String> actions = buildActions(draft);
         List<SourceReferenceResponse> safeSources = safeList(sources);
 

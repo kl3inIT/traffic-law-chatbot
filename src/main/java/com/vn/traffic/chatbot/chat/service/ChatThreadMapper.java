@@ -99,8 +99,8 @@ public class ChatThreadMapper {
                 answer.procedureSteps(),
                 answer.nextSteps(),
                 answer.scenarioAnalysis() == null ? List.of() : answer.scenarioAnalysis().facts(),
-                answer.scenarioAnalysis() == null ? null : answer.scenarioAnalysis().rule(),
-                answer.scenarioAnalysis() == null ? null : answer.scenarioAnalysis().outcome(),
+                answer.scenarioAnalysis() == null || answer.scenarioAnalysis().rule() == null ? List.of() : List.of(answer.scenarioAnalysis().rule()),
+                answer.scenarioAnalysis() == null || answer.scenarioAnalysis().outcome() == null ? List.of() : List.of(answer.scenarioAnalysis().outcome()),
                 answer.scenarioAnalysis() == null ? List.of() : answer.scenarioAnalysis().actions()
         );
     }

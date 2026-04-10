@@ -87,8 +87,8 @@ class ChatServiceTest {
                   "procedureSteps": ["Làm việc với cơ quan chức năng"],
                   "nextSteps": ["Kiểm tra biên bản"],
                   "scenarioFacts": ["Phương tiện: xe máy"],
-                  "scenarioRule": "Áp dụng Điều 6 [Nguồn 1]",
-                  "scenarioOutcome": "Có thể bị xử phạt [Nguồn 1]",
+                  "scenarioRule": ["Áp dụng Điều 6 [Nguồn 1]"],
+                  "scenarioOutcome": ["Có thể bị xử phạt [Nguồn 1]"],
                   "scenarioActions": ["Đối chiếu biên bản"]
                 }
                 """);
@@ -132,8 +132,8 @@ class ChatServiceTest {
                   "procedureSteps": [],
                   "nextSteps": [],
                   "scenarioFacts": ["Vượt đèn đỏ"],
-                  "scenarioRule": "Áp dụng Điều 7 [Nguồn 1]",
-                  "scenarioOutcome": "Có thể bị xử phạt [Nguồn 1]",
+                  "scenarioRule": ["Áp dụng Điều 7 [Nguồn 1]"],
+                  "scenarioOutcome": ["Có thể bị xử phạt [Nguồn 1]"],
                   "scenarioActions": []
                 }
                 ```""");
@@ -175,8 +175,8 @@ class ChatServiceTest {
                   "procedureSteps": [],
                   "nextSteps": ["Kiểm tra lại loại giấy tờ còn thiếu"],
                   "scenarioFacts": ["Thiếu giấy tờ xe"],
-                  "scenarioRule": "Áp dụng Điều 58 [Nguồn 1]",
-                  "scenarioOutcome": "Có thể bị xử lý [Nguồn 1]",
+                  "scenarioRule": ["Áp dụng Điều 58 [Nguồn 1]"],
+                  "scenarioOutcome": ["Có thể bị xử lý [Nguồn 1]"],
                   "scenarioActions": ["Bổ sung giấy tờ"]
                 }
                 """);
