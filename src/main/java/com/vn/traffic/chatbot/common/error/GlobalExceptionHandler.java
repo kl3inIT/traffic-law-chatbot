@@ -8,6 +8,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.net.URI;
 import java.util.Map;
@@ -45,6 +46,17 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
         problem.setProperty("errorCode", ex.getErrorCode().name());
         log.warn("Application error [{}] at {}: {}", ex.getErrorCode(), request.getRequestURI(), ex.getMessage());
+        return problem;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatchException(MethodArgumentTypeMismatchException ex,
+                                                     HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Validation failed");
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty("errors", Map.of(ex.getName(), "Invalid value"));
+        log.warn("Type mismatch at {}: {}", request.getRequestURI(), ex.getMessage());
         return problem;
     }
 
