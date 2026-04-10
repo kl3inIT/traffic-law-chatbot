@@ -1,58 +1,107 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-08T06:25:00.000Z",
-  "phase": "01.1",
-  "phase_name": "refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai",
-  "phase_dir": ".planning/phases/01.1-refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai",
-  "plan": 4,
+  "timestamp": "2026-04-10T14:57:44.164Z",
+  "phase": "3",
+  "phase_name": "03-multi-turn-case-analysis",
+  "phase_dir": ".planning/phases/03-multi-turn-case-analysis",
+  "plan": 3,
   "task": 3,
   "total_tasks": 3,
-  "status": "completed",
+  "status": "paused",
   "completed_tasks": [
     {
       "id": 1,
-      "name": "Rename implementation-branded ingestion components to domain-oriented names",
+      "name": "Thread/persistence foundation and Wave 0 test scaffolds",
       "status": "done",
-      "commit": "146a22c"
+      "commit": "84a6aa5"
     },
     {
       "id": 2,
-      "name": "Promote Spring AI readers to the primary ingestion path and constrain Tika fallback",
+      "name": "Durable thread schema and thread-aware contracts/endpoints",
       "status": "done",
-      "commit": "146a22c"
+      "commit": "c251d99"
     },
     {
       "id": 3,
-      "name": "Move chunking toward token splitting while preserving metadata and audit fields",
+      "name": "Explicit fact memory and clarification policy",
       "status": "done",
-      "commit": "146a22c"
+      "commit": "c87e1fe"
+    },
+    {
+      "id": 4,
+      "name": "Grounded final scenario composition and serialization lock",
+      "status": "done",
+      "commit": "fb90fc5"
+    },
+    {
+      "id": 5,
+      "name": "UTF-8 thread request fix",
+      "status": "done",
+      "progress": "Added servlet UTF-8 encoding config in application.yaml, added Vietnamese JSON controller regressions in ChatThreadControllerTest, and verified Vietnamese create/post thread requests work live on port 18090 without UTF-8 parse errors."
+    },
+    {
+      "id": 6,
+      "name": "Clarification-to-final-analysis mapper fix",
+      "status": "done",
+      "progress": "Updated ChatThreadMapper to preserve structured scenario fields and effective sources during thread remapping, and tightened ChatScenarioAnalysisIntegrationTest and ChatThreadFlowIntegrationTest fixtures so focused clarification-flow tests now pass."
     }
   ],
-  "remaining_tasks": [],
-  "blockers": [],
+  "remaining_tasks": [
+    {
+      "id": 7,
+      "name": "Diagnose live post-clarification fallback in ChatService/model-output path",
+      "status": "not_started"
+    },
+    {
+      "id": 8,
+      "name": "Fix live CLARIFICATION_NEEDED -> FINAL_ANALYSIS behavior",
+      "status": "not_started"
+    },
+    {
+      "id": 9,
+      "name": "Re-run live Phase 3 API verification and update planning/state artifacts",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Live post-clarification responses still fall back to SCENARIO_ANALYSIS with scenarioAnalysis=null instead of FINAL_ANALYSIS.",
+      "type": "technical",
+      "workaround": "None yet. Mapper preservation bug is fixed; next investigation must focus on ChatService/model output and fallback drafting after clarification."
+    },
+    {
+      "description": ".env contains an extra invalid trailing line ('to'), which breaks plain shell sourcing.",
+      "type": "technical",
+      "workaround": "Parse only valid KEY=value lines or avoid sourcing .env directly."
+    }
+  ],
   "human_actions_pending": [],
   "decisions": [
     {
-      "decision": "Spring AI ETL/readers are now the default ingestion pipeline for covered formats",
-      "rationale": "Repo-owned code remains the policy and control layer while Spring AI handles covered reader and chunking behavior",
-      "phase": "01.1"
+      "decision": "Use Windows gradlew.bat with JAVA_HOME=C:/Users/admin/.jdks/temurin-25.0.2 for all live verification.",
+      "rationale": "WSL/bash launch paths previously broke Java 25 toolchain detection and wrapper behavior.",
+      "phase": "3"
     },
     {
-      "decision": "Ingestion naming is domain-oriented instead of implementation-branded",
-      "rationale": "Responsibility-based names are easier to maintain than library-branded names",
-      "phase": "01.1"
+      "decision": "Add explicit servlet UTF-8 encoding in application.yaml before touching broader request logic.",
+      "rationale": "Live Vietnamese JSON thread requests were failing with Jackson UTF-8 parse errors while ASCII succeeded.",
+      "phase": "3"
     },
     {
-      "decision": "Chunking provenance is persisted on KbSourceVersion",
-      "rationale": "Admins need parser and chunking auditability for ingestion review",
-      "phase": "01.1"
+      "decision": "Fix ChatThreadMapper before broader scenario-flow changes.",
+      "rationale": "The mapper was dropping scenarioFacts/scenarioRule/scenarioOutcome/scenarioActions during thread remapping, which was a real code bug even though it did not fully resolve the live acceptance failure.",
+      "phase": "3"
     }
   ],
   "uncommitted_files": [
-    ".planning/HANDOFF.json",
-    ".planning/STATE.md",
-    ".planning/phases/01.1-refactor-ingestion-parser-architecture-to-a-hybrid-spring-ai/01.1-04-SUMMARY.md"
+    "src/main/java/com/vn/traffic/chatbot/chat/service/ChatThreadMapper.java",
+    "src/main/java/com/vn/traffic/chatbot/common/config/AsyncConfig.java",
+    "src/main/resources/application.yaml",
+    "src/test/java/com/vn/traffic/chatbot/chat/ChatScenarioAnalysisIntegrationTest.java",
+    "src/test/java/com/vn/traffic/chatbot/chat/ChatThreadFlowIntegrationTest.java",
+    "src/test/java/com/vn/traffic/chatbot/chat/api/ChatThreadControllerTest.java",
+    ".claude-vn-chat-request.json"
   ],
-  "next_action": "Begin the next planned workflow after Phase 01.1 completion, likely Phase 2 grounded legal Q&A work or formal phase transition updates.",
-  "context_notes": "Plan 01.1-04 has been implemented and committed in 146a22c. Parser selection is resolver-based, Spring AI is primary for covered formats, token chunking is active, and chunking provenance is persisted. Remaining work is workflow and phase progression rather than ingestion refactor implementation."
+  "next_action": "Start from the already-running local verification setup, reproduce the clarified thread case on port 18090, and inspect ChatService/fallback drafting to determine why post-clarification live responses still come back as LIMITED_GROUNDING + SCENARIO_ANALYSIS with scenarioAnalysis=null.",
+  "context_notes": "The UTF-8 transport bug is resolved and the mapper bug is resolved. Focus next on why the live path still emits fallback-style answers after clarification even though focused tests are green. The likely gap is between real model output / parseDraft fallback behavior and the structured scenario composition expectations. Also note there is an unexpected unrelated modification in src/main/java/com/vn/traffic/chatbot/common/config/AsyncConfig.java that was not part of this work and should be reviewed before any commit beyond handoff files."
 }

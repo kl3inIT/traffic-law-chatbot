@@ -1,5 +1,6 @@
 package com.vn.traffic.chatbot.chat.service;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
@@ -8,6 +9,7 @@ import com.vn.traffic.chatbot.chat.citation.CitationMapper;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService {
@@ -45,7 +48,7 @@ public class ChatService {
 
         if (groundingStatus == GroundingStatus.REFUSED || !containsAnyLegalCitation(citations)) {
             chunkInspectionService.getRetrievalReadinessCounts();
-            return answerComposer.compose(GroundingStatus.REFUSED, emptyDraft(), List.of(), List.of());
+            return refusalResponse();
         }
 
         String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations);
@@ -56,6 +59,10 @@ public class ChatService {
 
         LegalAnswerDraft draft = parseDraft(modelPayload, groundingStatus, citations, sources);
         return answerComposer.compose(groundingStatus, draft, citations, sources);
+    }
+
+    public ChatAnswerResponse refusalResponse() {
+        return answerComposer.compose(GroundingStatus.REFUSED, emptyDraft(), List.of(), List.of());
     }
 
     private GroundingStatus determineGroundingStatus(int documentCount) {
@@ -119,10 +126,39 @@ public class ChatService {
             List<SourceReferenceResponse> sources
     ) {
         try {
-            return objectMapper.readValue(modelPayload, LegalAnswerDraft.class);
+            ObjectMapper lenient = objectMapper.copy()
+                    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            return lenient.readValue(extractJson(modelPayload), LegalAnswerDraft.class);
         } catch (Exception ex) {
+            log.warn("parseDraft failed ({}), raw payload: {}", ex.getMessage(), modelPayload);
             return fallbackDraft(groundingStatus, citations, sources);
         }
+    }
+
+    private String extractJson(String payload) {
+        if (payload == null || payload.isBlank()) {
+            return "";
+        }
+        String text = payload.trim();
+        // Strip markdown code block wrapper (```json ... ``` or ``` ... ```)
+        if (text.startsWith("```")) {
+            int firstNewline = text.indexOf('\n');
+            if (firstNewline >= 0) {
+                text = text.substring(firstNewline + 1).trim();
+            }
+            int lastFence = text.lastIndexOf("```");
+            if (lastFence >= 0) {
+                text = text.substring(0, lastFence).trim();
+            }
+        }
+        // Extract JSON object from potentially mixed content
+        int start = text.indexOf('{');
+        int end = text.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            return text.substring(start, end + 1);
+        }
+        return text;
     }
 
     private LegalAnswerDraft fallbackDraft(
@@ -142,10 +178,23 @@ public class ChatService {
                 AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                 AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
         );
-        return new LegalAnswerDraft(conclusion, "", uncertaintyNotice, legalBasis, List.of(), List.of(), List.of(), nextSteps);
+        return new LegalAnswerDraft(
+                conclusion,
+                "",
+                uncertaintyNotice,
+                legalBasis,
+                List.of(),
+                List.of(),
+                List.of(),
+                nextSteps,
+                List.of(),
+                null,
+                null,
+                List.of()
+        );
     }
 
     private LegalAnswerDraft emptyDraft() {
-        return new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of());
+        return new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null, null, List.of());
     }
 }

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="004-chat-thread-schema" author="claude">
+        <createTable tableName="chat_thread">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="chat_message">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="thread_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_chat_message_thread" references="chat_thread(id)"/>
+            </column>
+            <column name="role" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message_type" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="thread_fact">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="thread_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_thread_fact_thread" references="chat_thread(id)"/>
+            </column>
+            <column name="source_message_id" type="UUID">
+                <constraints foreignKeyName="fk_thread_fact_source_message" references="chat_message(id)"/>
+            </column>
+            <column name="fact_key" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fact_value" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(30)" defaultValue="ACTIVE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="superseded_by_fact_id" type="UUID">
+                <constraints foreignKeyName="fk_thread_fact_superseded_by" references="thread_fact(id)"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex indexName="idx_chat_message_thread_created" tableName="chat_message">
+            <column name="thread_id"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <createIndex indexName="idx_thread_fact_thread_status" tableName="thread_fact">
+            <column name="thread_id"/>
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex indexName="idx_thread_fact_message" tableName="thread_fact">
+            <column name="source_message_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

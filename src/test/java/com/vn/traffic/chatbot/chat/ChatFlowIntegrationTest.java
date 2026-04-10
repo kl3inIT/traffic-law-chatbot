@@ -75,7 +75,7 @@ class ChatFlowIntegrationTest {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
 
-        mockMvc = MockMvcBuilders.standaloneSetup(new PublicChatController(chatService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new PublicChatController(chatService, null))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(context.getBean(ObjectMapper.class)))
                 .setValidator(validator)

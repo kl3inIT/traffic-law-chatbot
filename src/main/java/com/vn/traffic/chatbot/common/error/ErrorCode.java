@@ -10,6 +10,7 @@ public enum ErrorCode {
     VALIDATION_ERROR(400),
     CHAT_REQUEST_INVALID(400),
     CHAT_GROUNDING_INSUFFICIENT(422),
+    CHAT_THREAD_NOT_FOUND(404),
     CHAT_RESPONSE_INVALID(500);
 
     private final int httpStatus;

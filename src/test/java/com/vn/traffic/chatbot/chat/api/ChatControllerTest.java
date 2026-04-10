@@ -5,6 +5,7 @@ import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.ChatQuestionRequest;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
+import com.vn.traffic.chatbot.chat.domain.ResponseMode;
 import com.vn.traffic.chatbot.chat.service.AnswerCompositionPolicy;
 import com.vn.traffic.chatbot.chat.service.ChatService;
 import com.vn.traffic.chatbot.chat.service.GroundingStatus;
@@ -49,7 +50,7 @@ class ChatControllerTest {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
 
-        mockMvc = MockMvcBuilders.standaloneSetup(new PublicChatController(chatService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new PublicChatController(chatService, null))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
                 .setValidator(validator)
@@ -75,6 +76,8 @@ class ChatControllerTest {
     void postChatReturnsStructuredGroundedAnswerContract() throws Exception {
         ChatAnswerResponse response = new ChatAnswerResponse(
                 GroundingStatus.GROUNDED,
+                null,
+                ResponseMode.STANDARD,
                 "Xe máy vượt đèn đỏ có thể bị xử phạt tiền theo quy định hiện hành.",
                 "Xe máy vượt đèn đỏ có thể bị xử phạt.",
                 "Thông tin chỉ nhằm mục đích tham khảo, không thay thế tư vấn pháp lý chính thức.",
@@ -84,6 +87,9 @@ class ChatControllerTest {
                 List.of(),
                 List.of(),
                 List.of("Đối chiếu biên bản và tình tiết thực tế"),
+                List.of(),
+                List.of(),
+                null,
                 List.of(new CitationResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "Người điều khiển xe máy vượt đèn đỏ...")),
                 List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))
         );
@@ -107,6 +113,8 @@ class ChatControllerTest {
     void postChatReturnsHandledRefusalWithoutHttp500WhenGroundingIsInsufficient() throws Exception {
         ChatAnswerResponse response = new ChatAnswerResponse(
                 GroundingStatus.REFUSED,
+                null,
+                ResponseMode.STANDARD,
                 AnswerCompositionPolicy.REFUSAL_MESSAGE,
                 null,
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
@@ -120,6 +128,9 @@ class ChatControllerTest {
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
                 ),
+                List.of(),
+                List.of(),
+                null,
                 List.of(),
                 List.of()
         );

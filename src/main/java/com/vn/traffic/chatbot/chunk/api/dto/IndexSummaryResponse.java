@@ -6,6 +6,6 @@ public record IndexSummaryResponse(
         long trustedChunks,
         long activeChunks,
         long pendingApprovalChunks,
-        long failedChunks
+        long eligibleChunks
 ) {
 }
