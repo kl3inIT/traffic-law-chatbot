@@ -97,6 +97,17 @@ Plans:
 
 **UI hint:** yes
 
+**Plans:** 7 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — AiParameterSet backend: entity, Liquibase migration, CRUD REST API, default seed, thread list endpoint
+- [ ] 04-02-PLAN.md — Refactor hardcoded AI settings to read from active parameter set + CORS config
+- [ ] 04-03-PLAN.md — Frontend scaffold: Next.js 16 project, shadcn/ui init, TypeScript types, API client, test infra
+- [ ] 04-04-PLAN.md — Sidebar shell, thread list component, route group layouts
+- [ ] 04-05-PLAN.md — Chat interface: message bubbles, scenario accordion, chat input, page wiring
+- [ ] 04-06-PLAN.md — Source management DataTable + Knowledge index inspection cards
+- [ ] 04-07-PLAN.md — AI parameter sets admin screen + E2E visual verification checkpoint
+
 **Success criteria:**
 1. The frontend is implemented in Next.js and supports the v1 chat workflow end-to-end.
 2. The application includes one sidebar-style shell combining chat and admin screens.
@@ -140,4 +151,4 @@ Plans:
 5. **Quality ops last, but not optional** — logs and answer checks complete the Jmix-like operational loop.
 
 ---
-*Last updated: 2026-04-10 after Phase 3 planning*
+*Last updated: 2026-04-10 after Phase 4 planning*
