@@ -34,8 +34,9 @@ notes: pendingFacts=['violationType','vehicleType']. scenarioAnalysis=null. Disc
 
 ### 5. Fact Correction — Latest Wins
 expected: In a multi-turn thread where Turn 1 states xe máy, Turn 2 corrects to ô tô, Turn 3 should show ô tô as the active vehicleType.
-result: issue
+result: fixed
 reported: "When the correction message says 'Thực ra tôi đi ô tô, không phải xe máy', the active vehicleType stays as xe máy instead of switching to ô tô. Clean correction phrasing ('Nhầm rồi, tôi đi ô tô') works correctly."
+fix: "Added negation guard in FactMemoryService.addMatch() — matches preceded by 'không phải'/'không phải là'/'chứ không phải' within 30 chars are skipped, so only the affirmed value wins."
 severity: major
 
 ### 6. Clarification Resolves to Final Analysis
@@ -45,8 +46,9 @@ notes: Turn 1 → CLARIFICATION_NEEDED. Turn 2 "Tôi điều khiển xe máy và
 
 ### 7. Final Scenario Structure (Facts → Rule → Outcome → Actions → Sources)
 expected: A FINAL_ANALYSIS response contains `scenarioAnalysis` with facts, rule, outcome, and actions fields, plus citations and sources.
-result: issue
+result: fixed
 reported: "scenarioAnalysis structure is present with all required keys (facts, rule, outcome, actions, sources) and citations/sources are non-empty (4 each). However, rule and outcome fields contain fallback placeholder text ('Đối chiếu các nguồn trích dẫn bên dưới...' / 'Chưa thể tổng hợp đầy đủ...') instead of actual grounded legal analysis. The AI model response is not being parsed as the expected JSON LegalAnswerDraft format, triggering the fallback path."
+fix: "Added extractJson() in ChatService.parseDraft() — strips markdown code block wrappers (```json...```) and extracts the JSON object by {/} boundaries before parsing, so model responses wrapped in code fences no longer trigger the fallback path."
 severity: major
 
 ### 8. Phase 2 Single-Turn Regression (/api/v1/chat)
@@ -58,7 +60,8 @@ notes: Returns HTTP 200, groundingStatus=GROUNDED, responseMode=STANDARD, thread
 
 total: 8
 passed: 6
-issues: 2
+fixed: 2
+issues: 0
 pending: 0
 skipped: 0
 

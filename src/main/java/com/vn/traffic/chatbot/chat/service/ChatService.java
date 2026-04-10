@@ -123,10 +123,35 @@ public class ChatService {
             List<SourceReferenceResponse> sources
     ) {
         try {
-            return objectMapper.readValue(modelPayload, LegalAnswerDraft.class);
+            return objectMapper.readValue(extractJson(modelPayload), LegalAnswerDraft.class);
         } catch (Exception ex) {
             return fallbackDraft(groundingStatus, citations, sources);
         }
+    }
+
+    private String extractJson(String payload) {
+        if (payload == null || payload.isBlank()) {
+            return "";
+        }
+        String text = payload.trim();
+        // Strip markdown code block wrapper (```json ... ``` or ``` ... ```)
+        if (text.startsWith("```")) {
+            int firstNewline = text.indexOf('\n');
+            if (firstNewline >= 0) {
+                text = text.substring(firstNewline + 1).trim();
+            }
+            int lastFence = text.lastIndexOf("```");
+            if (lastFence >= 0) {
+                text = text.substring(0, lastFence).trim();
+            }
+        }
+        // Extract JSON object from potentially mixed content
+        int start = text.indexOf('{');
+        int end = text.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            return text.substring(start, end + 1);
+        }
+        return text;
     }
 
     private LegalAnswerDraft fallbackDraft(

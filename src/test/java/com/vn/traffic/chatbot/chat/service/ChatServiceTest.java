@@ -103,6 +103,51 @@ class ChatServiceTest {
     }
 
     @Test
+    void answerParsesModelResponseWrappedInMarkdownCodeBlock() {
+        String question = "Vượt đèn đỏ bị phạt thế nào?";
+        SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
+        List<Document> documents = List.of(document("1"), document("2"), document("3"));
+        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 7, "Điều 7", "excerpt"));
+        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 7, "Điều 7"));
+        ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
+
+        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
+        when(vectorStore.similaritySearch(request)).thenReturn(documents);
+        when(citationMapper.toCitations(documents)).thenReturn(citations);
+        when(citationMapper.toSources(citations)).thenReturn(sources);
+        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt-body");
+        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.user("prompt-body")).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
+        // Model wraps JSON in a markdown code block despite being told not to
+        when(callResponseSpec.content()).thenReturn("""
+                ```json
+                {
+                  "conclusion": "Kết luận [Nguồn 1].",
+                  "answer": "unused",
+                  "uncertaintyNotice": null,
+                  "legalBasis": ["Điều 7 [Nguồn 1]"],
+                  "penalties": ["Phạt tiền [Nguồn 1]"],
+                  "requiredDocuments": [],
+                  "procedureSteps": [],
+                  "nextSteps": [],
+                  "scenarioFacts": ["Vượt đèn đỏ"],
+                  "scenarioRule": "Áp dụng Điều 7 [Nguồn 1]",
+                  "scenarioOutcome": "Có thể bị xử phạt [Nguồn 1]",
+                  "scenarioActions": []
+                }
+                ```""");
+        when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
+
+        ChatAnswerResponse response = chatService.answer(question);
+
+        assertThat(response).isSameAs(expected);
+        // Verify compose was called (not refusal) — model payload was parsed successfully
+        verify(answerComposer).compose(any(), any(), any(), any());
+        verify(chatClient).prompt();
+    }
+
+    @Test
     void answerReturnsLimitedGroundingForOneOrTwoDocumentsAndUsesLimitedNotice() {
         String question = "Quên mang đăng ký xe thì sao?";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();

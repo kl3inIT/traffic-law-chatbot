@@ -73,20 +73,30 @@ public class FactMemoryService {
         }
         String normalized = normalize(content);
         Map<String, ExtractedFact> facts = new LinkedHashMap<>();
-        addMatch(facts, "vehicleType", VEHICLE_PATTERN.matcher(normalized));
-        addMatch(facts, "violationType", VIOLATION_PATTERN.matcher(normalized));
-        addMatch(facts, "alcoholStatus", ALCOHOL_PATTERN.matcher(normalized));
-        addMatch(facts, "licenseStatus", LICENSE_PATTERN.matcher(normalized));
-        addMatch(facts, "injuryStatus", INJURY_PATTERN.matcher(normalized));
-        addMatch(facts, "documentStatus", DOCUMENT_PATTERN.matcher(normalized));
+        addMatch(facts, "vehicleType", VEHICLE_PATTERN.matcher(normalized), normalized);
+        addMatch(facts, "violationType", VIOLATION_PATTERN.matcher(normalized), normalized);
+        addMatch(facts, "alcoholStatus", ALCOHOL_PATTERN.matcher(normalized), normalized);
+        addMatch(facts, "licenseStatus", LICENSE_PATTERN.matcher(normalized), normalized);
+        addMatch(facts, "injuryStatus", INJURY_PATTERN.matcher(normalized), normalized);
+        addMatch(facts, "documentStatus", DOCUMENT_PATTERN.matcher(normalized), normalized);
         return List.copyOf(facts.values());
     }
 
-    private void addMatch(Map<String, ExtractedFact> facts, String factKey, Matcher matcher) {
+    private void addMatch(Map<String, ExtractedFact> facts, String factKey, Matcher matcher, String fullText) {
         while (matcher.find()) {
+            if (isPrecededByNegation(fullText, matcher.start())) {
+                continue;
+            }
             String value = matcher.group(1) != null ? matcher.group(1) : matcher.group();
             facts.put(factKey, new ExtractedFact(factKey, cleanupValue(value)));
         }
+    }
+
+    private boolean isPrecededByNegation(String text, int matchStart) {
+        String prefix = text.substring(Math.max(0, matchStart - 30), matchStart).stripTrailing();
+        return prefix.endsWith("không phải")
+                || prefix.endsWith("không phải là")
+                || prefix.endsWith("chứ không phải");
     }
 
     private ThreadFact upsertFact(ChatThread thread, ChatMessage userMessage, ExtractedFact extractedFact) {

@@ -91,6 +91,16 @@ class FactMemoryServiceTest {
     }
 
     @Test
+    void negatedVehicleTypeIsSkippedSoCorrectValueWins() {
+        // "Thực ra tôi đi ô tô, không phải xe máy" — last regex match is "xe máy" (negated),
+        // so only "ô tô" should be stored.
+        List<FactMemoryService.ExtractedFact> facts = factMemoryService.extractExplicitFacts(
+                "Thực ra tôi đi ô tô, không phải xe máy.");
+        assertThat(facts).extracting(FactMemoryService.ExtractedFact::factKey).containsExactly("vehicleType");
+        assertThat(facts).extracting(FactMemoryService.ExtractedFact::factValue).containsExactly("ô tô");
+    }
+
+    @Test
     void buildThreadAwareQuestionUsesActiveFactsInsteadOfReparsingHistory() {
         String enriched = factMemoryService.buildThreadAwareQuestion(
                 "Nếu gây tai nạn thì sao?",
