@@ -4,6 +4,7 @@ import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.domain.ResponseMode;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -11,7 +12,10 @@ import java.util.List;
 import java.util.Objects;
 
 @Component
+@RequiredArgsConstructor
 public class AnswerComposer {
+
+    private final AnswerCompositionPolicy policy;
 
     public ChatAnswerResponse compose(
             GroundingStatus groundingStatus,
@@ -20,14 +24,14 @@ public class AnswerComposer {
             List<SourceReferenceResponse> sources
     ) {
         if (groundingStatus == GroundingStatus.REFUSED) {
-            List<String> nextSteps = refusalNextSteps();
+            List<String> nextSteps = policy.getRefusalNextSteps();
             return new ChatAnswerResponse(
                     GroundingStatus.REFUSED,
                     null,
                     ResponseMode.STANDARD,
                     buildAnswer(null, List.of(), List.of(), List.of(), List.of(), nextSteps),
                     null,
-                    AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
+                    policy.getDisclaimer(),
                     null,
                     List.of(),
                     List.of(),
@@ -56,7 +60,7 @@ public class AnswerComposer {
         String uncertaintyNotice = hasText(safeDraft.uncertaintyNotice())
                 ? safeDraft.uncertaintyNotice().trim()
                 : groundingStatus == GroundingStatus.LIMITED_GROUNDING
-                ? AnswerCompositionPolicy.LIMITED_NOTICE
+                ? policy.getLimitedNotice()
                 : null;
         String normalizedConclusion = normalizeConclusion(safeDraft.conclusion());
 
@@ -68,7 +72,7 @@ public class AnswerComposer {
                 ResponseMode.STANDARD,
                 answer,
                 normalizedConclusion,
-                AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
+                policy.getDisclaimer(),
                 uncertaintyNotice,
                 legalBasis,
                 penalties,
@@ -100,7 +104,7 @@ public class AnswerComposer {
         addSection(sections, "Mức phạt hoặc hậu quả", penalties);
         addSection(sections, "Giấy tờ hoặc thủ tục", mergeSections(requiredDocuments, procedureSteps));
         addSection(sections, "Các bước nên làm tiếp", nextSteps);
-        sections.add(AnswerCompositionPolicy.DEFAULT_DISCLAIMER);
+        sections.add(policy.getDisclaimer());
 
         return String.join("\n\n", sections);
     }
@@ -110,14 +114,6 @@ public class AnswerComposer {
             return;
         }
         sections.add(label + ":\n- " + String.join("\n- ", items));
-    }
-
-    private List<String> refusalNextSteps() {
-        return List.of(
-                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
-                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
-                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
-        );
     }
 
     private List<String> mergeSections(List<String> first, List<String> second) {

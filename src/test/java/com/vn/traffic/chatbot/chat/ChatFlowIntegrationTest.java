@@ -5,10 +5,13 @@ import com.vn.traffic.chatbot.chat.api.PublicChatController;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
 import com.vn.traffic.chatbot.chat.config.ChatClientConfig;
 import com.vn.traffic.chatbot.chat.service.AnswerComposer;
+import com.vn.traffic.chatbot.chat.service.AnswerCompositionPolicy;
 import com.vn.traffic.chatbot.chat.service.ChatPromptFactory;
 import com.vn.traffic.chatbot.chat.service.ChatService;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.common.error.GlobalExceptionHandler;
+import com.vn.traffic.chatbot.parameter.repo.AiParameterSetRepository;
+import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,13 +61,18 @@ class ChatFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        AiParameterSetRepository paramRepo = org.mockito.Mockito.mock(AiParameterSetRepository.class);
+        org.mockito.Mockito.when(paramRepo.findByActiveTrue()).thenReturn(java.util.Optional.empty());
+
         context = new AnnotationConfigApplicationContext();
         context.registerBean("openAiChatModel", ChatModel.class, () -> chatModel);
         context.registerBean(VectorStore.class, () -> vectorStore);
         context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
-        context.registerBean(AnswerComposer.class, AnswerComposer::new);
+        context.registerBean(AiParameterSetRepository.class, () -> paramRepo);
         context.registerBean(ChunkInspectionService.class, () -> chunkInspectionService);
-        context.register(ChatClientConfig.class, CitationMapper.class, ChatPromptFactory.class, RetrievalPolicy.class, ChatService.class);
+        context.register(ChatClientConfig.class, CitationMapper.class,
+                ActiveParameterSetProvider.class, AnswerCompositionPolicy.class,
+                AnswerComposer.class, ChatPromptFactory.class, RetrievalPolicy.class, ChatService.class);
         context.refresh();
 
         chatClient = context.getBean(ChatClient.class);

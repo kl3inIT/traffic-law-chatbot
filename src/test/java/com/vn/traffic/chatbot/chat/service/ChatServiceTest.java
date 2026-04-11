@@ -39,6 +39,7 @@ class ChatServiceTest {
     @Mock private AnswerComposer answerComposer;
     @Mock private ChatPromptFactory chatPromptFactory;
     @Mock private ChunkInspectionService chunkInspectionService;
+    @Mock private AnswerCompositionPolicy answerCompositionPolicy;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ChatService chatService;
@@ -53,7 +54,8 @@ class ChatServiceTest {
                 citationMapper,
                 answerComposer,
                 chatPromptFactory,
-                chunkInspectionService
+                chunkInspectionService,
+                answerCompositionPolicy
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
         ReflectionTestUtils.setField(chatService, "limitedGroundingThreshold", 2);
