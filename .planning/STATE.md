@@ -4,9 +4,9 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 3
 status: "Phase 04 shipped — PR #5"
-last_updated: "2026-04-11T08:10:39.155Z"
+last_updated: "2026-04-11T10:00:00.000Z"
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 3
   total_plans: 22
   completed_plans: 17
@@ -35,6 +35,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 | 2 | Grounded Legal Q&A Core | Complete |
 | 3 | Multi-turn Case Analysis | Next |
 | 4 | Next.js Chat & Admin App | Pending |
+| 4.1 | Backend Hardening, ETL Maturation & Use-Case Architecture | Pending |
 | 5 | Quality Operations & Evaluation | Pending |
 
 ## Current Priorities
@@ -60,6 +61,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 
 - Phase 01.1 inserted after Phase 1: Refactor ingestion parser architecture to a hybrid Spring AI approach while preserving SSRF safety, provenance, source_version/job boundaries, and fixing final_url tracking (URGENT)
 - Phase 01.1 is now complete, including Spring AI-first parser alignment, resolver-based parser selection, token chunking, and chunking provenance persistence.
+- Phase 4.1 inserted after Phase 4: Backend hardening (AOP logging, async exception handler, typed AppProperties, exception handler gaps, CRLF log safety), ETL maturation (complete 01.1-04 Spring AI ETL promotion + batch ingestion design), and use-case architecture exploration (YAML vs DB, approval flow, runtime retrieval strategy). Design decisions on ETL and use-cases left open for discussion before planning.
 
 ### Recent Execution Notes
 
@@ -70,4 +72,4 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 - Latest task commits: `f9927b3` and `aa2fa94`.
 
 ---
-*Last updated: 2026-04-10 after completing Phase 2 gap plan 04*
+*Last updated: 2026-04-11 after inserting Phase 4.1 — backend hardening, ETL maturation, use-case architecture*
