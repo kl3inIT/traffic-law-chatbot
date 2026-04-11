@@ -45,6 +45,31 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+function ApprovalStateBadge({ state }: { state: string | null }) {
+  if (!state) return null;
+  const cls =
+    state === 'APPROVED'
+      ? 'border-blue-200 bg-blue-50 text-blue-700'
+      : state === 'PENDING'
+        ? 'border-yellow-200 bg-yellow-50 text-yellow-700'
+        : state === 'REJECTED'
+          ? 'border-red-200 bg-red-50 text-red-700'
+          : 'border-gray-200 bg-gray-50 text-gray-600';
+  const label =
+    state === 'APPROVED'
+      ? 'Đã duyệt'
+      : state === 'PENDING'
+        ? 'Chờ duyệt'
+        : state === 'REJECTED'
+          ? 'Từ chối'
+          : state;
+  return (
+    <Badge variant="outline" className={cls}>
+      {label}
+    </Badge>
+  );
+}
+
 function ChunkDetailContent({ chunkId }: { chunkId: string }) {
   const { data: chunk, isLoading, isError } = useChunk(chunkId, true);
 
@@ -91,13 +116,28 @@ function ChunkDetailContent({ chunkId }: { chunkId: string }) {
     <div className="flex h-full flex-col">
       <SheetHeader className="border-b px-4 pb-4">
         <SheetTitle className="font-mono text-sm break-all">{chunk.id}</SheetTitle>
-        <SheetDescription className="flex flex-wrap gap-2">
-          <Badge variant="secondary">Thứ tự: {chunk.chunkOrdinal}</Badge>
-          <Badge variant="secondary">Trang: {chunk.pageNumber}</Badge>
-          {chunk.approvalState && <Badge variant="outline">{chunk.approvalState}</Badge>}
-          {chunk.vectorDimension > 0 && (
-            <Badge variant="outline">{chunk.vectorDimension} chiều</Badge>
-          )}
+        <SheetDescription>
+          <span className="flex flex-wrap gap-2">
+            <Badge variant="secondary">Thứ tự: {chunk.chunkOrdinal}</Badge>
+            <Badge variant="secondary">Trang: {chunk.pageNumber}</Badge>
+            {chunk.vectorDimension > 0 && (
+              <Badge variant="outline">{chunk.vectorDimension} chiều</Badge>
+            )}
+            <ApprovalStateBadge state={chunk.approvalState} />
+            {chunk.trusted === 'true' && (
+              <Badge
+                variant="outline"
+                className="border-emerald-200 bg-emerald-50 text-emerald-700"
+              >
+                Tin cậy
+              </Badge>
+            )}
+            {chunk.active === 'true' && (
+              <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
+                Hoạt động
+              </Badge>
+            )}
+          </span>
         </SheetDescription>
       </SheetHeader>
 

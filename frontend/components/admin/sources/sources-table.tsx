@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { SourceSummaryResponse, SourceStatus } from '@/types/api';
+import type { SourceSummaryResponse } from '@/types/api';
 import {
   useApproveSource,
   useRejectSource,
@@ -35,6 +35,51 @@ type SourceAction = {
   confirmMessage?: string;
 };
 
+function buildActions(
+  source: SourceSummaryResponse,
+  approve: { mutate: (id: string) => void },
+  reject: { mutate: (id: string) => void },
+  activate: { mutate: (id: string) => void },
+  deactivate: { mutate: (id: string) => void },
+  reingest: { mutate: (id: string) => void },
+): SourceAction[] {
+  const actions: SourceAction[] = [];
+  const { status, approvalState } = source;
+
+  // Approval actions: only when approvalState is PENDING
+  if (approvalState === 'PENDING') {
+    actions.push({ label: 'Phê duyệt', action: (id) => approve.mutate(id) });
+    actions.push({
+      label: 'Từ chối',
+      action: (id) => reject.mutate(id),
+      destructive: true,
+      confirmMessage: 'Xác nhận từ chối nguồn này? Thao tác này không thể hoàn tác.',
+    });
+  }
+
+  // Activation: only when approved but not yet active
+  if (approvalState === 'APPROVED' && status !== 'ACTIVE') {
+    actions.push({ label: 'Kích hoạt', action: (id) => activate.mutate(id) });
+  }
+
+  // Deactivation: only when currently active
+  if (status === 'ACTIVE') {
+    actions.push({
+      label: 'Hủy kích hoạt',
+      action: (id) => deactivate.mutate(id),
+      destructive: true,
+      confirmMessage: 'Xác nhận hủy kích hoạt nguồn này? Nguồn sẽ bị loại khỏi truy xuất.',
+    });
+  }
+
+  // Reingest available when not a fresh DRAFT waiting for first approval
+  if (status !== 'DRAFT' || approvalState === 'REJECTED') {
+    actions.push({ label: 'Nhập lại', action: (id) => reingest.mutate(id) });
+  }
+
+  return actions;
+}
+
 export function SourceActionsMenu({ source }: { source: SourceSummaryResponse }) {
   const [confirmAction, setConfirmAction] = useState<SourceAction | null>(null);
 
@@ -44,41 +89,7 @@ export function SourceActionsMenu({ source }: { source: SourceSummaryResponse })
   const deactivate = useDeactivateSource();
   const reingest = useReingestSource();
 
-  const actionsByStatus: Record<SourceStatus, SourceAction[]> = {
-    PENDING: [
-      { label: 'Phê duyệt', action: (id) => approve.mutate(id) },
-      {
-        label: 'Từ chối',
-        action: (id) => reject.mutate(id),
-        destructive: true,
-        confirmMessage: 'Xác nhận từ chối nguồn này? Thao tác này không thể hoàn tác.',
-      },
-    ],
-    APPROVED: [
-      { label: 'Kích hoạt', action: (id) => activate.mutate(id) },
-      {
-        label: 'Từ chối',
-        action: (id) => reject.mutate(id),
-        destructive: true,
-        confirmMessage: 'Xác nhận từ chối nguồn này? Thao tác này không thể hoàn tác.',
-      },
-      { label: 'Nhập lại', action: (id) => reingest.mutate(id) },
-    ],
-    ACTIVE: [
-      {
-        label: 'Hủy kích hoạt',
-        action: (id) => deactivate.mutate(id),
-        destructive: true,
-        confirmMessage: 'Xác nhận hủy kích hoạt nguồn này? Nguồn sẽ bị loại khỏi truy xuất.',
-      },
-      { label: 'Nhập lại', action: (id) => reingest.mutate(id) },
-    ],
-    REJECTED: [
-      { label: 'Nhập lại', action: (id) => reingest.mutate(id) },
-    ],
-  };
-
-  const actions = actionsByStatus[source.status] ?? [];
+  const actions = buildActions(source, approve, reject, activate, deactivate, reingest);
 
   return (
     <>
@@ -109,9 +120,7 @@ export function SourceActionsMenu({ source }: { source: SourceSummaryResponse })
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận thao tác</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmAction?.confirmMessage}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{confirmAction?.confirmMessage}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Hủy</AlertDialogCancel>

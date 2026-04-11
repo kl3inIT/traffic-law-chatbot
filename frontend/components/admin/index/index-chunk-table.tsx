@@ -31,32 +31,69 @@ function truncateUuid(id: string): string {
   return id.length > 8 ? `${id.slice(0, 8)}…` : id;
 }
 
-function EmbeddingPreviewBadge({ values }: { values: number[] | null }) {
-  if (!values || values.length === 0) {
-    return <span className="text-muted-foreground text-xs italic">—</span>;
-  }
-  const preview = values
-    .slice(0, 5)
-    .map((v) => v.toFixed(3))
-    .join(', ');
-  return (
-    <span className="text-muted-foreground font-mono text-xs">
-      [{preview}
-      {values.length > 5 ? ', …' : ''}]
-    </span>
-  );
-}
-
 function ApprovalBadge({ state }: { state: string | null }) {
   if (!state) return null;
   const cls =
     state === 'APPROVED'
-      ? 'bg-green-100 text-green-800'
+      ? 'bg-blue-50 text-blue-700 border-blue-200'
       : state === 'PENDING'
-        ? 'bg-yellow-100 text-yellow-800'
-        : 'bg-gray-100 text-gray-600';
-  const label = state === 'APPROVED' ? 'Đã duyệt' : state === 'PENDING' ? 'Chờ duyệt' : state;
-  return <Badge className={`text-xs ${cls}`}>{label}</Badge>;
+        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+        : state === 'REJECTED'
+          ? 'bg-red-50 text-red-700 border-red-200'
+          : 'bg-gray-100 text-gray-600';
+  const label =
+    state === 'APPROVED'
+      ? 'Đã duyệt'
+      : state === 'PENDING'
+        ? 'Chờ duyệt'
+        : state === 'REJECTED'
+          ? 'Từ chối'
+          : state;
+  return (
+    <Badge variant="outline" className={`text-xs ${cls}`}>
+      {label}
+    </Badge>
+  );
+}
+
+function TrustedBadge({ value }: { value: string | null }) {
+  if (value !== 'true') return null;
+  return (
+    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-xs text-emerald-700">
+      Tin cậy
+    </Badge>
+  );
+}
+
+function ActiveBadge({ value }: { value: string | null }) {
+  if (value !== 'true') return null;
+  return (
+    <Badge variant="outline" className="border-green-200 bg-green-50 text-xs text-green-700">
+      Hoạt động
+    </Badge>
+  );
+}
+
+function MetadataBadges({ chunk }: { chunk: ChunkSummaryResponse }) {
+  const hasMeta = chunk.sectionRef || chunk.pageNumber > 0 || chunk.chunkOrdinal >= 0;
+  if (!hasMeta) return null;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {chunk.pageNumber > 0 && (
+        <Badge variant="secondary" className="text-xs">
+          Tr. {chunk.pageNumber}
+        </Badge>
+      )}
+      {chunk.sectionRef && (
+        <Badge variant="secondary" className="max-w-[100px] truncate text-xs">
+          {chunk.sectionRef}
+        </Badge>
+      )}
+      <Badge variant="secondary" className="text-xs">
+        #{chunk.chunkOrdinal}
+      </Badge>
+    </div>
+  );
 }
 
 function buildColumns(onViewDetail: (id: string) => void): ColumnDef<ChunkSummaryResponse>[] {
@@ -80,46 +117,18 @@ function buildColumns(onViewDetail: (id: string) => void): ColumnDef<ChunkSummar
       ),
     },
     {
-      accessorKey: 'contentPreview',
-      header: 'Nội dung',
-      cell: ({ row }) => (
-        <div className="text-foreground line-clamp-2 max-w-[260px] text-xs leading-relaxed">
-          {row.original.contentPreview ?? (
-            <span className="text-muted-foreground italic">(trống)</span>
-          )}
-        </div>
-      ),
+      id: 'metadata',
+      header: 'Siêu dữ liệu',
+      cell: ({ row }) => <MetadataBadges chunk={row.original} />,
     },
     {
       accessorKey: 'approvalState',
       header: 'Trạng thái',
       cell: ({ row }) => (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap gap-1">
           <ApprovalBadge state={row.original.approvalState} />
-          <div className="flex gap-1">
-            {row.original.trusted === 'true' && (
-              <Badge variant="secondary" className="text-xs">
-                Tin cậy
-              </Badge>
-            )}
-            {row.original.active === 'true' && (
-              <Badge variant="secondary" className="text-xs">
-                Hoạt động
-              </Badge>
-            )}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'embeddingPreview',
-      header: 'Véc-tơ',
-      cell: ({ row }) => (
-        <div className="flex flex-col gap-1">
-          <EmbeddingPreviewBadge values={row.original.embeddingPreview} />
-          {row.original.vectorDimension > 0 && (
-            <span className="text-muted-foreground text-xs">{row.original.vectorDimension}d</span>
-          )}
+          <TrustedBadge value={row.original.trusted} />
+          <ActiveBadge value={row.original.active} />
         </div>
       ),
     },
@@ -176,14 +185,19 @@ export function IndexChunkTable() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-base font-semibold">
-          Đoạn văn bản đã lập chỉ mục
-          {!chunksLoading && chunksPage && (
-            <span className="text-muted-foreground ml-2 text-sm font-normal">
-              ({totalElements} đoạn)
-            </span>
-          )}
-        </h2>
+        <div>
+          <h2 className="text-base font-semibold">
+            Đoạn văn bản đã lập chỉ mục
+            {!chunksLoading && chunksPage && (
+              <span className="text-muted-foreground ml-2 text-sm font-normal">
+                ({totalElements} đoạn)
+              </span>
+            )}
+          </h2>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            Phê duyệt nguồn sẽ tự động cập nhật trạng thái phê duyệt cho tất cả đoạn của nguồn đó.
+          </p>
+        </div>
 
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-xs whitespace-nowrap">Lọc theo nguồn:</span>
@@ -210,7 +224,7 @@ export function IndexChunkTable() {
       {chunksLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full" />
+            <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>
       ) : (

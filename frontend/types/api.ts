@@ -6,7 +6,12 @@ export type ResponseMode =
   | 'SCENARIO_ANALYSIS'
   | 'FINAL_ANALYSIS'
   | 'REFUSED';
-export type SourceStatus = 'PENDING' | 'APPROVED' | 'ACTIVE' | 'REJECTED';
+// SourceStatus matches backend SourceStatus enum
+export type SourceStatus = 'DRAFT' | 'READY_FOR_REVIEW' | 'ACTIVE' | 'ARCHIVED' | 'DISABLED';
+// ApprovalState matches backend ApprovalState enum
+export type ApprovalState = 'PENDING' | 'APPROVED' | 'REJECTED';
+// TrustedState matches backend TrustedState enum
+export type TrustedState = 'UNTRUSTED' | 'TRUSTED' | 'REVOKED';
 export type SourceType = 'URL' | 'PDF' | 'DOCX' | 'STRUCTURED';
 
 // Chat DTOs
@@ -89,8 +94,8 @@ export interface SourceSummaryResponse {
   title: string;
   sourceType: SourceType;
   status: SourceStatus;
-  trustedState: string;
-  approvalState: string;
+  trustedState: TrustedState;
+  approvalState: ApprovalState;
   createdAt: string;
 }
 
