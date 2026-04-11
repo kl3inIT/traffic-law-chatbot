@@ -210,20 +210,22 @@ export function IndexChunkTable() {
             <Skeleton className="h-8 w-48" />
           ) : (
             <Popover open={comboOpen} onOpenChange={setComboOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  className="h-8 w-56 justify-between px-3 text-xs font-normal"
-                >
-                  <span className="truncate">
-                    {selectedSourceId
-                      ? (sourcesPage?.content.find((s) => s.id === selectedSourceId)?.title ??
-                        'Tất cả nguồn')
-                      : 'Tất cả nguồn'}
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
-                </Button>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="h-8 w-56 justify-between px-3 text-xs font-normal"
+                  />
+                }
+              >
+                <span className="truncate">
+                  {selectedSourceId
+                    ? (sourcesPage?.content.find((s) => s.id === selectedSourceId)?.title ??
+                      'Tất cả nguồn')
+                    : 'Tất cả nguồn'}
+                </span>
+                <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
               </PopoverTrigger>
               <PopoverContent className="w-72 p-0">
                 <Command>

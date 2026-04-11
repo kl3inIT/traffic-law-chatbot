@@ -9,7 +9,7 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -44,19 +44,20 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(rowSelection) : updater;
+      setRowSelection(next);
+      if (onSelectionChange) {
+        const selected = Object.entries(next)
+          .filter(([, isSelected]) => isSelected)
+          .map(([idx]) => data[Number(idx)])
+          .filter((row): row is TData => row !== undefined);
+        onSelectionChange(selected);
+      }
+    },
     enableRowSelection: enableRowSelection ?? false,
     state: { sorting, rowSelection },
   });
-
-  useEffect(() => {
-    if (!onSelectionChange) return;
-    const selected = Object.entries(rowSelection)
-      .filter(([, isSelected]) => isSelected)
-      .map(([index]) => data[Number(index)])
-      .filter((row): row is TData => row !== undefined);
-    onSelectionChange(selected);
-  }, [rowSelection, data, onSelectionChange]);
 
   if (isLoading) {
     return (
