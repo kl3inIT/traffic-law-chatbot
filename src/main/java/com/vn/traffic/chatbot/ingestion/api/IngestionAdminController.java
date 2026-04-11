@@ -1,6 +1,7 @@
 package com.vn.traffic.chatbot.ingestion.api;
 
 import com.vn.traffic.chatbot.common.api.ApiPaths;
+import com.vn.traffic.chatbot.common.log.CrlfSanitizer;
 import com.vn.traffic.chatbot.common.api.PageResponse;
 import com.vn.traffic.chatbot.ingestion.api.dto.*;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
@@ -33,7 +34,7 @@ public class IngestionAdminController {
     public ResponseEntity<IngestionAcceptedResponse> uploadSource(
             @RequestPart("file") MultipartFile file,
             @Valid @RequestPart("metadata") UploadSourceRequest metadata) {
-        log.info("Upload source request: title={}", metadata.getTitle());
+        log.info("Upload source request: title={}", CrlfSanitizer.sanitize(metadata.getTitle()));
         IngestionAcceptedResponse response = ingestionService.submitUpload(
                 file, metadata.getTitle(), metadata.getPublisherName(), metadata.getCreatedBy());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
@@ -46,7 +47,7 @@ public class IngestionAdminController {
     @PostMapping(ApiPaths.SOURCES_URL)
     public ResponseEntity<IngestionAcceptedResponse> submitUrl(
             @RequestBody @Valid UrlSourceRequest req) {
-        log.info("URL ingest request: url={}", req.url());
+        log.info("URL ingest request: url={}", CrlfSanitizer.sanitize(req.url()));
         IngestionAcceptedResponse response = ingestionService.submitUrl(req);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
