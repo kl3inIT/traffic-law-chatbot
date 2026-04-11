@@ -1,6 +1,7 @@
 package com.vn.traffic.chatbot.chat.service;
 
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
+import com.vn.traffic.chatbot.chat.api.dto.ChatThreadSummaryResponse;
 import com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse;
 import com.vn.traffic.chatbot.chat.domain.ChatMessage;
 import com.vn.traffic.chatbot.chat.domain.ChatMessageRole;
@@ -101,9 +102,26 @@ public class ChatThreadService {
     private int countClarificationMessages(UUID threadId) {
         return (int) chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId).stream()
                 .filter(message -> message.getRole() == ChatMessageRole.ASSISTANT)
-                .filter(message -> message.getMessageType() == ChatMessageType.ANSWER)
-                .filter(message -> message.getContent() != null && message.getContent().contains("[CLARIFICATION]"))
+                .filter(message -> message.getMessageType() == ChatMessageType.CLARIFICATION)
                 .count();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatThreadSummaryResponse> listThreads() {
+        return chatThreadRepository.findAllByOrderByUpdatedAtDesc().stream()
+                .map(thread -> {
+                    String firstMsg = chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(thread.getId())
+                            .stream()
+                            .filter(m -> m.getRole() == ChatMessageRole.USER)
+                            .map(ChatMessage::getContent)
+                            .findFirst()
+                            .orElse(null);
+                    String truncated = firstMsg != null && firstMsg.length() > 100
+                            ? firstMsg.substring(0, 100) : firstMsg;
+                    return new ChatThreadSummaryResponse(
+                            thread.getId(), thread.getCreatedAt(), thread.getUpdatedAt(), truncated);
+                })
+                .toList();
     }
 
     private String buildRetrievalQuestion(UUID threadId, String currentQuestion, List<ThreadFact> activeFacts) {
@@ -138,7 +156,7 @@ public class ChatThreadService {
         chatMessageRepository.save(ChatMessage.builder()
                 .thread(thread)
                 .role(ChatMessageRole.ASSISTANT)
-                .messageType(ChatMessageType.ANSWER)
+                .messageType(ChatMessageType.CLARIFICATION)
                 .content(response.answer())
                 .build());
         return response;
