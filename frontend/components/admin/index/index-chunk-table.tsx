@@ -206,12 +206,18 @@ export function IndexChunkTable() {
           ) : (
             <Select value={selectedSourceId ?? ALL_SOURCES} onValueChange={handleSourceChange}>
               <SelectTrigger className="h-8 w-52 text-xs">
-                <SelectValue placeholder="Tất cả nguồn" />
+                <SelectValue placeholder="Tất cả nguồn">
+                  {(value: string) => {
+                    if (!value || value === ALL_SOURCES) return 'Tất cả nguồn';
+                    const src = sourcesPage?.content.find((s) => s.id === value);
+                    return src ? <span className="truncate">{src.title}</span> : value;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_SOURCES}>Tất cả nguồn</SelectItem>
                 {sourcesPage?.content.map((src) => (
-                  <SelectItem key={src.id} value={src.id}>
+                  <SelectItem key={src.id} value={src.id} label={src.title}>
                     <span className="max-w-[200px] truncate">{src.title}</span>
                   </SelectItem>
                 ))}

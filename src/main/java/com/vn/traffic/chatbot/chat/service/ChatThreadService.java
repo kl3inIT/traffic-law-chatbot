@@ -51,9 +51,12 @@ public class ChatThreadService {
             );
         }
         if (clarificationDecision.shouldRefuse()) {
-            return chatThreadMapper.attachThreadContext(chatService.refusalResponse(), thread.getId(), ResponseMode.REFUSED, activeFacts);
+            ChatAnswerResponse refusal = chatService.refusalResponse();
+            appendAssistantMessage(thread, refusal.answer());
+            return chatThreadMapper.attachThreadContext(refusal, thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         ChatAnswerResponse answer = chatService.answer(factMemoryService.buildThreadAwareQuestion(question, activeFacts));
+        appendAssistantMessage(thread, answer.answer());
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
 
@@ -78,10 +81,13 @@ public class ChatThreadService {
             );
         }
         if (clarificationDecision.shouldRefuse()) {
-            return chatThreadMapper.attachThreadContext(chatService.refusalResponse(), thread.getId(), ResponseMode.REFUSED, activeFacts);
+            ChatAnswerResponse refusal = chatService.refusalResponse();
+            appendAssistantMessage(thread, refusal.answer());
+            return chatThreadMapper.attachThreadContext(refusal, thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         String retrievalQuestion = buildRetrievalQuestion(threadId, question, activeFacts);
         ChatAnswerResponse answer = chatService.answer(retrievalQuestion);
+        appendAssistantMessage(thread, answer.answer());
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
 
@@ -97,6 +103,15 @@ public class ChatThreadService {
                 .role(ChatMessageRole.USER)
                 .messageType(ChatMessageType.QUESTION)
                 .content(question)
+                .build());
+    }
+
+    private ChatMessage appendAssistantMessage(ChatThread thread, String content) {
+        return chatMessageRepository.save(ChatMessage.builder()
+                .thread(thread)
+                .role(ChatMessageRole.ASSISTANT)
+                .messageType(ChatMessageType.ANSWER)
+                .content(content != null ? content : "")
                 .build());
     }
 
