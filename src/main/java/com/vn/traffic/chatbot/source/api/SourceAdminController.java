@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -95,6 +96,7 @@ public class SourceAdminController {
      * GET /api/v1/admin/sources/{sourceId}/ingestion-jobs
      * Returns all ingestion jobs for a source, ordered by queued_at descending.
      */
+    @Transactional(readOnly = true)
     @GetMapping("/{sourceId}/ingestion-jobs")
     public ResponseEntity<List<IngestionJobResponse>> listIngestionJobs(@PathVariable UUID sourceId) {
         List<KbIngestionJob> jobs = ingestionJobRepository.findBySourceIdOrderByQueuedAtDesc(sourceId);
