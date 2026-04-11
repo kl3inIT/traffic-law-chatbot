@@ -62,7 +62,7 @@ class TrustPolicyControllerTest {
         ResponseEntity<TrustPolicyResponse> response = controller.create(request);
 
         // Assert
-        assertThat(response.getStatusCodeValue()).isEqualTo(201);
+        assertThat(response.getStatusCode().value()).isEqualTo(201);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().trustTier()).isEqualTo(TrustTier.PRIMARY);
     }
@@ -80,7 +80,7 @@ class TrustPolicyControllerTest {
         ResponseEntity<List<TrustPolicyResponse>> response = controller.list();
 
         // Assert
-        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).hasSize(1);
     }
 }

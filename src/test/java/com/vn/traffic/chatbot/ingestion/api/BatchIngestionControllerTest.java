@@ -64,7 +64,7 @@ class BatchIngestionControllerTest {
         var response = controller.batchImport(request);
 
         // Assert
-        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
         BatchImportResponse body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body.results()).hasSize(1);
@@ -93,7 +93,7 @@ class BatchIngestionControllerTest {
         var response = controller.batchImport(request);
 
         // Assert
-        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
         BatchImportResponse body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body.results()).hasSize(1);

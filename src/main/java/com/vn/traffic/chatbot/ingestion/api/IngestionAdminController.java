@@ -7,6 +7,7 @@ import com.vn.traffic.chatbot.ingestion.api.dto.*;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
 import com.vn.traffic.chatbot.ingestion.service.IngestionService;
+import com.vn.traffic.chatbot.source.repo.KbSourceRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -25,6 +28,7 @@ import java.util.UUID;
 public class IngestionAdminController {
 
     private final IngestionService ingestionService;
+    private final KbSourceRepository kbSourceRepository;
 
     /**
      * POST /api/v1/admin/sources/upload
@@ -38,6 +42,45 @@ public class IngestionAdminController {
         IngestionAcceptedResponse response = ingestionService.submitUpload(
                 file, metadata.getTitle(), metadata.getPublisherName(), metadata.getCreatedBy());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    /**
+     * POST /api/v1/admin/ingestion/batch
+     * Submit multiple URLs for ingestion in one call. Returns 200 with per-item results.
+     * Each item is processed independently — a duplicate or error on one item does NOT abort others.
+     * CRITICAL: method is NOT @Transactional — each item uses its own transaction via IngestionService.
+     */
+    @PostMapping(ApiPaths.INGESTION_BATCH)
+    public ResponseEntity<BatchImportResponse> batchImport(
+            @RequestBody @Valid BatchImportRequest request) {
+        List<BatchImportItemResult> results = new ArrayList<>();
+        int accepted = 0;
+        int rejected = 0;
+
+        for (BatchImportItemRequest item : request.items()) {
+            String sanitizedUrl = CrlfSanitizer.sanitize(item.url());
+            try {
+                var existing = kbSourceRepository.findByOriginValue(item.url());
+                if (existing.isPresent()) {
+                    results.add(new BatchImportItemResult(
+                            item.url(), "DUPLICATE", existing.get().getId(), null, "Duplicate source URL"));
+                    rejected++;
+                } else {
+                    var urlReq = new UrlSourceRequest(item.url(), item.title(), null, null);
+                    IngestionAcceptedResponse response = ingestionService.submitUrl(urlReq);
+                    results.add(new BatchImportItemResult(
+                            item.url(), "ACCEPTED", response.sourceId(), response.jobId(), null));
+                    accepted++;
+                }
+            } catch (Exception ex) {
+                results.add(new BatchImportItemResult(
+                        item.url(), "ERROR", null, null, ex.getMessage()));
+                rejected++;
+            }
+        }
+
+        log.info("Batch import: {} items, {} accepted, {} rejected", results.size(), accepted, rejected);
+        return ResponseEntity.ok(new BatchImportResponse(results, accepted, rejected));
     }
 
     /**
