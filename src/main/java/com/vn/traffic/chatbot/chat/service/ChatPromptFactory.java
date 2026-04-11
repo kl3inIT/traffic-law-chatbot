@@ -1,23 +1,37 @@
 package com.vn.traffic.chatbot.chat.service;
 
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
+import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class ChatPromptFactory {
+
+    // Safety-critical hardcoded fallback (D-13): core instruction structure is never
+    // fully replaced by parameter set — only the opening system context line is configurable.
+    private static final String SYSTEM_CONTEXT_FALLBACK =
+            "Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam.\n" +
+            "Hãy trả lời bằng tiếng Việt với giọng điệu rõ ràng, trang trọng, dễ hiểu, plain but formal.\n" +
+            "Thông tin chỉ mang tính chất tham khảo, không phải tư vấn pháp lý chính thức và không được suy đoán vượt quá nguồn đã truy xuất.";
+
+    private final ActiveParameterSetProvider paramProvider;
 
     public String buildPrompt(String question, GroundingStatus groundingStatus, List<CitationResponse> citations) {
         String citationLines = citations == null || citations.isEmpty()
                 ? "- Không có trích dẫn khả dụng"
                 : citations.stream().map(this::formatCitation).collect(Collectors.joining("\n"));
 
+        // Read configurable system prompt from parameter set; fall back to hardcoded context
+        String systemPrompt = paramProvider.getString("systemPrompt", SYSTEM_CONTEXT_FALLBACK);
+
         return String.join("\n",
-                "Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam.",
-                "Hãy trả lời bằng tiếng Việt với giọng điệu rõ ràng, trang trọng, dễ hiểu, plain but formal.",
-                "Thông tin chỉ mang tính chất tham khảo, không phải tư vấn pháp lý chính thức và không được suy đoán vượt quá nguồn đã truy xuất.",
+                systemPrompt,
+                // Safety-critical citation and JSON schema instructions remain hardcoded (D-13)
                 "Bắt đầu bằng phần Kết luận trước, sau đó mới đến các phần hỗ trợ theo đúng thứ tự khi thật sự liên quan.",
                 "Chỉ bao gồm các mục liên quan theo danh sách: " + String.join(", ", PromptSectionRules.SECTION_ORDER) + ".",
                 "Các phần nội dung được phép điền là: " + String.join(", ", PromptSectionRules.SUPPORTED_SECTION_NAMES) + ".",

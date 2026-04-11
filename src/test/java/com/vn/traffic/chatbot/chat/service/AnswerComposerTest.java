@@ -3,15 +3,32 @@ package com.vn.traffic.chatbot.chat.service;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
+import com.vn.traffic.chatbot.parameter.repo.AiParameterSetRepository;
+import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class AnswerComposerTest {
 
-    private final AnswerComposer answerComposer = new AnswerComposer();
+    // Use a provider backed by an empty repository so all fallback constants apply —
+    // this keeps test assertions consistent with the static constant values.
+    private static AnswerCompositionPolicy fallbackPolicy() {
+        AiParameterSetRepository repo = mock(AiParameterSetRepository.class);
+        when(repo.findByActiveTrue()).thenReturn(Optional.empty());
+        ActiveParameterSetProvider provider = new ActiveParameterSetProvider(repo);
+        return new AnswerCompositionPolicy(provider);
+    }
+
+    private final AnswerComposer answerComposer = new AnswerComposer(fallbackPolicy());
 
     @Test
     void composeGroundedResponseUsesConclusionFirstAndIncludesDisclaimer() {
