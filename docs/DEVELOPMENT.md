@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Development
 
-This project is developed as a Spring Boot 4 application with the Gradle wrapper. Run commands from the repository root; on Windows, replace `./gradlew` with `gradlew.bat`.
+Development is split between a Spring Boot 4 backend in `src/` and a Next.js 16 frontend in `frontend/`. Run Gradle commands from the repository root and `pnpm` commands from `frontend/`; on Windows, replace `./gradlew` with `gradlew.bat`.
 
 ## Local Setup
 
@@ -12,14 +12,23 @@ This project is developed as a Spring Boot 4 application with the Gradle wrapper
    cd traffic-law-chatbot
    ```
 
-2. Install `Java 25`. The build uses a Gradle toolchain pinned in `build.gradle`, and the wrapper downloads Gradle `9.4.1` automatically on first use.
+2. Install the local toolchain:
+   - `Java 25`. The backend toolchain is pinned in `build.gradle`.
+   - `Node.js` and `pnpm`. The frontend package declares `pnpm@10.32.1` in `frontend/package.json`.
+   - `PostgreSQL` with the `vector`, `hstore`, and `uuid-ossp` extensions available.
+   - The Gradle wrapper downloads `Gradle 9.4.1` automatically on first use.
 
-3. Provision PostgreSQL with the `vector`, `hstore`, and `uuid-ossp` extensions available. Local development assumes an existing database:
-   - `src/main/resources/application.yaml` points to PostgreSQL by default.
-   - `spring.docker.compose.enabled` is set to `false`.
-   - The checked-in `compose.yaml` is only a commented scaffold, not a ready-to-run local stack.
+3. Install frontend dependencies.
 
-4. Configure runtime variables in a repo-root `.env` file or export them directly in your shell. Spring imports `.env` through `spring.config.import`.
+   ```bash
+   cd frontend
+   pnpm install
+   cd ..
+   ```
+
+   The backend does not have a separate package-install step; the Gradle wrapper resolves dependencies the first time you run a Gradle task. The frontend `prepare` lifecycle script runs `husky` from the repository root so the checked-in pre-commit hook is available locally.
+
+4. Configure local runtime variables. Spring imports a repo-root `.env` through `spring.config.import`, and the frontend reads `frontend/.env.local` for browser-safe overrides.
 
    ```bash
    DB_URL=jdbc:postgresql://localhost:5432/traffic_law
@@ -28,23 +37,36 @@ This project is developed as a Spring Boot 4 application with the Gradle wrapper
    OPENAI_API_KEY=your_openai_api_key
    ```
 
-   See [CONFIGURATION.md](CONFIGURATION.md) for defaults and override behavior. A valid `OPENAI_API_KEY` is required for real model-backed chat responses, even though the application can still bind configuration with an empty value.
+   ```bash
+   NEXT_PUBLIC_API_BASE_URL=http://localhost:8089
+   ```
 
-5. Start the application.
+   Local development assumes an existing PostgreSQL instance. `src/main/resources/application.yaml` points to PostgreSQL by default, `spring.docker.compose.enabled` is `false`, and the checked-in `compose.yaml` is only a commented scaffold. See [CONFIGURATION.md](CONFIGURATION.md) for defaults and override behavior. A valid `OPENAI_API_KEY` is required for real model-backed chat responses, even though the application can still bind configuration with an empty value. Set `NEXT_PUBLIC_API_BASE_URL` explicitly because `frontend/lib/api/client.ts` still falls back to `http://localhost:8088` while the backend now defaults to port `8089`.
+
+5. Start the backend API.
 
    ```bash
    ./gradlew bootRun
    ```
 
-   The API listens on `http://localhost:8088`.
+   The backend listens on `http://localhost:8089`.
 
-6. Verify the service is running.
+6. Start the frontend in a second terminal.
 
    ```bash
-   curl http://localhost:8088/actuator/health
+   cd frontend
+   pnpm dev
    ```
 
-   A healthy instance returns a JSON payload whose `status` is `UP`.
+   The frontend listens on `http://localhost:3000`, and `app.cors.allowed-origins` already allows that origin by default in `src/main/resources/application.properties`.
+
+7. Verify the stack is running.
+
+   ```bash
+   curl http://localhost:8089/actuator/health
+   ```
+
+   A healthy backend returns a JSON payload whose `status` is `UP`. Open `http://localhost:3000` to verify the web UI can reach the API on port `8089`.
 
 ## Build Commands
 
@@ -65,29 +87,39 @@ This project is developed as a Spring Boot 4 application with the Gradle wrapper
 | `./gradlew dependencyInsight --dependency <group-or-module>` | Inspect why a dependency is present and which version wins. |
 | `./gradlew javaToolchains` | Show the Java toolchains Gradle can detect. |
 | `./gradlew tasks --all` | List the full task surface exposed by the current build. |
+| `cd frontend && pnpm dev` | Start the Next.js development server on port `3000`. |
+| `cd frontend && pnpm build` | Create the production frontend bundle. |
+| `cd frontend && pnpm start` | Serve the built frontend in production mode. |
+| `cd frontend && pnpm lint` | Run ESLint with the checked-in Next.js and TypeScript configuration. |
+| `cd frontend && pnpm format` | Apply Prettier formatting across the frontend workspace. |
+| `cd frontend && pnpm format:check` | Check frontend formatting without modifying files. |
+| `cd frontend && pnpm test` | Run the Vitest suite once. |
+| `cd frontend && pnpm test:watch` | Run Vitest in watch mode during UI development. |
+| `cd frontend && pnpm test:ci` | Run the frontend test suite with V8 coverage enabled. |
+| `cd frontend && pnpm e2e` | Run the Playwright smoke tests against `http://localhost:3000`. |
+| `cd frontend && pnpm prepare` | Run `husky` from the repository root; `pnpm install` triggers this automatically. |
 
 ## Code Style
 
-No dedicated formatting or lint configuration is checked into this repository. There is no `.editorconfig`, Checkstyle, Spotless, PMD, or formatter-specific Gradle task in the current tree.
-
-- Follow the domain-oriented package layout under `com.vn.traffic.chatbot`, such as `chat`, `ingestion`, `source`, `chunk`, `parameter`, and `common`.
-- Prefer constructor injection via Lombok `@RequiredArgsConstructor`; controllers and services consistently use that pattern.
-- Use Java `record` types for request and response DTOs and other small value carriers.
-- Keep transaction boundaries in the service layer with `@Transactional`; background ingestion work is dispatched with `@Async("ingestionExecutor")`.
-- Run the Gradle wrapper commands before opening a review, since build and test execution are the only checked-in automated quality gates.
+- Backend Java code does not have a checked-in repo-root linter or formatter. There is no `.editorconfig`, Checkstyle, Spotless, PMD, or formatter-specific Gradle task in the current tree, so backend consistency is enforced through review and the Gradle verification tasks.
+- Frontend linting uses ESLint with [frontend/eslint.config.mjs](../frontend/eslint.config.mjs), which imports `eslint-config-next/core-web-vitals` and `eslint-config-next/typescript`. Run it with `cd frontend && pnpm lint`.
+- Frontend formatting uses Prettier with [frontend/.prettierrc](../frontend/.prettierrc) and `prettier-plugin-tailwindcss`. Run `cd frontend && pnpm format` to rewrite files or `cd frontend && pnpm format:check` to verify formatting only.
+- The repo-root pre-commit hook in [.husky/pre-commit](../.husky/pre-commit) runs `cd frontend && pnpm lint-staged`. Staged `*.ts` and `*.tsx` files are formatted with Prettier and then fixed with ESLint; staged `*.json`, `*.css`, and `*.md` files are formatted with Prettier.
+- Follow the existing backend conventions under `com.vn.traffic.chatbot`: constructor injection via Lombok `@RequiredArgsConstructor`, Java `record` types for DTOs and small value objects, `@Transactional` boundaries in service classes, and `@Async("ingestionExecutor")` for background ingestion work.
 
 ## Branch Conventions
 
 - The default integration branch is `main` (`origin/HEAD` points to `origin/main`).
 - No contributor branch naming convention is documented in repository files.
-- No checked-in branch protection, release-branch, or hotfix-branch workflow is present in the repository contents.
+- No `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, or root `.github/` directory is present to define release, hotfix, or review-branch rules.
 
 ## PR Process
 
-The repository does not include a checked-in contributor guide or pull-request template, so there is no formal pull-request checklist checked into source control. The baseline process below is inferred from the current build, schema, and documentation layout.
+The repository does not include a checked-in contributor guide or pull-request template, so there is no formal pull-request checklist in source control. The baseline process below is inferred from the current build, test, and schema layout.
 
 - Open pull requests against `main`.
-- Run `./gradlew build` or, at minimum, the focused Gradle task that exercises your change before requesting review.
+- Run the verification commands that match your change before requesting review: at minimum `./gradlew test` for backend work, and `cd frontend && pnpm lint && pnpm test` for frontend work. Prefer `./gradlew build` for cross-cutting backend changes, and add `cd frontend && pnpm e2e` when you change browser flows or routing.
 - Keep schema changes and their Liquibase changelog entries together in the same PR under `src/main/resources/db/changelog/`.
-- If you change runtime settings or new required variables, update `src/main/resources/application.yaml` and [CONFIGURATION.md](CONFIGURATION.md) in the same change.
-- If you change public REST contracts or developer-facing workflows, update the relevant docs such as `README.md`, `docs/ARCHITECTURE.md`, or this file alongside the code.
+- If you change runtime settings, ports, or required variables, update `src/main/resources/application.yaml`, `src/main/resources/application.properties`, `frontend/.env.local` expectations, and [CONFIGURATION.md](CONFIGURATION.md) in the same change.
+- If you change public REST contracts or frontend/backend integration points, keep `frontend/lib/api/client.ts`, `frontend/types/api.ts`, and the relevant docs such as [API.md](API.md), [README.md](../README.md), or this file aligned with the code.
+- Let the Husky pre-commit hook run on staged frontend files, but do not treat it as the only gate because backend code has no equivalent pre-commit lint step.
