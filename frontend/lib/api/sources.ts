@@ -1,8 +1,12 @@
 import { apiGet, apiPost } from './client';
-import type { SourceSummaryResponse, PageResponse } from '@/types/api';
+import type { IngestionJobResponse, SourceSummaryResponse, PageResponse } from '@/types/api';
 
 export function fetchSources(): Promise<PageResponse<SourceSummaryResponse>> {
   return apiGet('/api/v1/admin/sources');
+}
+
+export function fetchSourceIngestionJobs(sourceId: string): Promise<IngestionJobResponse[]> {
+  return apiGet(`/api/v1/admin/sources/${sourceId}/ingestion-jobs`);
 }
 
 export function approveSource(sourceId: string, actedBy?: string): Promise<SourceSummaryResponse> {

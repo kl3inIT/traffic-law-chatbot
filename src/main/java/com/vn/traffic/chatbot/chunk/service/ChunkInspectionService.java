@@ -8,6 +8,7 @@ import com.vn.traffic.chatbot.chunk.api.dto.IndexSummaryResponse;
 import com.vn.traffic.chatbot.common.error.AppException;
 import com.vn.traffic.chatbot.common.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.postgresql.util.PGobject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class ChunkInspectionService {
 
     static final String TABLE = "kb_vector_store";
+    private static final int EMBEDDING_PREVIEW_SIZE = 10;
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -32,7 +35,7 @@ public class ChunkInspectionService {
         List<Object> args = new ArrayList<>();
         String whereClause = buildWhereClause(sourceId, sourceVersionId, args);
         String sql = """
-                SELECT id, content, metadata
+                SELECT id, content, metadata, embedding
                 FROM kb_vector_store
                 WHERE 1=1
                 %s
@@ -55,7 +58,7 @@ public class ChunkInspectionService {
 
     public ChunkDetailResponse getChunk(UUID id) {
         List<ChunkDetailResponse> results = jdbcTemplate.query(
-                "SELECT id, content, metadata FROM kb_vector_store WHERE id = ?",
+                "SELECT id, content, metadata, embedding FROM kb_vector_store WHERE id = ?",
                 (rs, rowNum) -> mapDetail(rs),
                 id
         );
@@ -123,6 +126,13 @@ public class ChunkInspectionService {
 
     private ChunkSummaryResponse mapSummary(ResultSet rs) throws SQLException {
         Map<String, Object> metadata = readMetadata(rs);
+        String content = rs.getString("content");
+        String contentPreview = content != null && content.length() > 150
+                ? content.substring(0, 150) : content;
+        List<Double> embeddingFull = readEmbedding(rs);
+        List<Double> embeddingPreview = embeddingFull != null && embeddingFull.size() > EMBEDDING_PREVIEW_SIZE
+                ? embeddingFull.subList(0, EMBEDDING_PREVIEW_SIZE) : embeddingFull;
+        int dim = embeddingFull != null ? embeddingFull.size() : 0;
         return new ChunkSummaryResponse(
                 rs.getObject("id", UUID.class),
                 asString(metadata.get("sourceId")),
@@ -132,12 +142,17 @@ public class ChunkInspectionService {
                 asString(metadata.get("sectionRef")),
                 asString(metadata.get("approvalState")),
                 asString(metadata.get("trusted")),
-                asString(metadata.get("active"))
+                asString(metadata.get("active")),
+                contentPreview,
+                embeddingPreview,
+                dim
         );
     }
 
     private ChunkDetailResponse mapDetail(ResultSet rs) throws SQLException {
         Map<String, Object> metadata = readMetadata(rs);
+        List<Double> embedding = readEmbedding(rs);
+        int dim = embedding != null ? embedding.size() : 0;
         return new ChunkDetailResponse(
                 rs.getObject("id", UUID.class),
                 rs.getString("content"),
@@ -151,7 +166,9 @@ public class ChunkInspectionService {
                 asString(metadata.get("approvalState")),
                 asString(metadata.get("trusted")),
                 asString(metadata.get("active")),
-                asString(metadata.get("origin"))
+                asString(metadata.get("origin")),
+                embedding,
+                dim
         );
     }
 
@@ -164,6 +181,37 @@ public class ChunkInspectionService {
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (Exception ex) {
             throw new SQLException("Failed to parse chunk metadata", ex);
+        }
+    }
+
+    /**
+     * Reads the pgvector embedding column.
+     * The JDBC driver returns pgvector as a PGobject with type "vector" and value like "[0.1,0.2,...]".
+     * Falls back gracefully if the column is null or driver returns unexpected type.
+     */
+    private List<Double> readEmbedding(ResultSet rs) throws SQLException {
+        try {
+            Object obj = rs.getObject("embedding");
+            if (obj == null) return null;
+            String vectorStr;
+            if (obj instanceof PGobject pgObj) {
+                vectorStr = pgObj.getValue();
+            } else {
+                vectorStr = obj.toString();
+            }
+            if (vectorStr == null || vectorStr.isBlank()) return null;
+            // Strip surrounding brackets: "[0.1,0.2,...]" -> "0.1,0.2,..."
+            vectorStr = vectorStr.trim();
+            if (vectorStr.startsWith("[")) vectorStr = vectorStr.substring(1);
+            if (vectorStr.endsWith("]")) vectorStr = vectorStr.substring(0, vectorStr.length() - 1);
+            return Arrays.stream(vectorStr.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(Double::parseDouble)
+                    .toList();
+        } catch (Exception ex) {
+            // Embedding not critical for inspection — return null rather than failing
+            return null;
         }
     }
 

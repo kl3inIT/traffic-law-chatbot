@@ -1,5 +1,6 @@
 package com.vn.traffic.chatbot.chunk.api.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 public record ChunkDetailResponse(
@@ -15,6 +16,8 @@ public record ChunkDetailResponse(
         String approvalState,
         String trusted,
         String active,
-        String origin
+        String origin,
+        List<Double> embedding,
+        int vectorDimension
 ) {
 }

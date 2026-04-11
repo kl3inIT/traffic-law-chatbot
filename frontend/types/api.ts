@@ -112,6 +112,36 @@ export interface IngestionAcceptedResponse {
   status: string;
 }
 
+export type IngestionJobStatus =
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'SUCCEEDED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'RETRYING';
+
+export type IngestionStep =
+  | 'FETCH'
+  | 'PARSE'
+  | 'NORMALIZE'
+  | 'CHUNK'
+  | 'EMBED'
+  | 'INDEX'
+  | 'FINALIZE';
+
+export interface IngestionJobResponse {
+  id: string;
+  sourceId: string;
+  status: IngestionJobStatus;
+  stepName: IngestionStep | null;
+  queuedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  retryCount: number;
+  errorCode: string | null;
+  errorMessage: string | null;
+}
+
 // Chunk/Index DTOs
 export interface ChunkReadinessResponse {
   approvedChunks: number;
@@ -127,6 +157,39 @@ export interface IndexSummaryResponse {
   activeChunks: number;
   pendingApprovalChunks: number;
   eligibleChunks: number;
+}
+
+export interface ChunkSummaryResponse {
+  id: string;
+  sourceId: string | null;
+  sourceVersionId: string | null;
+  chunkOrdinal: number;
+  pageNumber: number;
+  sectionRef: string | null;
+  approvalState: string | null;
+  trusted: string | null;
+  active: string | null;
+  contentPreview: string | null;
+  embeddingPreview: number[] | null;
+  vectorDimension: number;
+}
+
+export interface ChunkDetailResponse {
+  id: string;
+  content: string | null;
+  sourceId: string | null;
+  sourceVersionId: string | null;
+  chunkOrdinal: number;
+  pageNumber: number;
+  sectionRef: string | null;
+  contentHash: string | null;
+  processingVersion: string | null;
+  approvalState: string | null;
+  trusted: string | null;
+  active: string | null;
+  origin: string | null;
+  embedding: number[] | null;
+  vectorDimension: number;
 }
 
 // Parameter Set DTOs

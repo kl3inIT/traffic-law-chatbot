@@ -2,6 +2,9 @@ package com.vn.traffic.chatbot.source.api;
 
 import com.vn.traffic.chatbot.common.api.ApiPaths;
 import com.vn.traffic.chatbot.common.api.PageResponse;
+import com.vn.traffic.chatbot.ingestion.api.dto.IngestionJobResponse;
+import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
+import com.vn.traffic.chatbot.ingestion.repo.KbIngestionJobRepository;
 import com.vn.traffic.chatbot.source.api.dto.*;
 import com.vn.traffic.chatbot.source.domain.KbSource;
 import com.vn.traffic.chatbot.source.domain.SourceStatus;
@@ -13,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -22,6 +26,7 @@ import java.util.UUID;
 public class SourceAdminController {
 
     private final SourceService sourceService;
+    private final KbIngestionJobRepository ingestionJobRepository;
 
     @PostMapping
     public ResponseEntity<SourceSummaryResponse> createSource(
@@ -84,6 +89,32 @@ public class SourceAdminController {
         log.info("Reingesting source: {}", sourceId);
         var source = sourceService.reingest(sourceId);
         return ResponseEntity.ok(toSummary(source));
+    }
+
+    /**
+     * GET /api/v1/admin/sources/{sourceId}/ingestion-jobs
+     * Returns all ingestion jobs for a source, ordered by queued_at descending.
+     */
+    @GetMapping("/{sourceId}/ingestion-jobs")
+    public ResponseEntity<List<IngestionJobResponse>> listIngestionJobs(@PathVariable UUID sourceId) {
+        List<KbIngestionJob> jobs = ingestionJobRepository.findBySourceIdOrderByQueuedAtDesc(sourceId);
+        List<IngestionJobResponse> response = jobs.stream().map(this::toJobResponse).toList();
+        return ResponseEntity.ok(response);
+    }
+
+    private IngestionJobResponse toJobResponse(KbIngestionJob job) {
+        return new IngestionJobResponse(
+                job.getId(),
+                job.getSource() != null ? job.getSource().getId() : null,
+                job.getStatus(),
+                job.getStepName(),
+                job.getQueuedAt(),
+                job.getStartedAt(),
+                job.getFinishedAt(),
+                job.getRetryCount(),
+                job.getErrorCode(),
+                job.getErrorMessage()
+        );
     }
 
     private SourceSummaryResponse toSummary(KbSource source) {

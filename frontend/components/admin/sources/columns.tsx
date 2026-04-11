@@ -4,6 +4,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import type { SourceSummaryResponse, SourceStatus } from '@/types/api';
 import { SourceActionsMenu } from './sources-table';
+import { SourceIngestionDetailButton } from './source-ingestion-detail';
 
 const statusBadgeClasses: Record<SourceStatus, string> = {
   PENDING: 'bg-yellow-100 text-yellow-800',
@@ -23,9 +24,7 @@ export const columns: ColumnDef<SourceSummaryResponse>[] = [
   {
     accessorKey: 'title',
     header: 'Tiêu đề / URL',
-    cell: ({ row }) => (
-      <div className="max-w-[300px] truncate">{row.original.title}</div>
-    ),
+    cell: ({ row }) => <div className="max-w-[300px] truncate">{row.original.title}</div>,
   },
   {
     accessorKey: 'sourceType',
@@ -36,17 +35,20 @@ export const columns: ColumnDef<SourceSummaryResponse>[] = [
     header: 'Trạng thái',
     cell: ({ row }) => {
       const status = row.original.status;
-      return (
-        <Badge className={statusBadgeClasses[status]}>
-          {statusLabels[status]}
-        </Badge>
-      );
+      return <Badge className={statusBadgeClasses[status]}>{statusLabels[status]}</Badge>;
     },
   },
   {
     accessorKey: 'createdAt',
     header: 'Ngày tạo',
     cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString('vi-VN'),
+  },
+  {
+    id: 'ingestion',
+    header: 'Tiến trình',
+    cell: ({ row }) => (
+      <SourceIngestionDetailButton sourceId={row.original.id} sourceTitle={row.original.title} />
+    ),
   },
   {
     id: 'actions',
