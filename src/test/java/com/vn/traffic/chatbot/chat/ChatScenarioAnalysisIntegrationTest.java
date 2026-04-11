@@ -146,6 +146,7 @@ class ChatScenarioAnalysisIntegrationTest {
                 List.of("Đối chiếu biên bản"),
                 List.of(),
                 List.of(),
+                List.of(),
                 null,
                 List.of(new CitationResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "Trích dẫn")),
                 List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))
@@ -168,6 +169,7 @@ class ChatScenarioAnalysisIntegrationTest {
                 List.of("Đối chiếu biên bản"),
                 List.of(),
                 List.of(),
+                List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
                 new com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse(
                         List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
                         "Áp dụng Điều 7 Nghị định 168 [Nguồn 1]",

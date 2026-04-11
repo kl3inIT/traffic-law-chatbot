@@ -60,11 +60,6 @@ function CitationList({ citations }: { citations: CitationResponse[] }) {
                     {cit.pageNumber ? `Trang ${cit.pageNumber}` : ''}
                   </p>
                 )}
-                {cit.excerpt && (
-                  <p className="border-primary/30 text-muted-foreground mt-1 border-l-2 pl-2 italic">
-                    &ldquo;{cit.excerpt}&rdquo;
-                  </p>
-                )}
               </div>
             </div>
           </li>
@@ -137,7 +132,7 @@ export function AiBubble({ response }: { response: ChatAnswerResponse }) {
         )}
 
         {/* ── Nguồn tham khảo ── */}
-        {response.citations.length > 0 && !isScenario && (
+        {response.citations.length > 0 && (!isScenario || !response.scenarioAnalysis) && (
           <>
             <Separator />
             <CitationList citations={response.citations} />
@@ -152,7 +147,7 @@ export function AiBubble({ response }: { response: ChatAnswerResponse }) {
             {response.disclaimer && (
               <p className="text-muted-foreground text-xs">{response.disclaimer}</p>
             )}
-            {response.uncertaintyNotice && (
+            {response.uncertaintyNotice && response.uncertaintyNotice !== response.disclaimer && (
               <p className="text-muted-foreground text-xs">{response.uncertaintyNotice}</p>
             )}
           </div>

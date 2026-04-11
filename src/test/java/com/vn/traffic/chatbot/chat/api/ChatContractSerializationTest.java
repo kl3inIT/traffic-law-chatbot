@@ -38,6 +38,7 @@ class ChatContractSerializationTest {
                 List.of("Đối chiếu tình huống với cơ quan có thẩm quyền"),
                 List.of(new PendingFactResponse("vehicleType", "Bạn điều khiển loại phương tiện nào?", "Thiếu loại phương tiện")),
                 List.of(new RememberedFactResponse("vehicleType", "xe máy", "ACTIVE")),
+                List.of("Người dùng điều khiển xe máy"),
                 new ScenarioAnalysisResponse(
                         List.of("Người dùng điều khiển xe máy"),
                         "Áp dụng Điều 6",
@@ -109,6 +110,7 @@ class ChatContractSerializationTest {
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
                 ),
+                List.of(),
                 List.of(),
                 List.of(),
                 null,

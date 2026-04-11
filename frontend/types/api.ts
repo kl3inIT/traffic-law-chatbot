@@ -30,6 +30,7 @@ export interface ChatAnswerResponse {
   nextSteps: string[];
   pendingFacts: PendingFactResponse[];
   rememberedFacts: RememberedFactResponse[];
+  scenarioFacts: string[];
   scenarioAnalysis: ScenarioAnalysisResponse | null;
   citations: CitationResponse[];
   sources: SourceReferenceResponse[];

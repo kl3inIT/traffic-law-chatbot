@@ -175,6 +175,7 @@ public class ChatThreadService {
                 List.of("Vui lòng trả lời trực tiếp các câu hỏi làm rõ để tôi phân tích đúng căn cứ."),
                 pendingFacts,
                 List.of(),
+                List.of(),
                 null,
                 List.of(),
                 List.of()

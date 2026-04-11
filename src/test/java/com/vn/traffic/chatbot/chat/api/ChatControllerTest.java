@@ -89,6 +89,7 @@ class ChatControllerTest {
                 List.of("Đối chiếu biên bản và tình tiết thực tế"),
                 List.of(),
                 List.of(),
+                List.of(),
                 null,
                 List.of(new CitationResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "Người điều khiển xe máy vượt đèn đỏ...")),
                 List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))
@@ -128,6 +129,7 @@ class ChatControllerTest {
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
                 ),
+                List.of(),
                 List.of(),
                 List.of(),
                 null,

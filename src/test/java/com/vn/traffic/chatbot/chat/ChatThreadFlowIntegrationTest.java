@@ -145,6 +145,7 @@ class ChatThreadFlowIntegrationTest {
                 List.of("Đối chiếu biên bản"),
                 List.of(),
                 List.of(),
+                List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
                 new com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse(
                         List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
                         "Áp dụng Điều 7 [Nguồn 1]",

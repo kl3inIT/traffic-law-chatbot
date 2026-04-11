@@ -40,6 +40,7 @@ public class AnswerComposer {
                     nextSteps,
                     List.of(),
                     List.of(),
+                    List.of(),
                     null,
                     List.of(),
                     List.of()
@@ -81,6 +82,7 @@ public class AnswerComposer {
                 nextSteps,
                 List.of(),
                 List.of(),
+                safeList(safeDraft.scenarioFacts()),
                 null,
                 safeCitations,
                 safeSources
