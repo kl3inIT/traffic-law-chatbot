@@ -1,32 +1,22 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
+import axios from 'axios';
 
-export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  return res.json();
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+export function apiGet<T>(path: string): Promise<T> {
+  return api.get<T>(path).then(r => r.data);
 }
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  return res.json();
+export function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  return api.post<T>(path, body).then(r => r.data);
 }
 
-export async function apiPut<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  return res.json();
+export function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return api.put<T>(path, body).then(r => r.data);
 }
 
-export async function apiDelete(path: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}${path}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+export function apiDelete(path: string): Promise<void> {
+  return api.delete(path).then(() => undefined);
 }
