@@ -110,8 +110,6 @@ function ChunkDetailContent({ chunkId }: { chunkId: string }) {
     2,
   );
 
-  const embeddingStr = chunk.embedding ? `[${chunk.embedding.join(', ')}]` : '';
-
   return (
     <div className="flex h-full flex-col">
       <SheetHeader className="border-b px-4 pb-4">
@@ -120,9 +118,6 @@ function ChunkDetailContent({ chunkId }: { chunkId: string }) {
           <span className="flex flex-wrap gap-2">
             <Badge variant="secondary">Thứ tự: {chunk.chunkOrdinal}</Badge>
             <Badge variant="secondary">Trang: {chunk.pageNumber}</Badge>
-            {chunk.vectorDimension > 0 && (
-              <Badge variant="outline">{chunk.vectorDimension} chiều</Badge>
-            )}
             <ApprovalStateBadge state={chunk.approvalState} />
             {chunk.trusted === 'true' && (
               <Badge
@@ -167,23 +162,6 @@ function ChunkDetailContent({ chunkId }: { chunkId: string }) {
             <pre className="bg-muted max-h-48 overflow-y-auto rounded-md p-3 text-xs leading-relaxed break-words whitespace-pre-wrap">
               {metadataJson}
             </pre>
-          </section>
-
-          {/* Embedding */}
-          <section>
-            <div className="mb-1 flex items-center justify-between">
-              <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                Véc-tơ nhúng ({chunk.vectorDimension} chiều)
-              </h3>
-              {embeddingStr && <CopyButton text={embeddingStr} />}
-            </div>
-            {chunk.embedding ? (
-              <pre className="bg-muted max-h-64 overflow-y-auto rounded-md p-3 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">
-                {embeddingStr}
-              </pre>
-            ) : (
-              <p className="text-muted-foreground text-xs italic">Không có dữ liệu véc-tơ.</p>
-            )}
           </section>
         </div>
       </ScrollArea>

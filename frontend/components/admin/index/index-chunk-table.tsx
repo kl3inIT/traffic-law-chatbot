@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import {
   Table,
@@ -13,16 +14,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { ChunkDetailSheet } from './chunk-detail-sheet';
 import { useChunks } from '@/hooks/use-index';
-import { useSources } from '@/hooks/use-sources';
+import { useAllSources } from '@/hooks/use-sources';
 import type { ChunkSummaryResponse } from '@/types/api';
 
 const ALL_SOURCES = '__all__';
@@ -155,7 +159,8 @@ export function IndexChunkTable() {
   const [page, setPage] = useState(0);
   const pageSize = 20;
 
-  const { data: sourcesPage, isLoading: sourcesLoading } = useSources();
+  const [comboOpen, setComboOpen] = useState(false);
+  const { data: sourcesPage, isLoading: sourcesLoading } = useAllSources();
   const { data: chunksPage, isLoading: chunksLoading } = useChunks(
     selectedSourceId,
     page,
@@ -202,27 +207,68 @@ export function IndexChunkTable() {
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-xs whitespace-nowrap">Lọc theo nguồn:</span>
           {sourcesLoading ? (
-            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-8 w-48" />
           ) : (
-            <Select value={selectedSourceId ?? ALL_SOURCES} onValueChange={handleSourceChange}>
-              <SelectTrigger className="h-8 w-52 text-xs">
-                <SelectValue placeholder="Tất cả nguồn">
-                  {(value: string) => {
-                    if (!value || value === ALL_SOURCES) return 'Tất cả nguồn';
-                    const src = sourcesPage?.content.find((s) => s.id === value);
-                    return src ? <span className="truncate">{src.title}</span> : value;
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_SOURCES}>Tất cả nguồn</SelectItem>
-                {sourcesPage?.content.map((src) => (
-                  <SelectItem key={src.id} value={src.id} label={src.title}>
-                    <span className="max-w-[200px] truncate">{src.title}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={comboOpen} onOpenChange={setComboOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="h-8 w-56 justify-between px-3 text-xs font-normal"
+                >
+                  <span className="truncate">
+                    {selectedSourceId
+                      ? (sourcesPage?.content.find((s) => s.id === selectedSourceId)?.title ??
+                        'Tất cả nguồn')
+                      : 'Tất cả nguồn'}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-0">
+                <Command>
+                  <CommandInput placeholder="Tìm nguồn..." className="h-8 text-xs" />
+                  <CommandList>
+                    <CommandEmpty>Không tìm thấy nguồn.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value={ALL_SOURCES}
+                        onSelect={() => {
+                          handleSourceChange(ALL_SOURCES);
+                          setComboOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            'mr-2 h-3.5 w-3.5',
+                            !selectedSourceId ? 'opacity-100' : 'opacity-0',
+                          )}
+                        />
+                        Tất cả nguồn
+                      </CommandItem>
+                      {sourcesPage?.content.map((src) => (
+                        <CommandItem
+                          key={src.id}
+                          value={src.title}
+                          onSelect={() => {
+                            handleSourceChange(src.id);
+                            setComboOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              'mr-2 h-3.5 w-3.5',
+                              selectedSourceId === src.id ? 'opacity-100' : 'opacity-0',
+                            )}
+                          />
+                          <span className="truncate">{src.title}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           )}
         </div>
       </div>
