@@ -199,6 +199,30 @@ export interface ChunkDetailResponse {
   vectorDimension: number;
 }
 
+// Trust Policy DTOs
+export type TrustTier = 'PRIMARY' | 'SECONDARY' | 'MANUAL_REVIEW';
+
+export interface TrustPolicyResponse {
+  id: string;
+  name: string;
+  domainPattern: string | null;
+  sourceType: string | null;
+  trustTier: TrustTier;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTrustPolicyRequest {
+  name: string;
+  domainPattern?: string;
+  sourceType?: string;
+  trustTier: TrustTier;
+  description?: string;
+}
+
+export type UpdateTrustPolicyRequest = CreateTrustPolicyRequest;
+
 // Parameter Set DTOs
 export interface AiParameterSetResponse {
   id: string;
