@@ -125,4 +125,21 @@ public class SourceService {
                 .build());
         return sourceRepo.save(source);
     }
+
+    public KbSource reingest(UUID sourceId) {
+        var source = getById(sourceId);
+        String previousApprovalState = source.getApprovalState().name();
+        String previousStatus = source.getStatus().name();
+        source.setApprovalState(ApprovalState.PENDING);
+        source.setStatus(SourceStatus.DRAFT);
+        source.setTrustedState(TrustedState.UNTRUSTED);
+        chunkMetadataUpdater.updateChunkMetadata(sourceId.toString(), false, false);
+        approvalEventRepo.save(KbSourceApprovalEvent.builder()
+                .source(source)
+                .action("REINGEST")
+                .previousState(previousApprovalState + "/" + previousStatus)
+                .newState(ApprovalState.PENDING.name() + "/" + SourceStatus.DRAFT.name())
+                .build());
+        return sourceRepo.save(source);
+    }
 }

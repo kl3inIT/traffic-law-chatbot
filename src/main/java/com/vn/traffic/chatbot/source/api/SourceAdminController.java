@@ -79,6 +79,13 @@ public class SourceAdminController {
         return ResponseEntity.ok(toSummary(source));
     }
 
+    @PostMapping("/{sourceId}/reingest")
+    public ResponseEntity<SourceSummaryResponse> reingest(@PathVariable UUID sourceId) {
+        log.info("Reingesting source: {}", sourceId);
+        var source = sourceService.reingest(sourceId);
+        return ResponseEntity.ok(toSummary(source));
+    }
+
     private SourceSummaryResponse toSummary(KbSource source) {
         return new SourceSummaryResponse(
                 source.getId(),
