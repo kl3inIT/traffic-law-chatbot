@@ -53,8 +53,8 @@ export function AiBubble({ response }: { response: ChatAnswerResponse }) {
             {response.responseMode === 'CLARIFICATION_NEEDED' &&
               response.pendingFacts.length > 0 && (
                 <div className="mt-2 space-y-1">
-                  {response.pendingFacts.map((fact) => (
-                    <p key={fact.factKey} className="text-sm">
+                  {response.pendingFacts.map((fact, i) => (
+                    <p key={fact.factKey ?? i} className="text-sm">
                       - {fact.question}
                     </p>
                   ))}
