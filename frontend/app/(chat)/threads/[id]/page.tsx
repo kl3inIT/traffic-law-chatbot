@@ -62,8 +62,10 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
           {history?.map((msg) =>
             msg.role === 'USER' ? (
               <UserBubble key={msg.id} content={msg.content} />
+            ) : msg.structuredResponse ? (
+              <AiBubble key={msg.id} response={msg.structuredResponse} />
             ) : (
-              // Historical AI messages: plain text only — full structured response is not persisted
+              // Fallback for messages saved before structured response was stored
               <div key={msg.id} className="flex gap-2">
                 <div className="bg-card max-w-[85%] rounded-lg border p-4 text-sm whitespace-pre-wrap">
                   {msg.content}

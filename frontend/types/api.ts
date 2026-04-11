@@ -86,6 +86,7 @@ export interface ChatMessageResponse {
   messageType: ChatMessageType;
   content: string;
   createdAt: string;
+  structuredResponse?: ChatAnswerResponse | null;
 }
 
 // Source DTOs

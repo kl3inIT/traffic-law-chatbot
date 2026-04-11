@@ -106,7 +106,9 @@ export function AiBubble({ response }: { response: ChatAnswerResponse }) {
         ) : isClarification ? (
           /* ── Clarification needed ── */
           <div className="space-y-2">
-            {response.answer && <p className="text-sm">{response.answer}</p>}
+            {response.answer && (
+              <p className="text-sm">{response.answer.replace(/^\[CLARIFICATION\]\s*/i, '')}</p>
+            )}
             {response.pendingFacts.length > 0 && (
               <div className="space-y-1 rounded-md border bg-amber-50 p-3 dark:bg-amber-950/20">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">

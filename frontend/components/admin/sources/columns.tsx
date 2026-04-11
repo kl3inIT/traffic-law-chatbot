@@ -2,8 +2,9 @@
 
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { SourceSummaryResponse, SourceStatus, ApprovalState, TrustedState } from '@/types/api';
-import { SourceActionsMenu } from './sources-table';
+import { SourceActionButtons } from './sources-table';
 import { SourceIngestionDetailButton } from './source-ingestion-detail';
 
 const statusBadgeClasses: Record<SourceStatus, string> = {
@@ -47,6 +48,30 @@ const trustedLabels: Record<TrustedState, string> = {
 };
 
 export const columns: ColumnDef<SourceSummaryResponse>[] = [
+  {
+    id: 'select',
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected()
+            ? true
+            : table.getIsSomePageRowsSelected()
+              ? 'indeterminate'
+              : false
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Chọn tất cả"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Chọn dòng"
+      />
+    ),
+    enableSorting: false,
+  },
   {
     accessorKey: 'title',
     header: 'Tiêu đề / URL',
@@ -93,6 +118,6 @@ export const columns: ColumnDef<SourceSummaryResponse>[] = [
   {
     id: 'actions',
     header: 'Hành động',
-    cell: ({ row }) => <SourceActionsMenu source={row.original} />,
+    cell: ({ row }) => <SourceActionButtons source={row.original} />,
   },
 ];
