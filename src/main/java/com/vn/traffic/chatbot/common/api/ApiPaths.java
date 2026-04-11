@@ -34,4 +34,10 @@ public final class ApiPaths {
 
     // Index summary
     public static final String INDEX_SUMMARY = ADMIN_BASE + "/index/summary";
+
+    // AI Parameter Set endpoints
+    public static final String PARAMETER_SETS = ADMIN_BASE + "/parameter-sets";
+    public static final String PARAMETER_SET_BY_ID = PARAMETER_SETS + "/{parameterSetId}";
+    public static final String PARAMETER_SET_ACTIVATE = PARAMETER_SET_BY_ID + "/activate";
+    public static final String PARAMETER_SET_COPY = PARAMETER_SET_BY_ID + "/copy";
 }
