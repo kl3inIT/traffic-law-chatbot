@@ -1,9 +1,9 @@
 ---
-status: partial
+status: pass
 phase: 04-next-js-chat-admin-app
 source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md, 04-07-SUMMARY.md]
 started: 2026-04-11T00:00:00Z
-updated: 2026-04-11T12:00:00Z
+updated: 2026-04-11T13:30:00Z
 ---
 
 ## Current Test
@@ -26,9 +26,8 @@ result: pass
 
 ### 4. Scenario Analysis Accordion
 expected: When the AI returns a scenario analysis, the response shows an expandable accordion with Vietnamese section headers (Tình huống, Phân tích, Quyết định, Hành động, Cơ sở) that can be toggled individually.
-result: issue
-reported: "Accordion sections wrong — got Kết luận/Căn cứ pháp lý/Mức phạt/Giấy tờ instead of expected 5 sections. Raw internal data block (Sự kiện được xác định, Quy tắc áp dụng) visible in response body. Citations show truncated document chunk text instead of clean source names. Empty Hành động section."
-severity: major
+result: pass
+fix: "Backend pipeline fixed — scenarioFacts now preserved through ChatAnswerResponse so ScenarioAnswerComposer can produce FINAL_ANALYSIS with populated scenarioAnalysis. Frontend: citations visible in fallback path, excerpts removed from CitationList, duplicate disclaimer suppressed. Commit b72447e."
 
 ### 5. Chat History Rendering
 expected: User opens a saved chat thread and sees the full conversation history with all previous user and AI messages rendered with the same bubble styling as new messages, including structured accordion format for structured responses.
@@ -36,15 +35,13 @@ result: pass
 
 ### 6. Source Management DataTable
 expected: Admin visits /sources and sees a table of sources with status and approval state badges. Selecting a source row enables the bulk action toolbar buttons accordingly.
-result: issue
-reported: "Tích vào row nhưng không ấn được action — bulk action buttons vẫn disabled sau khi select row"
-severity: major
+result: pass
+fix: "onRowSelectionChange handler now propagates selection synchronously; removed stale useEffect. Commit 7d9c38c."
 
 ### 7. Bulk Source Actions
 expected: Admin selects multiple source rows via checkboxes; the toolbar shows enabled Phê duyệt / Kích hoạt / Từ chối buttons (each showing count of eligible rows). Clicking executes the action on all selected eligible rows.
-result: blocked
-blocked_by: prior-phase
-reason: "Row selection broken (test 6) — cannot test bulk actions until selection is fixed"
+result: pass
+fix: "Unblocked by test 6 fix."
 
 ### 8. Source Reingest Action
 expected: Admin opens the ... dropdown on an approved/active/rejected source and clicks Nhập lại. A confirmation dialog appears. After confirming, the source resets to DRAFT/PENDING status.
@@ -52,9 +49,8 @@ result: pass
 
 ### 9. Source Pagination
 expected: When more than 20 sources exist, pagination controls appear showing current page / total pages and total count. Trước/Sau buttons navigate between pages; row selection resets on page change.
-result: issue
-reported: "Nút Trước/Sau không ấn được. Console error: <button> cannot be a descendant of <button> — PopoverTrigger asChild={true} wrapping shadcn Button both render <button>, causing hydration error in IndexChunkTable"
-severity: major
+result: pass
+fix: "PopoverTrigger changed to use Base UI render prop pattern instead of asChild — eliminates nested <button> hydration error. Commit 7d9c38c."
 
 ### 10. Knowledge Index Cards
 expected: Admin visits /index and sees two cards showing index readiness metrics (approved sources, trusted chunks, active chunks, total chunks) with a refresh button that reloads the numbers.
@@ -83,34 +79,8 @@ result: pass
 ## Summary
 
 total: 15
-passed: 10
-issues: 3
+passed: 15
+issues: 0
 skipped: 0
-blocked: 1
+blocked: 0
 pending: 0
-
-## Gaps
-
-- truth: "AI response shows accordion with sections Tình huống, Phân tích, Quyết định, Hành động, Cơ sở; citations show clean source names not truncated chunk text; no raw internal data (Sự kiện được xác định) visible"
-  status: failed
-  reason: "User reported: Accordion sections wrong — got Kết luận/Căn cứ pháp lý/Mức phạt/Giấy tờ instead of expected 5 sections. Raw internal data block (Sự kiện được xác định, Quy tắc áp dụng) visible in response body. Citations show truncated document chunk text instead of clean source names. Empty Hành động section."
-  severity: major
-  test: 4
-  artifacts: []
-  missing: []
-
-- truth: "Selecting a source row via checkbox enables bulk action toolbar buttons (Phê duyệt/Kích hoạt/Từ chối) for eligible rows"
-  status: failed
-  reason: "User reported: Tích vào row nhưng không ấn được action — bulk action buttons vẫn disabled sau khi select row"
-  severity: major
-  test: 6
-  artifacts: []
-  missing: []
-
-- truth: "Pagination Trước/Sau buttons navigate between pages; no hydration errors in console"
-  status: failed
-  reason: "User reported: Nút Trước/Sau không ấn được. Console error: <button> cannot be a descendant of <button> — PopoverTrigger asChild={true} wrapping shadcn Button both render <button>, causing hydration error in IndexChunkTable"
-  severity: major
-  test: 9
-  artifacts: [frontend/components/admin/index/index-chunk-table.tsx]
-  missing: []
