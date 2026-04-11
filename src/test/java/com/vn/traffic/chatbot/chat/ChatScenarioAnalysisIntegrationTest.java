@@ -20,6 +20,8 @@ import com.vn.traffic.chatbot.chat.service.ClarificationPolicy;
 import com.vn.traffic.chatbot.chat.service.FactMemoryService;
 import com.vn.traffic.chatbot.chat.service.GroundingStatus;
 import com.vn.traffic.chatbot.chat.service.ScenarioAnswerComposer;
+import com.vn.traffic.chatbot.parameter.repo.AiParameterSetRepository;
+import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,6 +49,9 @@ class ChatScenarioAnalysisIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        AiParameterSetRepository paramRepo = org.mockito.Mockito.mock(AiParameterSetRepository.class);
+        org.mockito.Mockito.lenient().when(paramRepo.findByActiveTrue()).thenReturn(Optional.empty());
+        ActiveParameterSetProvider paramProvider = new ActiveParameterSetProvider(paramRepo);
         chatThreadService = new ChatThreadService(
                 chatThreadRepository,
                 chatMessageRepository,
@@ -54,7 +59,7 @@ class ChatScenarioAnalysisIntegrationTest {
                 chatService,
                 new ChatThreadMapper(new ScenarioAnswerComposer()),
                 new FactMemoryService(threadFactRepository),
-                new ClarificationPolicy(2)
+                new ClarificationPolicy(paramProvider)
         );
     }
 
@@ -141,6 +146,7 @@ class ChatScenarioAnalysisIntegrationTest {
                 List.of("Đối chiếu biên bản"),
                 List.of(),
                 List.of(),
+                List.of(),
                 null,
                 List.of(new CitationResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "Trích dẫn")),
                 List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))
@@ -163,6 +169,7 @@ class ChatScenarioAnalysisIntegrationTest {
                 List.of("Đối chiếu biên bản"),
                 List.of(),
                 List.of(),
+                List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
                 new com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse(
                         List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
                         "Áp dụng Điều 7 Nghị định 168 [Nguồn 1]",

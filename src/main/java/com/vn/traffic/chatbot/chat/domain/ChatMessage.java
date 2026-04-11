@@ -1,5 +1,6 @@
 package com.vn.traffic.chatbot.chat.domain;
 
+import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +17,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -47,6 +50,10 @@ public class ChatMessage {
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "structured_response", columnDefinition = "TEXT")
+    private ChatAnswerResponse structuredResponse;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

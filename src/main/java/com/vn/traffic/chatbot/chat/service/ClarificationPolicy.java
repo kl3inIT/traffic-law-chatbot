@@ -2,7 +2,8 @@ package com.vn.traffic.chatbot.chat.service;
 
 import com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse;
 import com.vn.traffic.chatbot.chat.domain.ThreadFact;
-import org.springframework.beans.factory.annotation.Value;
+import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -13,15 +14,16 @@ import java.util.Map;
 import java.util.Set;
 
 @Component
+@RequiredArgsConstructor
 public class ClarificationPolicy {
 
-    private final int maxClarifications;
+    private static final int DEFAULT_MAX_CLARIFICATIONS = 2;
 
-    public ClarificationPolicy(@Value("${app.chat.case-analysis.max-clarifications:2}") int maxClarifications) {
-        this.maxClarifications = maxClarifications;
-    }
+    private final ActiveParameterSetProvider paramProvider;
 
     public ClarificationDecision evaluate(String question, List<ThreadFact> activeFacts, int clarificationCount) {
+        int maxClarifications = paramProvider.getInt("caseAnalysis.maxClarifications", DEFAULT_MAX_CLARIFICATIONS);
+
         Map<String, String> factMap = activeFacts == null ? Map.of() : activeFacts.stream()
                 .collect(java.util.stream.Collectors.toMap(ThreadFact::getFactKey, ThreadFact::getFactValue, (left, right) -> right, java.util.LinkedHashMap::new));
 
@@ -44,6 +46,47 @@ public class ClarificationPolicy {
 
     private Set<String> determineRequiredFactKeys(String question, Map<String, String> factMap) {
         String normalized = question == null ? "" : question.toLowerCase(Locale.ROOT);
+        Set<String> required = new HashSet<>();
+
+        // Read required facts from parameter set; fall back to built-in rules
+        List<Map<String, Object>> configuredFacts = paramProvider.getList("caseAnalysis.requiredFacts");
+        if (configuredFacts.isEmpty()) {
+            required.addAll(builtInRequiredFactKeys(normalized, factMap));
+        } else {
+            for (Map<String, Object> factConfig : configuredFacts) {
+                String key = (String) factConfig.get("key");
+                if (key == null) {
+                    continue;
+                }
+                boolean alwaysRequired = Boolean.TRUE.equals(factConfig.get("alwaysRequired"));
+                if (alwaysRequired) {
+                    required.add(key);
+                    continue;
+                }
+                // Check trigger keywords
+                Object triggerKeywordsObj = factConfig.get("triggerKeywords");
+                if (triggerKeywordsObj instanceof List<?> triggerKeywords) {
+                    for (Object kw : triggerKeywords) {
+                        if (kw instanceof String keyword && normalized.contains(keyword.toLowerCase(Locale.ROOT))) {
+                            required.add(key);
+                            break;
+                        }
+                    }
+                }
+                // Also include if factMap already has the key (user supplied it previously)
+                if (factMap.containsKey(key)) {
+                    required.add(key);
+                }
+            }
+        }
+
+        return required;
+    }
+
+    /**
+     * Built-in required fact rules used when no parameter set is active.
+     */
+    private Set<String> builtInRequiredFactKeys(String normalized, Map<String, String> factMap) {
         Set<String> required = new HashSet<>();
         required.add("vehicleType");
         required.add("violationType");

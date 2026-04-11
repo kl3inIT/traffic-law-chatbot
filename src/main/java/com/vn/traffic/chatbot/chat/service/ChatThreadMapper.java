@@ -46,6 +46,7 @@ public class ChatThreadMapper {
                 answer.nextSteps(),
                 answer.pendingFacts(),
                 mapFacts(facts),
+                answer.scenarioFacts(),
                 answer.scenarioAnalysis(),
                 answer.citations(),
                 answer.sources()
@@ -82,6 +83,7 @@ public class ChatThreadMapper {
                 answer.nextSteps(),
                 answer.pendingFacts(),
                 rememberedFacts,
+                answer.scenarioFacts(),
                 composition.scenarioAnalysis(),
                 answer.citations(),
                 effectiveSources
@@ -98,7 +100,7 @@ public class ChatThreadMapper {
                 answer.requiredDocuments(),
                 answer.procedureSteps(),
                 answer.nextSteps(),
-                answer.scenarioAnalysis() == null ? List.of() : answer.scenarioAnalysis().facts(),
+                answer.scenarioFacts() == null ? List.of() : answer.scenarioFacts(),
                 answer.scenarioAnalysis() == null || answer.scenarioAnalysis().rule() == null ? List.of() : List.of(answer.scenarioAnalysis().rule()),
                 answer.scenarioAnalysis() == null || answer.scenarioAnalysis().outcome() == null ? List.of() : List.of(answer.scenarioAnalysis().outcome()),
                 answer.scenarioAnalysis() == null ? List.of() : answer.scenarioAnalysis().actions()

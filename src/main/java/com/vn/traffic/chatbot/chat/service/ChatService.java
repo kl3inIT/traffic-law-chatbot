@@ -34,6 +34,7 @@ public class ChatService {
     private final AnswerComposer answerComposer;
     private final ChatPromptFactory chatPromptFactory;
     private final ChunkInspectionService chunkInspectionService;
+    private final AnswerCompositionPolicy answerCompositionPolicy;
     @Value("${app.chat.retrieval.top-k:5}")
     private int retrievalTopK;
     @Value("${app.chat.grounding.limited-threshold:2}")
@@ -173,11 +174,7 @@ public class ChatService {
         List<String> legalBasis = citations.isEmpty() && sources.isEmpty()
                 ? List.of()
                 : List.of("Đối chiếu các nguồn trích dẫn bên dưới để xác minh căn cứ pháp lý phù hợp với tình huống cụ thể.");
-        List<String> nextSteps = List.of(
-                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE,
-                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
-                AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
-        );
+        List<String> nextSteps = answerCompositionPolicy.getRefusalNextSteps();
         return new LegalAnswerDraft(
                 conclusion,
                 "",

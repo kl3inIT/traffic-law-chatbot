@@ -56,7 +56,7 @@ app:
       max-clarifications: 2
 
 server:
-  port: 8088
+  port: 8089
 
 management:
   endpoints:

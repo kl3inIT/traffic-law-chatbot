@@ -21,6 +21,7 @@ public record ChatAnswerResponse(
         List<String> nextSteps,
         List<PendingFactResponse> pendingFacts,
         List<RememberedFactResponse> rememberedFacts,
+        List<String> scenarioFacts,
         ScenarioAnalysisResponse scenarioAnalysis,
         List<CitationResponse> citations,
         List<SourceReferenceResponse> sources

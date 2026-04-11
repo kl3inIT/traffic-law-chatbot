@@ -1,6 +1,8 @@
 package com.vn.traffic.chatbot.chat.service;
 
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
+import com.vn.traffic.chatbot.chat.api.dto.ChatMessageResponse;
+import com.vn.traffic.chatbot.chat.api.dto.ChatThreadSummaryResponse;
 import com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse;
 import com.vn.traffic.chatbot.chat.domain.ChatMessage;
 import com.vn.traffic.chatbot.chat.domain.ChatMessageRole;
@@ -49,9 +51,12 @@ public class ChatThreadService {
             );
         }
         if (clarificationDecision.shouldRefuse()) {
-            return chatThreadMapper.attachThreadContext(chatService.refusalResponse(), thread.getId(), ResponseMode.REFUSED, activeFacts);
+            ChatAnswerResponse refusal = chatService.refusalResponse();
+            appendAssistantMessage(thread, refusal);
+            return chatThreadMapper.attachThreadContext(refusal, thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         ChatAnswerResponse answer = chatService.answer(factMemoryService.buildThreadAwareQuestion(question, activeFacts));
+        appendAssistantMessage(thread, answer);
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
 
@@ -76,10 +81,13 @@ public class ChatThreadService {
             );
         }
         if (clarificationDecision.shouldRefuse()) {
-            return chatThreadMapper.attachThreadContext(chatService.refusalResponse(), thread.getId(), ResponseMode.REFUSED, activeFacts);
+            ChatAnswerResponse refusal = chatService.refusalResponse();
+            appendAssistantMessage(thread, refusal);
+            return chatThreadMapper.attachThreadContext(refusal, thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         String retrievalQuestion = buildRetrievalQuestion(threadId, question, activeFacts);
         ChatAnswerResponse answer = chatService.answer(retrievalQuestion);
+        appendAssistantMessage(thread, answer);
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
 
@@ -98,12 +106,48 @@ public class ChatThreadService {
                 .build());
     }
 
+    private ChatMessage appendAssistantMessage(ChatThread thread, ChatAnswerResponse response) {
+        return chatMessageRepository.save(ChatMessage.builder()
+                .thread(thread)
+                .role(ChatMessageRole.ASSISTANT)
+                .messageType(ChatMessageType.ANSWER)
+                .content(response.answer() != null ? response.answer() : "")
+                .structuredResponse(response)
+                .build());
+    }
+
     private int countClarificationMessages(UUID threadId) {
         return (int) chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId).stream()
                 .filter(message -> message.getRole() == ChatMessageRole.ASSISTANT)
-                .filter(message -> message.getMessageType() == ChatMessageType.ANSWER)
-                .filter(message -> message.getContent() != null && message.getContent().contains("[CLARIFICATION]"))
+                .filter(message -> message.getMessageType() == ChatMessageType.CLARIFICATION)
                 .count();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatMessageResponse> getMessages(UUID threadId) {
+        chatThreadRepository.findById(threadId)
+                .orElseThrow(() -> new AppException(ErrorCode.CHAT_THREAD_NOT_FOUND, "Chat thread not found: " + threadId));
+        return chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId).stream()
+                .map(m -> new ChatMessageResponse(m.getId(), m.getRole(), m.getMessageType(), m.getContent(), m.getCreatedAt(), m.getStructuredResponse()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatThreadSummaryResponse> listThreads() {
+        return chatThreadRepository.findAllByOrderByUpdatedAtDesc().stream()
+                .map(thread -> {
+                    String firstMsg = chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(thread.getId())
+                            .stream()
+                            .filter(m -> m.getRole() == ChatMessageRole.USER)
+                            .map(ChatMessage::getContent)
+                            .findFirst()
+                            .orElse(null);
+                    String truncated = firstMsg != null && firstMsg.length() > 100
+                            ? firstMsg.substring(0, 100) : firstMsg;
+                    return new ChatThreadSummaryResponse(
+                            thread.getId(), thread.getCreatedAt(), thread.getUpdatedAt(), truncated);
+                })
+                .toList();
     }
 
     private String buildRetrievalQuestion(UUID threadId, String currentQuestion, List<ThreadFact> activeFacts) {
@@ -131,6 +175,7 @@ public class ChatThreadService {
                 List.of("Vui lòng trả lời trực tiếp các câu hỏi làm rõ để tôi phân tích đúng căn cứ."),
                 pendingFacts,
                 List.of(),
+                List.of(),
                 null,
                 List.of(),
                 List.of()
@@ -138,8 +183,9 @@ public class ChatThreadService {
         chatMessageRepository.save(ChatMessage.builder()
                 .thread(thread)
                 .role(ChatMessageRole.ASSISTANT)
-                .messageType(ChatMessageType.ANSWER)
+                .messageType(ChatMessageType.CLARIFICATION)
                 .content(response.answer())
+                .structuredResponse(response)
                 .build());
         return response;
     }

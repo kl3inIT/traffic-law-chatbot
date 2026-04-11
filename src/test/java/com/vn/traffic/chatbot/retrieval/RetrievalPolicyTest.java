@@ -1,14 +1,30 @@
 package com.vn.traffic.chatbot.retrieval;
 
+import com.vn.traffic.chatbot.parameter.repo.AiParameterSetRepository;
+import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.vectorstore.SearchRequest;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class RetrievalPolicyTest {
 
-    private final RetrievalPolicy retrievalPolicy = new RetrievalPolicy();
+    private static RetrievalPolicy policyWithFallbacks() {
+        AiParameterSetRepository repo = mock(AiParameterSetRepository.class);
+        when(repo.findByActiveTrue()).thenReturn(Optional.empty());
+        ActiveParameterSetProvider provider = new ActiveParameterSetProvider(repo);
+        return new RetrievalPolicy(provider);
+    }
+
+    private final RetrievalPolicy retrievalPolicy = policyWithFallbacks();
 
     @Test
     void buildRequest_containsApprovedFilter() {

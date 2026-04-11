@@ -1,6 +1,7 @@
 package com.vn.traffic.chatbot.chat.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.ChatThreadMessageRequest;
 import com.vn.traffic.chatbot.chat.api.dto.CreateChatThreadRequest;
@@ -27,10 +28,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
+import com.vn.traffic.chatbot.chat.api.dto.ChatThreadSummaryResponse;
+
+import java.time.OffsetDateTime;
+
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,7 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ChatThreadControllerTest {
 
     private MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Mock
     private ChatService chatService;
@@ -150,6 +156,22 @@ class ChatThreadControllerTest {
                 .andExpect(jsonPath("$.properties.errorCode").value("CHAT_THREAD_NOT_FOUND"));
     }
 
+    @Test
+    void listThreadsReturns200WithJsonArrayOfSummaries() throws Exception {
+        UUID threadId = UUID.randomUUID();
+        OffsetDateTime now = OffsetDateTime.now();
+        when(chatThreadService.listThreads()).thenReturn(List.of(
+                new ChatThreadSummaryResponse(threadId, now, now, "Tôi vượt đèn đỏ bằng xe máy thì sao?")
+        ));
+
+        mockMvc.perform(get(ApiPaths.CHAT_THREADS))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].threadId").value(threadId.toString()))
+                .andExpect(jsonPath("$[0].firstMessage").value("Tôi vượt đèn đỏ bằng xe máy thì sao?"));
+
+        verify(chatThreadService).listThreads();
+    }
+
     private ChatAnswerResponse threadResponse(UUID threadId) {
         return new ChatAnswerResponse(
                 GroundingStatus.GROUNDED,
@@ -164,6 +186,7 @@ class ChatThreadControllerTest {
                 List.of(),
                 List.of(),
                 List.of("Đối chiếu biên bản"),
+                List.of(),
                 List.of(),
                 List.of(),
                 null,
