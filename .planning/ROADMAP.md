@@ -146,7 +146,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 04.1-01-PLAN.md — Track A: LoggingAspect, AsyncConfig upgrade, AppProperties, GlobalExceptionHandler hardening, CRLF prevention
+- [x] 04.1-01-PLAN.md — Track A: LoggingAspect, AsyncConfig upgrade, AppProperties, GlobalExceptionHandler hardening, CRLF prevention
 - [ ] 04.1-02-PLAN.md — Track B: ROADMAP 01.1-04 checkbox fix, batch ingestion endpoint, source trust policy domain (DB + REST + admin UI)
 - [ ] 04.1-03-PLAN.md — Track C: Configurability audit — ClarificationPolicy, AnswerCompositionPolicy, RetrievalPolicy inventory report
 
