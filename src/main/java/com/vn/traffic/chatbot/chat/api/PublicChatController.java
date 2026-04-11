@@ -1,6 +1,7 @@
 package com.vn.traffic.chatbot.chat.api;
 
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
+import com.vn.traffic.chatbot.chat.api.dto.ChatMessageResponse;
 import com.vn.traffic.chatbot.chat.api.dto.ChatQuestionRequest;
 import com.vn.traffic.chatbot.chat.api.dto.ChatThreadMessageRequest;
 import com.vn.traffic.chatbot.chat.api.dto.ChatThreadSummaryResponse;
@@ -42,6 +43,11 @@ public class PublicChatController {
     @PostMapping("/threads")
     public ResponseEntity<ChatAnswerResponse> createThread(@Valid @RequestBody CreateChatThreadRequest request) {
         return ResponseEntity.ok(chatThreadService.createThread(request.question()));
+    }
+
+    @GetMapping("/threads/{threadId}/messages")
+    public ResponseEntity<List<ChatMessageResponse>> getMessages(@PathVariable UUID threadId) {
+        return ResponseEntity.ok(chatThreadService.getMessages(threadId));
     }
 
     @PostMapping("/threads/{threadId}/messages")

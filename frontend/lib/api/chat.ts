@@ -1,8 +1,16 @@
 import { apiGet, apiPost } from './client';
-import type { ChatAnswerResponse, ChatThreadSummaryResponse } from '@/types/api';
+import type {
+  ChatAnswerResponse,
+  ChatMessageResponse,
+  ChatThreadSummaryResponse,
+} from '@/types/api';
 
 export function fetchThreads(): Promise<ChatThreadSummaryResponse[]> {
   return apiGet('/api/v1/chat/threads');
+}
+
+export function fetchThreadMessages(threadId: string): Promise<ChatMessageResponse[]> {
+  return apiGet(`/api/v1/chat/threads/${threadId}/messages`);
 }
 
 export function createThread(question: string): Promise<ChatAnswerResponse> {

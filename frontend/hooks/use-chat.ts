@@ -1,7 +1,7 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createThread, postMessage } from '@/lib/api/chat';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createThread, fetchThreadMessages, postMessage } from '@/lib/api/chat';
 import { queryKeys } from '@/lib/query-keys';
 import type { ChatAnswerResponse } from '@/types/api';
 
@@ -12,6 +12,14 @@ export interface LocalMessage {
   content: string;
   response?: ChatAnswerResponse;
   timestamp: string;
+}
+
+export function useThreadMessages(threadId: string) {
+  return useQuery({
+    queryKey: [...queryKeys.threads, threadId, 'messages'],
+    queryFn: () => fetchThreadMessages(threadId),
+    staleTime: 0,
+  });
 }
 
 export function useCreateThread() {

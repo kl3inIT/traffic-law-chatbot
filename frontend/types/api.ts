@@ -72,6 +72,17 @@ export interface ChatThreadSummaryResponse {
   firstMessage: string | null;
 }
 
+export type ChatMessageRole = 'USER' | 'ASSISTANT';
+export type ChatMessageType = 'QUESTION' | 'ANSWER' | 'CLARIFICATION';
+
+export interface ChatMessageResponse {
+  id: string;
+  role: ChatMessageRole;
+  messageType: ChatMessageType;
+  content: string;
+  createdAt: string;
+}
+
 // Source DTOs
 export interface SourceSummaryResponse {
   id: string;

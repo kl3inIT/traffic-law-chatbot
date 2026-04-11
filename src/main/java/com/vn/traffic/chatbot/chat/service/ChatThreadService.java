@@ -1,6 +1,7 @@
 package com.vn.traffic.chatbot.chat.service;
 
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
+import com.vn.traffic.chatbot.chat.api.dto.ChatMessageResponse;
 import com.vn.traffic.chatbot.chat.api.dto.ChatThreadSummaryResponse;
 import com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse;
 import com.vn.traffic.chatbot.chat.domain.ChatMessage;
@@ -104,6 +105,15 @@ public class ChatThreadService {
                 .filter(message -> message.getRole() == ChatMessageRole.ASSISTANT)
                 .filter(message -> message.getMessageType() == ChatMessageType.CLARIFICATION)
                 .count();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatMessageResponse> getMessages(UUID threadId) {
+        chatThreadRepository.findById(threadId)
+                .orElseThrow(() -> new AppException(ErrorCode.CHAT_THREAD_NOT_FOUND, "Chat thread not found: " + threadId));
+        return chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId).stream()
+                .map(m -> new ChatMessageResponse(m.getId(), m.getRole(), m.getMessageType(), m.getContent(), m.getCreatedAt()))
+                .toList();
     }
 
     @Transactional(readOnly = true)
