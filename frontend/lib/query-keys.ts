@@ -10,4 +10,6 @@ export const queryKeys = {
   chunk: (chunkId: string) => ['admin', 'index', 'chunks', chunkId] as const,
   parameters: ['admin', 'parameters'] as const,
   parameter: (id: string) => ['admin', 'parameters', id] as const,
+  trustPolicies: ['admin', 'trust-policies'] as const,
+  trustPolicy: (id: string) => ['admin', 'trust-policies', id] as const,
 };
