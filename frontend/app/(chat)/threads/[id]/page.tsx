@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useRef, useEffect, use } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useState, use } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserBubble, AiBubble, AiBubbleLoading } from '@/components/chat/message-bubble';
 import { ChatInput } from '@/components/chat/chat-input';
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+  ConversationEmptyState,
+} from '@/components/ai-elements/conversation';
 import { usePostMessage } from '@/hooks/use-chat';
 import type { LocalMessage } from '@/hooks/use-chat';
 
@@ -13,11 +18,6 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
   const { id } = use(params);
   const postMessage = usePostMessage(id);
   const [messages, setMessages] = useState<LocalMessage[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   const handleSend = async (question: string) => {
     const userMsg: LocalMessage = {
@@ -45,8 +45,15 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <div className="flex flex-1 flex-col h-screen">
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4 max-w-3xl mx-auto">
+      <Conversation className="flex-1">
+        <ConversationContent className="max-w-3xl mx-auto w-full">
+          {messages.length === 0 && !postMessage.isPending && (
+            <ConversationEmptyState
+              title="Bắt đầu cuộc hội thoại"
+              description="Đặt câu hỏi về luật giao thông Việt Nam"
+            />
+          )}
+
           {messages.map((msg) =>
             msg.role === 'user' ? (
               <UserBubble key={msg.id} content={msg.content} />
@@ -54,18 +61,20 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
               <AiBubble key={msg.id} response={msg.response} />
             ) : null
           )}
-          {postMessage.isPending && <AiBubbleLoading />}
-          <div ref={scrollRef} />
-        </div>
 
-        {postMessage.isError && (
-          <Alert variant="destructive" className="mt-4 max-w-3xl mx-auto">
-            <AlertDescription>
-              Không thể gửi tin nhắn. Vui lòng thử lại.
-            </AlertDescription>
-          </Alert>
-        )}
-      </ScrollArea>
+          {postMessage.isPending && <AiBubbleLoading />}
+        </ConversationContent>
+
+        <ConversationScrollButton />
+      </Conversation>
+
+      {postMessage.isError && (
+        <Alert variant="destructive" className="mx-4 mb-2 max-w-3xl mx-auto">
+          <AlertDescription>
+            Không thể gửi tin nhắn. Vui lòng thử lại.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <ChatInput onSend={handleSend} isLoading={postMessage.isPending} />
     </div>

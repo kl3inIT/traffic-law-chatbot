@@ -1,22 +1,24 @@
 'use client';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+  MessageToolbar,
+} from '@/components/ai-elements/message';
 import { ScenarioAccordion } from './scenario-accordion';
 import type { ChatAnswerResponse } from '@/types/api';
 
 // User message bubble
 export function UserBubble({ content }: { content: string }) {
   return (
-    <div className="flex justify-end gap-2">
-      <div className="bg-primary text-primary-foreground rounded-lg p-4 max-w-[70%]">
-        <p className="text-sm whitespace-pre-wrap">{content}</p>
-      </div>
-      <Avatar className="h-8 w-8">
-        <AvatarFallback>U</AvatarFallback>
-      </Avatar>
-    </div>
+    <Message from="user">
+      <MessageContent>
+        <MessageResponse>{content}</MessageResponse>
+      </MessageContent>
+    </Message>
   );
 }
 
@@ -27,14 +29,11 @@ export function AiBubble({ response }: { response: ChatAnswerResponse }) {
     response.responseMode === 'FINAL_ANALYSIS';
 
   return (
-    <div className="flex gap-2">
-      <Avatar className="h-8 w-8">
-        <AvatarFallback>AI</AvatarFallback>
-      </Avatar>
-      <div className="bg-card border rounded-lg p-4 max-w-[85%]">
+    <Message from="assistant">
+      <MessageContent>
         {/* Conclusion first if present */}
         {response.conclusion && (
-          <p className="text-sm font-semibold mb-2">{response.conclusion}</p>
+          <p className="text-sm font-semibold">{response.conclusion}</p>
         )}
 
         {/* Main content branching */}
@@ -46,7 +45,7 @@ export function AiBubble({ response }: { response: ChatAnswerResponse }) {
         ) : (
           <>
             {response.answer && (
-              <p className="text-sm whitespace-pre-wrap">{response.answer}</p>
+              <MessageResponse>{response.answer}</MessageResponse>
             )}
 
             {/* Pending facts for CLARIFICATION_NEEDED */}
@@ -63,7 +62,7 @@ export function AiBubble({ response }: { response: ChatAnswerResponse }) {
 
             {/* Citations as badges */}
             {response.citations.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1">
                 {response.citations.map((cit, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
                     [{cit.inlineLabel}] {cit.sourceTitle}
@@ -73,37 +72,34 @@ export function AiBubble({ response }: { response: ChatAnswerResponse }) {
             )}
           </>
         )}
+      </MessageContent>
 
-        {/* Disclaimer -- always at bottom in muted style per UI-SPEC */}
-        {response.disclaimer && (
-          <p className="text-muted-foreground text-xs mt-2">
-            {response.disclaimer}
-          </p>
-        )}
-
-        {/* Uncertainty notice */}
-        {response.uncertaintyNotice && (
-          <p className="text-muted-foreground text-xs mt-1">
-            {response.uncertaintyNotice}
-          </p>
-        )}
-      </div>
-    </div>
+      {/* Disclaimer / uncertainty in toolbar area */}
+      {(response.disclaimer || response.uncertaintyNotice) && (
+        <MessageToolbar className="mt-0 justify-start">
+          <div className="flex flex-col gap-1">
+            {response.disclaimer && (
+              <p className="text-muted-foreground text-xs">{response.disclaimer}</p>
+            )}
+            {response.uncertaintyNotice && (
+              <p className="text-muted-foreground text-xs">{response.uncertaintyNotice}</p>
+            )}
+          </div>
+        </MessageToolbar>
+      )}
+    </Message>
   );
 }
 
 // Loading state -- 3 skeleton lines per UI-SPEC
 export function AiBubbleLoading() {
   return (
-    <div className="flex gap-2">
-      <Avatar className="h-8 w-8">
-        <AvatarFallback>AI</AvatarFallback>
-      </Avatar>
-      <div className="bg-card border rounded-lg p-4 max-w-[85%] space-y-2">
+    <Message from="assistant">
+      <MessageContent className="w-64 space-y-2">
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-4 w-1/2" />
-      </div>
-    </div>
+      </MessageContent>
+    </Message>
   );
 }
