@@ -22,7 +22,16 @@ export function IndexCards() {
         <h1 className="text-xl font-semibold">Chỉ mục kiến thức</h1>
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={handleRefresh} disabled={readiness.isFetching || summary.isFetching} />}>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRefresh}
+                  disabled={readiness.isFetching || summary.isFetching}
+                />
+              }
+            >
               <RefreshCw className={`h-4 w-4 ${readiness.isFetching ? 'animate-spin' : ''}`} />
             </TooltipTrigger>
             <TooltipContent>Làm mới dữ liệu</TooltipContent>
@@ -45,23 +54,23 @@ export function IndexCards() {
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Đã phê duyệt</dt>
-                  <dd className="font-semibold">{readiness.data.approvedCount}</dd>
+                  <dd className="font-semibold">{readiness.data.approvedChunks}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Được tin cậy</dt>
-                  <dd className="font-semibold">{readiness.data.trustedCount}</dd>
+                  <dd className="font-semibold">{readiness.data.trustedChunks}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Đang hoạt động</dt>
-                  <dd className="font-semibold">{readiness.data.activeCount}</dd>
+                  <dd className="font-semibold">{readiness.data.activeChunks}</dd>
                 </div>
                 <div className="flex justify-between border-t pt-2">
                   <dt className="font-semibold">Đủ điều kiện truy xuất</dt>
-                  <dd className="font-semibold text-primary">{readiness.data.eligibleCount}</dd>
+                  <dd className="text-primary font-semibold">{readiness.data.eligibleChunks}</dd>
                 </div>
               </dl>
             ) : (
-              <p className="text-sm text-muted-foreground">Chưa có dữ liệu chỉ mục</p>
+              <p className="text-muted-foreground text-sm">Chưa có dữ liệu chỉ mục</p>
             )}
           </CardContent>
         </Card>
@@ -87,12 +96,16 @@ export function IndexCards() {
                   <dd className="font-semibold">{summary.data.activeChunks}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Không hoạt động</dt>
-                  <dd className="font-semibold">{summary.data.inactiveChunks}</dd>
+                  <dt className="text-muted-foreground">Đủ điều kiện truy xuất</dt>
+                  <dd className="text-primary font-semibold">{summary.data.eligibleChunks}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Chờ phê duyệt</dt>
+                  <dd className="font-semibold">{summary.data.pendingApprovalChunks}</dd>
                 </div>
               </dl>
             ) : (
-              <p className="text-sm text-muted-foreground">Chưa có dữ liệu chỉ mục</p>
+              <p className="text-muted-foreground text-sm">Chưa có dữ liệu chỉ mục</p>
             )}
           </CardContent>
         </Card>

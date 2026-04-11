@@ -63,9 +63,7 @@ describe('AiBubble', () => {
     const clarificationResponse: ChatAnswerResponse = {
       ...baseResponse,
       responseMode: 'CLARIFICATION_NEEDED',
-      pendingFacts: [
-        { factKey: 'vehicleType', question: 'Loai phuong tien?', explanation: 'Can biet' },
-      ],
+      pendingFacts: [{ code: 'vehicleType', prompt: 'Loai phuong tien?', reason: 'Can biet' }],
     };
     render(<AiBubble response={clarificationResponse} />);
     expect(screen.getByText(/Loai phuong tien\?/)).toBeInTheDocument();

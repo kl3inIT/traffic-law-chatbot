@@ -25,36 +25,28 @@ export function UserBubble({ content }: { content: string }) {
 // AI message bubble -- branches on responseMode per Pattern 5 in RESEARCH.md
 export function AiBubble({ response }: { response: ChatAnswerResponse }) {
   const isScenario =
-    response.responseMode === 'SCENARIO_ANALYSIS' ||
-    response.responseMode === 'FINAL_ANALYSIS';
+    response.responseMode === 'SCENARIO_ANALYSIS' || response.responseMode === 'FINAL_ANALYSIS';
 
   return (
     <Message from="assistant">
       <MessageContent>
         {/* Conclusion first if present */}
-        {response.conclusion && (
-          <p className="text-sm font-semibold">{response.conclusion}</p>
-        )}
+        {response.conclusion && <p className="text-sm font-semibold">{response.conclusion}</p>}
 
         {/* Main content branching */}
         {isScenario && response.scenarioAnalysis ? (
-          <ScenarioAccordion
-            analysis={response.scenarioAnalysis}
-            citations={response.citations}
-          />
+          <ScenarioAccordion analysis={response.scenarioAnalysis} citations={response.citations} />
         ) : (
           <>
-            {response.answer && (
-              <MessageResponse>{response.answer}</MessageResponse>
-            )}
+            {response.answer && <MessageResponse>{response.answer}</MessageResponse>}
 
             {/* Pending facts for CLARIFICATION_NEEDED */}
             {response.responseMode === 'CLARIFICATION_NEEDED' &&
               response.pendingFacts.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {response.pendingFacts.map((fact, i) => (
-                    <p key={fact.factKey ?? i} className="text-sm">
-                      - {fact.question}
+                    <p key={fact.code ?? i} className="text-sm">
+                      - {fact.prompt}
                     </p>
                   ))}
                 </div>

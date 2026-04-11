@@ -1,6 +1,11 @@
 // Enums
 export type GroundingStatus = 'GROUNDED' | 'LIMITED_GROUNDING' | 'REFUSED';
-export type ResponseMode = 'STANDARD' | 'CLARIFICATION_NEEDED' | 'SCENARIO_ANALYSIS' | 'FINAL_ANALYSIS' | 'REFUSED';
+export type ResponseMode =
+  | 'STANDARD'
+  | 'CLARIFICATION_NEEDED'
+  | 'SCENARIO_ANALYSIS'
+  | 'FINAL_ANALYSIS'
+  | 'REFUSED';
 export type SourceStatus = 'PENDING' | 'APPROVED' | 'ACTIVE' | 'REJECTED';
 export type SourceType = 'URL' | 'PDF' | 'DOCX' | 'STRUCTURED';
 
@@ -34,14 +39,15 @@ export interface ScenarioAnalysisResponse {
 }
 
 export interface PendingFactResponse {
-  factKey: string;
-  question: string;
-  explanation: string;
+  code: string;
+  prompt: string;
+  reason: string;
 }
 
 export interface RememberedFactResponse {
-  factKey: string;
-  factValue: string;
+  key: string;
+  value: string;
+  status: string;
 }
 
 export interface CitationResponse {
@@ -81,22 +87,35 @@ export interface PageResponse<T> {
   content: T[];
   totalElements: number;
   totalPages: number;
-  page: number;
+  pageNumber: number;
+  number: number;
   size: number;
+  first: boolean;
+  last: boolean;
+}
+
+// Ingestion DTOs
+export interface IngestionAcceptedResponse {
+  sourceId: string;
+  jobId: string;
+  status: string;
 }
 
 // Chunk/Index DTOs
 export interface ChunkReadinessResponse {
-  approvedCount: number;
-  trustedCount: number;
-  activeCount: number;
-  eligibleCount: number;
+  approvedChunks: number;
+  trustedChunks: number;
+  activeChunks: number;
+  eligibleChunks: number;
 }
 
 export interface IndexSummaryResponse {
   totalChunks: number;
+  approvedChunks: number;
+  trustedChunks: number;
   activeChunks: number;
-  inactiveChunks: number;
+  pendingApprovalChunks: number;
+  eligibleChunks: number;
 }
 
 // Parameter Set DTOs
