@@ -15,13 +15,11 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll on new messages
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = async (question: string) => {
-    // Add user message to local state
     const userMsg: LocalMessage = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -32,7 +30,6 @@ export default function ChatPage() {
 
     try {
       const response = await createThread.mutateAsync(question);
-      // Add AI response
       const aiMsg: LocalMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -41,10 +38,9 @@ export default function ChatPage() {
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, aiMsg]);
-      // Navigate to thread view for subsequent messages
       router.push(`/threads/${response.threadId}`);
     } catch {
-      // Error handled inline
+      // Lỗi hiển thị inline
     }
   };
 
@@ -54,9 +50,9 @@ export default function ChatPage() {
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <h1 className="text-3xl font-semibold">Chatbot Luat Giao thong</h1>
+              <h1 className="text-3xl font-semibold">Chatbot Luật Giao thông</h1>
               <p className="text-sm text-muted-foreground mt-2">
-                Dat cau hoi ve luat giao thong Viet Nam
+                Đặt câu hỏi về luật giao thông Việt Nam
               </p>
             </div>
           </div>
@@ -77,7 +73,7 @@ export default function ChatPage() {
         {createThread.isError && (
           <Alert variant="destructive" className="mt-4 max-w-3xl mx-auto">
             <AlertDescription>
-              Khong the gui tin nhan. Vui long thu lai.
+              Không thể gửi tin nhắn. Vui lòng thử lại.
             </AlertDescription>
           </Alert>
         )}

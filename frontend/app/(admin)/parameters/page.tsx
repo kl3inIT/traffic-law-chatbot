@@ -25,24 +25,21 @@ export default function ParametersPage() {
     setDialogOpen(true);
   };
 
-  // Create columns with onEdit handler -- no onCopy override.
-  // Copy is handled entirely by ParameterActionsMenu calling copy.mutate()
-  // which hits POST /{id}/copy on the backend (per D-14).
   const columns = useMemo(() => createParameterColumns(handleEdit), []);
 
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Bo tham so AI</h1>
+        <h1 className="text-xl font-semibold">Bộ tham số AI</h1>
         <Button variant="default" onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-2" />
-          Tao bo tham so
+          Tạo bộ tham số
         </Button>
       </div>
 
       {isError && (
         <Alert variant="destructive">
-          <AlertDescription>Khong the tai du lieu. Vui long thu lai.</AlertDescription>
+          <AlertDescription>Không thể tải dữ liệu. Vui lòng thử lại.</AlertDescription>
         </Alert>
       )}
 
@@ -54,9 +51,9 @@ export default function ParametersPage() {
 
       {parameterSets && parameterSets.length === 0 && !isLoading && (
         <div className="text-center py-8">
-          <h2 className="text-xl font-semibold">Chua co bo tham so</h2>
+          <h2 className="text-xl font-semibold">Chưa có bộ tham số</h2>
           <p className="text-sm text-muted-foreground mt-2">
-            Tao bo tham so de cau hinh hanh vi AI.
+            Tạo bộ tham số để cấu hình hành vi AI.
           </p>
         </div>
       )}

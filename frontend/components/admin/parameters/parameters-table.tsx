@@ -37,9 +37,6 @@ export function ParameterActionsMenu({ paramSet, onEdit }: ParameterActionsMenuP
   const copy = useCopyParameterSet();
   const deleteMutation = useDeleteParameterSet();
 
-  // Copy calls backend copy endpoint directly per D-14 and D-10.
-  // No dialog-based fake create -- copy.mutate() calls POST /{id}/copy
-  // which creates a server-side copy with " (ban sao)" suffix.
   const handleCopy = () => {
     copy.mutate(paramSet.id);
   };
@@ -52,14 +49,14 @@ export function ParameterActionsMenu({ paramSet, onEdit }: ParameterActionsMenuP
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => onEdit(paramSet)}>
-            Chinh sua
+            Chỉnh sửa
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleCopy}>
-            Sao chep
+            Sao chép
           </DropdownMenuItem>
           {!paramSet.active && (
             <DropdownMenuItem onClick={() => activate.mutate(paramSet.id)}>
-              <span className="text-primary">Kich hoat</span>
+              <span className="text-primary">Kích hoạt</span>
             </DropdownMenuItem>
           )}
           {!paramSet.active && (
@@ -67,7 +64,7 @@ export function ParameterActionsMenu({ paramSet, onEdit }: ParameterActionsMenuP
               className="text-destructive"
               onClick={() => setShowDeleteConfirm(true)}
             >
-              Xoa
+              Xóa
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
@@ -76,13 +73,13 @@ export function ParameterActionsMenu({ paramSet, onEdit }: ParameterActionsMenuP
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xac nhan xoa</AlertDialogTitle>
+            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
             <AlertDialogDescription>
-              Xac nhan xoa bo tham so nay? Du lieu se bi xoa vinh vien.
+              Xác nhận xóa bộ tham số này? Dữ liệu sẽ bị xóa vĩnh viễn.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Huy</AlertDialogCancel>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground"
               onClick={() => {
@@ -90,7 +87,7 @@ export function ParameterActionsMenu({ paramSet, onEdit }: ParameterActionsMenuP
                 setShowDeleteConfirm(false);
               }}
             >
-              Xoa
+              Xóa
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

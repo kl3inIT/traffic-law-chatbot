@@ -18,9 +18,9 @@ import {
 import { ThreadList } from '@/components/chat/thread-list';
 
 export const adminNavItems = [
-  { title: 'Quan ly nguon', href: '/sources', icon: Database },
-  { title: 'Chi muc kien thuc', href: '/index', icon: BookOpen },
-  { title: 'Bo tham so AI', href: '/parameters', icon: Settings },
+  { title: 'Quản lý nguồn', href: '/sources', icon: Database },
+  { title: 'Chỉ mục kiến thức', href: '/index', icon: BookOpen },
+  { title: 'Bộ tham số AI', href: '/parameters', icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -29,15 +29,15 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <h2 className="text-xl font-semibold">Luat Giao thong</h2>
+        <h2 className="text-xl font-semibold">Luật Giao thông</h2>
       </SidebarHeader>
       <SidebarContent>
-        {/* Chat section with thread list */}
+        {/* Phần chat với danh sách hội thoại */}
         <SidebarGroup>
           <SidebarGroupLabel>
             <Link href="/" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Tro chuyen
+              Trò chuyện
             </Link>
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -47,9 +47,9 @@ export function AppSidebar() {
 
         <SidebarSeparator />
 
-        {/* Admin section */}
+        {/* Phần quản trị */}
         <SidebarGroup>
-          <SidebarGroupLabel>Quan tri</SidebarGroupLabel>
+          <SidebarGroupLabel>Quản trị</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {adminNavItems.map((item) => (

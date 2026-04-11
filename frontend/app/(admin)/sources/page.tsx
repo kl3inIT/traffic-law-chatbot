@@ -10,11 +10,11 @@ export default function SourcesPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Quan ly nguon</h1>
+      <h1 className="text-xl font-semibold">Quản lý nguồn</h1>
 
       {isError && (
         <Alert variant="destructive">
-          <AlertDescription>Khong the tai du lieu. Vui long thu lai.</AlertDescription>
+          <AlertDescription>Không thể tải dữ liệu. Vui lòng thử lại.</AlertDescription>
         </Alert>
       )}
 
@@ -26,9 +26,9 @@ export default function SourcesPage() {
 
       {data && data.content.length === 0 && !isLoading && (
         <div className="text-center py-8">
-          <h2 className="text-xl font-semibold">Chua co nguon tai lieu</h2>
+          <h2 className="text-xl font-semibold">Chưa có nguồn tài liệu</h2>
           <p className="text-sm text-muted-foreground mt-2">
-            Them nguon tai lieu de xay dung co so kien thuc.
+            Thêm nguồn tài liệu để xây dựng cơ sở kiến thức.
           </p>
         </div>
       )}

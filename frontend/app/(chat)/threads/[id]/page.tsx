@@ -8,7 +8,7 @@ import { ChatInput } from '@/components/chat/chat-input';
 import { usePostMessage } from '@/hooks/use-chat';
 import type { LocalMessage } from '@/hooks/use-chat';
 
-// Next.js 16: params is a Promise, use React.use() in client components
+// Next.js 16: params là Promise, dùng React.use() trong client component
 export default function ThreadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const postMessage = usePostMessage(id);
@@ -39,7 +39,7 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
       };
       setMessages((prev) => [...prev, aiMsg]);
     } catch {
-      // Error shown inline
+      // Lỗi hiển thị inline
     }
   };
 
@@ -61,7 +61,7 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
         {postMessage.isError && (
           <Alert variant="destructive" className="mt-4 max-w-3xl mx-auto">
             <AlertDescription>
-              Khong the gui tin nhan. Vui long thu lai.
+              Không thể gửi tin nhắn. Vui lòng thử lại.
             </AlertDescription>
           </Alert>
         )}

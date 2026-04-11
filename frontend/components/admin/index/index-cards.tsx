@@ -19,22 +19,21 @@ export function IndexCards() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Chi muc kien thuc</h1>
+        <h1 className="text-xl font-semibold">Chỉ mục kiến thức</h1>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={handleRefresh} disabled={readiness.isFetching || summary.isFetching} />}>
               <RefreshCw className={`h-4 w-4 ${readiness.isFetching ? 'animate-spin' : ''}`} />
             </TooltipTrigger>
-            <TooltipContent>Lam moi du lieu</TooltipContent>
+            <TooltipContent>Làm mới dữ liệu</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Retrieval Readiness card -- dominant (first/left) per UI-SPEC */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-semibold">San sang truy xuat</CardTitle>
+            <CardTitle className="text-sm font-semibold">Sẵn sàng truy xuất</CardTitle>
           </CardHeader>
           <CardContent>
             {readiness.isLoading ? (
@@ -45,32 +44,31 @@ export function IndexCards() {
             ) : readiness.data ? (
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Da phe duyet</dt>
+                  <dt className="text-muted-foreground">Đã phê duyệt</dt>
                   <dd className="font-semibold">{readiness.data.approvedCount}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Duoc tin cay</dt>
+                  <dt className="text-muted-foreground">Được tin cậy</dt>
                   <dd className="font-semibold">{readiness.data.trustedCount}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Dang hoat dong</dt>
+                  <dt className="text-muted-foreground">Đang hoạt động</dt>
                   <dd className="font-semibold">{readiness.data.activeCount}</dd>
                 </div>
                 <div className="flex justify-between border-t pt-2">
-                  <dt className="font-semibold">Du dieu kien truy xuat</dt>
+                  <dt className="font-semibold">Đủ điều kiện truy xuất</dt>
                   <dd className="font-semibold text-primary">{readiness.data.eligibleCount}</dd>
                 </div>
               </dl>
             ) : (
-              <p className="text-sm text-muted-foreground">Chua co du lieu chi muc</p>
+              <p className="text-sm text-muted-foreground">Chưa có dữ liệu chỉ mục</p>
             )}
           </CardContent>
         </Card>
 
-        {/* Index Summary card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-semibold">Tom tat chi muc</CardTitle>
+            <CardTitle className="text-sm font-semibold">Tóm tắt chỉ mục</CardTitle>
           </CardHeader>
           <CardContent>
             {summary.isLoading ? (
@@ -81,20 +79,20 @@ export function IndexCards() {
             ) : summary.data ? (
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Tong so chunk</dt>
+                  <dt className="text-muted-foreground">Tổng số đoạn văn bản</dt>
                   <dd className="font-semibold">{summary.data.totalChunks}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Dang hoat dong</dt>
+                  <dt className="text-muted-foreground">Đang hoạt động</dt>
                   <dd className="font-semibold">{summary.data.activeChunks}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Khong hoat dong</dt>
+                  <dt className="text-muted-foreground">Không hoạt động</dt>
                   <dd className="font-semibold">{summary.data.inactiveChunks}</dd>
                 </div>
               </dl>
             ) : (
-              <p className="text-sm text-muted-foreground">Chua co du lieu chi muc</p>
+              <p className="text-sm text-muted-foreground">Chưa có dữ liệu chỉ mục</p>
             )}
           </CardContent>
         </Card>

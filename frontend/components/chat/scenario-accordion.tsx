@@ -14,14 +14,12 @@ interface ScenarioAccordionProps {
   citations?: { inlineLabel: string; sourceTitle: string }[];
 }
 
-// Per UI-SPEC: 5 sections with Vietnamese labels
-// "Nguon tai lieu" section is always expanded by default
 export function ScenarioAccordion({ analysis, citations }: ScenarioAccordionProps) {
   const sections = [
-    { value: 'facts', label: 'Su kien duoc xac dinh', content: analysis.facts },
-    { value: 'rule', label: 'Quy tac ap dung', content: analysis.rule },
-    { value: 'outcome', label: 'Hau qua co the', content: analysis.outcome },
-    { value: 'actions', label: 'Hanh dong duoc khuyen nghi', content: analysis.actions },
+    { value: 'facts', label: 'Sự kiện được xác định', content: analysis.facts },
+    { value: 'rule', label: 'Quy tắc áp dụng', content: analysis.rule },
+    { value: 'outcome', label: 'Hậu quả có thể', content: analysis.outcome },
+    { value: 'actions', label: 'Hành động được khuyến nghị', content: analysis.actions },
   ];
 
   return (
@@ -44,10 +42,9 @@ export function ScenarioAccordion({ analysis, citations }: ScenarioAccordionProp
           </AccordionContent>
         </AccordionItem>
       ))}
-      {/* Sources section -- always expanded by default */}
       <AccordionItem value="sources">
         <AccordionTrigger className="text-sm font-semibold">
-          Nguon tai lieu
+          Nguồn tài liệu
         </AccordionTrigger>
         <AccordionContent>
           <div className="flex flex-wrap gap-1">
@@ -62,7 +59,7 @@ export function ScenarioAccordion({ analysis, citations }: ScenarioAccordionProp
               </Badge>
             ))}
             {(!analysis.sources?.length && !citations?.length) && (
-              <span className="text-xs text-muted-foreground">Khong co nguon tai lieu.</span>
+              <span className="text-xs text-muted-foreground">Không có nguồn tài liệu.</span>
             )}
           </div>
         </AccordionContent>

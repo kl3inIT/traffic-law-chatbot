@@ -16,14 +16,13 @@ export function ThreadList() {
 
   return (
     <div className="flex flex-col gap-2">
-      {/* New thread button -- pinned at top, primary color per UI-SPEC */}
       <Button
         variant="default"
         className="w-full justify-start gap-2"
         onClick={() => router.push('/')}
       >
         <Plus className="h-4 w-4" />
-        + Cuoc hoi thoai moi
+        Cuộc hội thoại mới
       </Button>
 
       <ScrollArea className="h-[calc(100vh-200px)]">
@@ -37,15 +36,15 @@ export function ThreadList() {
 
         {isError && (
           <p className="text-xs text-muted-foreground p-2">
-            Khong the tai danh sach cuoc hoi thoai.
+            Không thể tải danh sách cuộc hội thoại.
           </p>
         )}
 
         {threads && threads.length === 0 && (
           <div className="p-4 text-center">
-            <p className="text-sm font-semibold">Chua co cuoc hoi thoai</p>
+            <p className="text-sm font-semibold">Chưa có cuộc hội thoại</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Bat dau cuoc hoi thoai moi de dat cau hoi ve luat giao thong.
+              Bắt đầu cuộc hội thoại mới để đặt câu hỏi về luật giao thông.
             </p>
           </div>
         )}
@@ -56,9 +55,8 @@ export function ThreadList() {
             ? thread.firstMessage.length > 40
               ? thread.firstMessage.substring(0, 40) + '...'
               : thread.firstMessage
-            : 'Cuoc hoi thoai moi';
+            : 'Cuộc hội thoại mới';
 
-          // Relative timestamp
           const timeAgo = formatRelativeTime(thread.updatedAt);
 
           return (
@@ -85,10 +83,10 @@ function formatRelativeTime(isoDate: string): string {
   const date = new Date(isoDate);
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'vua xong';
-  if (diffMin < 60) return `${diffMin} phut truoc`;
+  if (diffMin < 1) return 'vừa xong';
+  if (diffMin < 60) return `${diffMin} phút trước`;
   const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours} gio truoc`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
   const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays} ngay truoc`;
+  return `${diffDays} ngày trước`;
 }

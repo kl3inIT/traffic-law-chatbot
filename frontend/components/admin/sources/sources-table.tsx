@@ -28,7 +28,6 @@ import {
   useReingestSource,
 } from '@/hooks/use-sources';
 
-// Context-sensitive actions per UI-SPEC
 type SourceAction = {
   label: string;
   action: (id: string) => void;
@@ -45,38 +44,37 @@ export function SourceActionsMenu({ source }: { source: SourceSummaryResponse })
   const deactivate = useDeactivateSource();
   const reingest = useReingestSource();
 
-  // Actions valid per status (per UI-SPEC D-10)
   const actionsByStatus: Record<SourceStatus, SourceAction[]> = {
     PENDING: [
-      { label: 'Phe duyet', action: (id) => approve.mutate(id) },
+      { label: 'Phê duyệt', action: (id) => approve.mutate(id) },
       {
-        label: 'Tu choi',
+        label: 'Từ chối',
         action: (id) => reject.mutate(id),
         destructive: true,
-        confirmMessage: 'Xac nhan tu choi nguon nay? Thao tac nay khong the hoan tac.',
+        confirmMessage: 'Xác nhận từ chối nguồn này? Thao tác này không thể hoàn tác.',
       },
     ],
     APPROVED: [
-      { label: 'Kich hoat', action: (id) => activate.mutate(id) },
+      { label: 'Kích hoạt', action: (id) => activate.mutate(id) },
       {
-        label: 'Tu choi',
+        label: 'Từ chối',
         action: (id) => reject.mutate(id),
         destructive: true,
-        confirmMessage: 'Xac nhan tu choi nguon nay? Thao tac nay khong the hoan tac.',
+        confirmMessage: 'Xác nhận từ chối nguồn này? Thao tác này không thể hoàn tác.',
       },
-      { label: 'Nhap lai', action: (id) => reingest.mutate(id) },
+      { label: 'Nhập lại', action: (id) => reingest.mutate(id) },
     ],
     ACTIVE: [
       {
-        label: 'Huy kich hoat',
+        label: 'Hủy kích hoạt',
         action: (id) => deactivate.mutate(id),
         destructive: true,
-        confirmMessage: 'Xac nhan huy kich hoat nguon nay? Nguon se bi loai khoi truy xuat.',
+        confirmMessage: 'Xác nhận hủy kích hoạt nguồn này? Nguồn sẽ bị loại khỏi truy xuất.',
       },
-      { label: 'Nhap lai', action: (id) => reingest.mutate(id) },
+      { label: 'Nhập lại', action: (id) => reingest.mutate(id) },
     ],
     REJECTED: [
-      { label: 'Nhap lai', action: (id) => reingest.mutate(id) },
+      { label: 'Nhập lại', action: (id) => reingest.mutate(id) },
     ],
   };
 
@@ -107,17 +105,16 @@ export function SourceActionsMenu({ source }: { source: SourceSummaryResponse })
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Destructive confirmation AlertDialog */}
       <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xac nhan thao tac</AlertDialogTitle>
+            <AlertDialogTitle>Xác nhận thao tác</AlertDialogTitle>
             <AlertDialogDescription>
               {confirmAction?.confirmMessage}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Huy</AlertDialogCancel>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground"
               onClick={() => {
@@ -125,7 +122,7 @@ export function SourceActionsMenu({ source }: { source: SourceSummaryResponse })
                 setConfirmAction(null);
               }}
             >
-              Xac nhan
+              Xác nhận
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

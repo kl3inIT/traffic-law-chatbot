@@ -5,36 +5,35 @@ import { Badge } from '@/components/ui/badge';
 import type { AiParameterSetResponse } from '@/types/api';
 import { ParameterActionsMenu } from './parameters-table';
 
-// Factory function to create columns with the onEdit callback
 export function createParameterColumns(
   onEdit: (paramSet: AiParameterSetResponse) => void
 ): ColumnDef<AiParameterSetResponse>[] {
   return [
     {
       accessorKey: 'name',
-      header: 'Ten',
+      header: 'Tên',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <span>{row.original.name}</span>
           {row.original.active && (
-            <Badge variant="default">Dang hoat dong</Badge>
+            <Badge variant="default">Đang hoạt động</Badge>
           )}
         </div>
       ),
     },
     {
       accessorKey: 'createdAt',
-      header: 'Ngay tao',
+      header: 'Ngày tạo',
       cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString('vi-VN'),
     },
     {
       accessorKey: 'updatedAt',
-      header: 'Cap nhat',
+      header: 'Cập nhật',
       cell: ({ row }) => new Date(row.original.updatedAt).toLocaleDateString('vi-VN'),
     },
     {
       id: 'actions',
-      header: 'Hanh dong',
+      header: 'Hành động',
       cell: ({ row }) => (
         <ParameterActionsMenu
           paramSet={row.original}

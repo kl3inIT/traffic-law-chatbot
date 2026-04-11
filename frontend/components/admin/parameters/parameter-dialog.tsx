@@ -20,8 +20,8 @@ import { useCreateParameterSet, useUpdateParameterSet } from '@/hooks/use-parame
 import type { AiParameterSetResponse } from '@/types/api';
 
 const parameterSetSchema = z.object({
-  name: z.string().min(1, 'Ten bo tham so la bat buoc'),
-  content: z.string().min(1, 'Noi dung YAML la bat buoc'),
+  name: z.string().min(1, 'Tên bộ tham số là bắt buộc'),
+  content: z.string().min(1, 'Nội dung YAML là bắt buộc'),
 });
 
 type FormValues = z.infer<typeof parameterSetSchema>;
@@ -29,7 +29,7 @@ type FormValues = z.infer<typeof parameterSetSchema>;
 interface ParameterDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editTarget?: AiParameterSetResponse | null;  // null = create mode
+  editTarget?: AiParameterSetResponse | null;
 }
 
 export function ParameterDialog({ open, onOpenChange, editTarget }: ParameterDialogProps) {
@@ -42,7 +42,6 @@ export function ParameterDialog({ open, onOpenChange, editTarget }: ParameterDia
     defaultValues: { name: '', content: '' },
   });
 
-  // Pre-fill form when editing
   useEffect(() => {
     if (editTarget) {
       form.reset({ name: editTarget.name, content: editTarget.content });
@@ -61,7 +60,7 @@ export function ParameterDialog({ open, onOpenChange, editTarget }: ParameterDia
       onOpenChange(false);
       form.reset();
     } catch {
-      // Error shown inline
+      // Lỗi hiển thị inline
     }
   };
 
@@ -73,17 +72,17 @@ export function ParameterDialog({ open, onOpenChange, editTarget }: ParameterDia
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? 'Chinh sua bo tham so' : 'Tao bo tham so'}
+            {isEdit ? 'Chỉnh sửa bộ tham số' : 'Tạo bộ tham số'}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Ten bo tham so</Label>
+            <Label htmlFor="name">Tên bộ tham số</Label>
             <Input
               id="name"
               {...form.register('name')}
-              placeholder="Nhap ten bo tham so"
+              placeholder="Nhập tên bộ tham số"
             />
             {form.formState.errors.name && (
               <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
@@ -91,7 +90,7 @@ export function ParameterDialog({ open, onOpenChange, editTarget }: ParameterDia
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="content">Noi dung YAML</Label>
+            <Label htmlFor="content">Nội dung YAML</Label>
             <Textarea
               id="content"
               {...form.register('content')}
@@ -106,17 +105,17 @@ export function ParameterDialog({ open, onOpenChange, editTarget }: ParameterDia
           {isError && (
             <Alert variant="destructive">
               <AlertDescription>
-                Thao tac khong thanh cong. Vui long thu lai hoac lien he quan tri vien.
+                Thao tác không thành công. Vui lòng thử lại hoặc liên hệ quản trị viên.
               </AlertDescription>
             </Alert>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Huy
+              Hủy
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? 'Dang xu ly...' : isEdit ? 'Luu' : 'Tao moi'}
+              {isPending ? 'Đang xử lý...' : isEdit ? 'Lưu' : 'Tạo mới'}
             </Button>
           </DialogFooter>
         </form>

@@ -19,26 +19,23 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
     if (!trimmed || isLoading) return;
     onSend(trimmed);
     setValue('');
-    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
   }, [value, isLoading, onSend]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter to send, Shift+Enter for newline per UI-SPEC
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  // Auto-resize up to 5 rows then scroll per UI-SPEC
   const handleInput = () => {
     const textarea = textareaRef.current;
     if (!textarea) return;
     textarea.style.height = 'auto';
-    const maxHeight = 5 * 24; // ~5 rows at ~24px line height
+    const maxHeight = 5 * 24;
     textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
   };
 
@@ -50,7 +47,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           value={value}
           onChange={(e) => { setValue(e.target.value); handleInput(); }}
           onKeyDown={handleKeyDown}
-          placeholder="Nhap cau hoi ve luat giao thong..."
+          placeholder="Nhập câu hỏi về luật giao thông..."
           className="min-h-[44px] resize-none"
           rows={1}
           disabled={isLoading}
@@ -61,7 +58,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           onClick={handleSend}
           disabled={!value.trim() || isLoading}
           className="min-h-[44px] min-w-[44px]"
-          title="Gui tin nhan"
+          title="Gửi tin nhắn"
         >
           <Send className="h-4 w-4" />
         </Button>
