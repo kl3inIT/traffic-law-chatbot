@@ -9,4 +9,5 @@
     <include file="db/changelog/003-vector-store-schema.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/004-chat-thread-schema.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/005-ai-parameter-set-schema.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/006-chat-message-structured-response.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

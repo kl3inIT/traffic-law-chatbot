@@ -52,11 +52,11 @@ public class ChatThreadService {
         }
         if (clarificationDecision.shouldRefuse()) {
             ChatAnswerResponse refusal = chatService.refusalResponse();
-            appendAssistantMessage(thread, refusal.answer());
+            appendAssistantMessage(thread, refusal);
             return chatThreadMapper.attachThreadContext(refusal, thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         ChatAnswerResponse answer = chatService.answer(factMemoryService.buildThreadAwareQuestion(question, activeFacts));
-        appendAssistantMessage(thread, answer.answer());
+        appendAssistantMessage(thread, answer);
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
 
@@ -82,12 +82,12 @@ public class ChatThreadService {
         }
         if (clarificationDecision.shouldRefuse()) {
             ChatAnswerResponse refusal = chatService.refusalResponse();
-            appendAssistantMessage(thread, refusal.answer());
+            appendAssistantMessage(thread, refusal);
             return chatThreadMapper.attachThreadContext(refusal, thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         String retrievalQuestion = buildRetrievalQuestion(threadId, question, activeFacts);
         ChatAnswerResponse answer = chatService.answer(retrievalQuestion);
-        appendAssistantMessage(thread, answer.answer());
+        appendAssistantMessage(thread, answer);
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
 
@@ -106,12 +106,13 @@ public class ChatThreadService {
                 .build());
     }
 
-    private ChatMessage appendAssistantMessage(ChatThread thread, String content) {
+    private ChatMessage appendAssistantMessage(ChatThread thread, ChatAnswerResponse response) {
         return chatMessageRepository.save(ChatMessage.builder()
                 .thread(thread)
                 .role(ChatMessageRole.ASSISTANT)
                 .messageType(ChatMessageType.ANSWER)
-                .content(content != null ? content : "")
+                .content(response.answer() != null ? response.answer() : "")
+                .structuredResponse(response)
                 .build());
     }
 
@@ -127,7 +128,7 @@ public class ChatThreadService {
         chatThreadRepository.findById(threadId)
                 .orElseThrow(() -> new AppException(ErrorCode.CHAT_THREAD_NOT_FOUND, "Chat thread not found: " + threadId));
         return chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId).stream()
-                .map(m -> new ChatMessageResponse(m.getId(), m.getRole(), m.getMessageType(), m.getContent(), m.getCreatedAt()))
+                .map(m -> new ChatMessageResponse(m.getId(), m.getRole(), m.getMessageType(), m.getContent(), m.getCreatedAt(), m.getStructuredResponse()))
                 .toList();
     }
 
@@ -183,6 +184,7 @@ public class ChatThreadService {
                 .role(ChatMessageRole.ASSISTANT)
                 .messageType(ChatMessageType.CLARIFICATION)
                 .content(response.answer())
+                .structuredResponse(response)
                 .build());
         return response;
     }

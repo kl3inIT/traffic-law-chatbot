@@ -11,6 +11,7 @@ public record ChatMessageResponse(
         ChatMessageRole role,
         ChatMessageType messageType,
         String content,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        ChatAnswerResponse structuredResponse
 ) {
 }
