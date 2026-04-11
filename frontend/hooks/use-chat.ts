@@ -1,0 +1,35 @@
+'use client';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createThread, postMessage } from '@/lib/api/chat';
+import { queryKeys } from '@/lib/query-keys';
+import type { ChatAnswerResponse } from '@/types/api';
+
+// Message in the local conversation state
+export interface LocalMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  response?: ChatAnswerResponse;
+  timestamp: string;
+}
+
+export function useCreateThread() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (question: string) => createThread(question),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads });
+    },
+  });
+}
+
+export function usePostMessage(threadId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (question: string) => postMessage(threadId, question),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads });
+    },
+  });
+}
