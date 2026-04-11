@@ -54,7 +54,7 @@ Plans:
 - [x] 01.1-01-PLAN.md — Fix final_url provenance with a safe fetch/result contract and URL snapshot regression coverage
 - [x] 01.1-02-PLAN.md — Add adapter-based Spring AI HTML parsing behind ParsedDocument while preserving retrieval/inspection metadata
 - [x] 01.1-03-PLAN.md — Run bounded PDF parser parity evaluation and adopt Spring AI PDF only if provenance compatibility is proven
-- [ ] 01.1-04-PLAN.md — Promote Spring AI ETL/readers to the primary ingestion path, replace safe remaining default Tika paths, and move chunking toward token splitting while preserving metadata and auditability
+- [x] 01.1-04-PLAN.md — Promote Spring AI ETL/readers to the primary ingestion path, replace safe remaining default Tika paths, and move chunking toward token splitting while preserving metadata and auditability
 
 ### Phase 2: Grounded Legal Q&A Core
 **Goal:** Deliver Vietnamese-first source-backed legal Q&A with visible citations and practical legal guidance.
@@ -143,7 +143,12 @@ Plans:
 - Explore runtime retrieval strategy and tool/function-call integration approach
 - Produce an architecture decision record capturing options and trade-offs, not a fixed implementation plan
 
-**Plans:** TBD (planned in /gsd-plan-phase 4.1)
+**Plans:** 3 plans
+
+Plans:
+- [ ] 04.1-01-PLAN.md — Track A: LoggingAspect, AsyncConfig upgrade, AppProperties, GlobalExceptionHandler hardening, CRLF prevention
+- [ ] 04.1-02-PLAN.md — Track B: ROADMAP 01.1-04 checkbox fix, batch ingestion endpoint, source trust policy domain (DB + REST + admin UI)
+- [ ] 04.1-03-PLAN.md — Track C: Configurability audit — ClarificationPolicy, AnswerCompositionPolicy, RetrievalPolicy inventory report
 
 **Success criteria:**
 1. The backend emits structured exception logs from service and repository layers without requiring per-method try/catch.
