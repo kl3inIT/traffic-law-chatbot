@@ -7,6 +7,7 @@ import { type ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -107,16 +108,16 @@ function useColumns(
       cell: ({ row }) => {
         const def = row.original;
         return (
-          <Checkbox
+          <Switch
             checked={def.active}
             disabled={togglingIds.has(def.id)}
             onCheckedChange={() => onToggleActive(def)}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
             aria-label={def.active ? 'Đang hoạt động' : 'Đã tắt'}
           />
         );
       },
-      size: 60,
+      size: 70,
     },
     {
       accessorKey: 'createdAt',
