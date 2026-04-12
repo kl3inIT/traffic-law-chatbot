@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="010-check-run" author="system">
+        <comment>Create check_run table for tracking evaluation run sessions</comment>
+        <createTable tableName="check_run">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="average_score" type="double precision">
+                <constraints nullable="true"/>
+            </column>
+            <column name="parameter_set_id" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+            <column name="parameter_set_name" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="check_count" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_date" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="010-check-result" author="system">
+        <comment>Create check_result table for individual evaluation results within a run</comment>
+        <createTable tableName="check_result">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="check_def_id" type="uuid">
+                <constraints nullable="true" foreignKeyName="fk_check_result_check_def" references="check_def(id)"/>
+            </column>
+            <column name="check_run_id" type="uuid">
+                <constraints nullable="true" foreignKeyName="fk_check_result_check_run" references="check_run(id)"/>
+            </column>
+            <column name="question" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="reference_answer" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="actual_answer" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="score" type="double precision">
+                <constraints nullable="true"/>
+            </column>
+            <column name="log" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_date" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="check_result" indexName="idx_check_result_check_def">
+            <column name="check_def_id"/>
+        </createIndex>
+        <createIndex tableName="check_result" indexName="idx_check_result_check_run">
+            <column name="check_run_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

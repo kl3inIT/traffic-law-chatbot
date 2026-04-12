@@ -47,4 +47,21 @@ public final class ApiPaths {
     // Trust policy
     public static final String TRUST_POLICIES = ADMIN_BASE + "/trust-policies";
     public static final String TRUST_POLICY_BY_ID = TRUST_POLICIES + "/{policyId}";
+
+    // Chat logs
+    public static final String CHAT_LOGS = ADMIN_BASE + "/chat-logs";
+    public static final String CHAT_LOG_BY_ID = CHAT_LOGS + "/{logId}";
+
+    // Check definitions
+    public static final String CHECK_DEFS = ADMIN_BASE + "/check-defs";
+    public static final String CHECK_DEF_BY_ID = CHECK_DEFS + "/{defId}";
+
+    // Check runs
+    public static final String CHECK_RUNS = ADMIN_BASE + "/check-runs";
+    public static final String CHECK_RUN_BY_ID = CHECK_RUNS + "/{runId}";
+    public static final String CHECK_RUNS_TRIGGER = ADMIN_BASE + "/check-runs/trigger";
+    public static final String CHECK_RUN_RESULTS = CHECK_RUN_BY_ID + "/results";
+
+    // Allowed models
+    public static final String ALLOWED_MODELS = ADMIN_BASE + "/allowed-models";
 }
