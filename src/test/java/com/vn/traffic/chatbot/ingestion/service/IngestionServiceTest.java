@@ -152,7 +152,7 @@ class IngestionServiceTest {
     @Test
     void submitUrl_createsJobWithUrlImportType() throws Exception {
         UrlSourceRequest req = new UrlSourceRequest(
-                "https://thuvienphapluat.vn/traffic", "Traffic Page", "TVPL", "admin");
+                "https://thuvienphapluat.vn/traffic", "Traffic Page", "TVPL", "admin", null, null);
 
         UUID sourceId = UUID.randomUUID();
         KbSource mockSource = KbSource.builder().id(sourceId).build();
@@ -161,6 +161,7 @@ class IngestionServiceTest {
                 .status(IngestionJobStatus.QUEUED).jobType(JobType.URL_IMPORT).build();
 
         doNothing().when(urlPageParser).validateHost(anyString());
+        when(sourceRepo.findByOriginValue(anyString())).thenReturn(Optional.empty());
         when(sourceService.createSource(any())).thenReturn(mockSource);
         when(versionRepo.save(any())).thenReturn(mockVersion);
         when(jobRepo.save(any())).thenReturn(savedJob);
@@ -181,7 +182,7 @@ class IngestionServiceTest {
     @Test
     void submitUrl_withPrivateIpUrl_throwsUrlNotAllowedBeforeJobCreation() {
         UrlSourceRequest req = new UrlSourceRequest(
-                "http://192.168.1.1/admin", "Internal", null, "admin");
+                "http://192.168.1.1/admin", "Internal", null, "admin", null, null);
 
         doThrow(new AppException(ErrorCode.URL_NOT_ALLOWED, "Private address"))
                 .when(urlPageParser).validateHost(anyString());

@@ -1,13 +1,14 @@
 package com.vn.traffic.chatbot.ingestion.api;
 
 import com.vn.traffic.chatbot.common.api.ApiPaths;
-import com.vn.traffic.chatbot.common.log.CrlfSanitizer;
 import com.vn.traffic.chatbot.common.api.PageResponse;
+import com.vn.traffic.chatbot.common.error.AppException;
+import com.vn.traffic.chatbot.common.error.ErrorCode;
+import com.vn.traffic.chatbot.common.log.CrlfSanitizer;
 import com.vn.traffic.chatbot.ingestion.api.dto.*;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
 import com.vn.traffic.chatbot.ingestion.service.IngestionService;
-import com.vn.traffic.chatbot.source.repo.KbSourceRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,6 @@ import java.util.UUID;
 public class IngestionAdminController {
 
     private final IngestionService ingestionService;
-    private final KbSourceRepository kbSourceRepository;
 
     /**
      * POST /api/v1/admin/sources/upload
@@ -60,21 +60,27 @@ public class IngestionAdminController {
         for (BatchImportItemRequest item : request.items()) {
             String sanitizedUrl = CrlfSanitizer.sanitize(item.url());
             try {
-                var existing = kbSourceRepository.findByOriginValue(item.url());
-                if (existing.isPresent()) {
-                    results.add(new BatchImportItemResult(
-                            item.url(), "DUPLICATE", existing.get().getId(), null, "Duplicate source URL"));
-                    rejected++;
-                } else {
-                    var urlReq = new UrlSourceRequest(item.url(), item.title(), null, null);
-                    IngestionAcceptedResponse response = ingestionService.submitUrl(urlReq);
-                    results.add(new BatchImportItemResult(
-                            item.url(), "ACCEPTED", response.sourceId(), response.jobId(), null));
-                    accepted++;
-                }
-            } catch (Exception ex) {
+                var urlReq = new UrlSourceRequest(
+                        item.url(), item.title(), null, null,
+                        item.sourceType(), item.trustCategory());
+                IngestionAcceptedResponse response = ingestionService.submitUrl(urlReq);
                 results.add(new BatchImportItemResult(
-                        item.url(), "ERROR", null, null, ex.getMessage()));
+                        item.url(), "ACCEPTED", response.sourceId(), response.jobId(), null));
+                accepted++;
+            } catch (AppException ex) {
+                if (ex.getErrorCode() == ErrorCode.DUPLICATE_SOURCE) {
+                    results.add(new BatchImportItemResult(
+                            item.url(), "DUPLICATE", null, null, "Duplicate source URL"));
+                } else {
+                    log.error("Application error processing batch item url={}: {}", sanitizedUrl, ex.getMessage());
+                    results.add(new BatchImportItemResult(
+                            item.url(), "ERROR", null, null, ex.getMessage()));
+                }
+                rejected++;
+            } catch (Exception ex) {
+                log.error("Unexpected error processing batch item url={}: {}", sanitizedUrl, ex.getMessage(), ex);
+                results.add(new BatchImportItemResult(
+                        item.url(), "ERROR", null, null, "Ingestion failed"));
                 rejected++;
             }
         }
