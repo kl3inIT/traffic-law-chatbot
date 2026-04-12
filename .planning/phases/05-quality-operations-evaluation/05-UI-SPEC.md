@@ -1,7 +1,8 @@
 ---
 phase: 5
 slug: quality-operations-evaluation
-status: draft
+status: approved
+reviewed_at: 2026-04-12T00:00:00Z
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-04-12
@@ -59,12 +60,14 @@ Exceptions:
 
 Inherited from established admin screens. Do not redefine — extend these roles only.
 
+Exactly 2 font weights are used: **400 (normal)** and **600 (semibold)**.
+
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 14px (text-sm) | 400 (normal) | 1.5 | Table cell content, form labels, descriptions |
-| Label | 14px (text-sm) | 500 (medium) | 1.4 | Form field labels (`<Label>`), filter labels |
+| Label | 12px (text-xs) | 600 (semibold) | 1.4 | Form field labels (`<Label>`), filter labels — distinguished from Body by smaller size and semibold weight |
 | Heading | 20px (text-xl) | 600 (semibold) | 1.2 | Page titles (`h1 text-xl font-semibold`) |
-| Caption | 12px (text-xs) | 400 (normal) | 1.4 | Pagination counters, muted metadata, token counts |
+| Caption | 12px (text-xs) | 400 (normal) | 1.4 | Pagination counters, muted metadata, token counts — distinguished from Label by normal weight and `text-muted-foreground` color |
 
 Font stack:
 - UI text: `var(--font-sans)` (Geist Sans)
@@ -193,12 +196,12 @@ Container: `p-6 flex flex-col gap-4 h-screen`.
 
 **Form footer (mt-auto flex gap-2 justify-between):**
 - Left: `<Button variant="outline" className="text-destructive border-destructive...">` "Xóa" — only shown when editing existing record
-- Right: "Hủy" (outline) + "Tạo mới" / "Lưu thay đổi" (primary)
+- Right: "Giữ lại" (outline) + "Tạo mới" / "Lưu thay đổi" (primary)
 
 **Delete confirmation:** `<AlertDialog>` — same pattern as parameters and trust-policy pages.
 - Title: "Xác nhận xóa"
 - Body: "Xóa định nghĩa kiểm tra '{question truncated to 40 chars}'? Dữ liệu sẽ bị xóa vĩnh viễn."
-- Actions: "Hủy" (cancel) + "Xóa" (destructive)
+- Actions: "Giữ lại" (cancel) + "Xóa" (destructive)
 
 **Run checks button:** Separate from the CRUD form. Positioned in header row alongside "+ Tạo mới":
 - `<Button variant="outline">` with `<Play size={16}>` icon — "Chạy kiểm tra"
@@ -360,7 +363,7 @@ All copy in Vietnamese (Vietnamese-first product). Source: established admin scr
 | Error state — no active check defs | "Không có định nghĩa kiểm tra nào đang hoạt động." (shown as disabled tooltip on run button) |
 | Destructive confirmation — delete check definition | "Xóa định nghĩa kiểm tra '{question}'? Dữ liệu sẽ bị xóa vĩnh viễn." |
 | Destructive action label — delete | "Xóa" (destructive button) |
-| Cancel label | "Hủy" |
+| Cancel label — AlertDialog (delete confirmation) | "Giữ lại" |
 | Loading — run checks in progress | "Đang chạy..." (inside button) |
 | Loading — form submit | "Đang xử lý..." (inside button) |
 | Back navigation | "Quay lại danh sách" |
