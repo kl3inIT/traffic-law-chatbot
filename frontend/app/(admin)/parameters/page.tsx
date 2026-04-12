@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 // ─── YAML helpers ───────────────────────────────────────────────────────────
@@ -218,6 +219,7 @@ export default function ParametersPage() {
   const [isNew, setIsNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AiParameterSetResponse | null>(null);
   const [existingContent, setExistingContent] = useState<string | undefined>(undefined);
+  const [yamlPreviewOpen, setYamlPreviewOpen] = useState(false);
 
   const createMutation = useCreateParameterSet();
   const updateMutation = useUpdateParameterSet();
@@ -464,26 +466,47 @@ export default function ParametersPage() {
                 </div>
               )}
 
-              <div className="flex flex-shrink-0 justify-end gap-2 border-t px-5 py-3">
+              <div className="flex flex-shrink-0 items-center justify-between border-t px-5 py-3">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setSelected(null);
-                    setIsNew(false);
-                    form.reset(DEFAULT_VALUES);
-                  }}
+                  variant="ghost"
+                  className="text-muted-foreground text-xs"
+                  onClick={() => setYamlPreviewOpen(true)}
                 >
-                  Hủy
+                  Xem YAML
                 </Button>
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? 'Đang xử lý...' : isNew ? 'Tạo mới' : 'Lưu thay đổi'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setSelected(null);
+                      setIsNew(false);
+                      form.reset(DEFAULT_VALUES);
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                  <Button type="submit" disabled={isPending}>
+                    {isPending ? 'Đang xử lý...' : isNew ? 'Tạo mới' : 'Lưu thay đổi'}
+                  </Button>
+                </div>
               </div>
             </form>
           )}
         </div>
       </div>
+
+      <Dialog open={yamlPreviewOpen} onOpenChange={setYamlPreviewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>YAML được tạo ra</DialogTitle>
+          </DialogHeader>
+          <pre className="bg-muted max-h-[60vh] overflow-auto rounded-md p-4 text-xs leading-relaxed break-all whitespace-pre-wrap">
+            {formToYaml(form.getValues(), existingContent)}
+          </pre>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
