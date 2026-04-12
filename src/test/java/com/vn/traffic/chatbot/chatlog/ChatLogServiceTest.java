@@ -41,7 +41,7 @@ class ChatLogServiceTest {
         when(chatLogRepository.save(any(ChatLog.class))).thenAnswer(i -> i.getArgument(0));
 
         // when
-        chatLogService.save(question, response, GroundingStatus.GROUNDED, null, 100, 200, 500);
+        chatLogService.save(question, response, GroundingStatus.GROUNDED, null, 100, 200, 500, null);
 
         // then
         ArgumentCaptor<ChatLog> captor = ArgumentCaptor.forClass(ChatLog.class);
@@ -71,7 +71,7 @@ class ChatLogServiceTest {
         // Verify the exception is a RuntimeException (will be caught by ChatService's try/catch)
         assertThatCode(() -> {
             try {
-                chatLogService.save(question, response, GroundingStatus.REFUSED, null, 0, 0, 0);
+                chatLogService.save(question, response, GroundingStatus.REFUSED, null, 0, 0, 0, null);
             } catch (RuntimeException ex) {
                 // This is the expected path — ChatService catches this and logs.warn
                 assertThat(ex.getMessage()).contains("DB error");
