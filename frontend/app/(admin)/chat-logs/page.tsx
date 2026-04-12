@@ -61,8 +61,8 @@ export default function ChatLogsPage() {
   const filters = {
     page,
     size: PAGE_SIZE,
-    ...(from ? { from } : {}),
-    ...(to ? { to } : {}),
+    ...(from ? { from: `${from}T00:00:00+07:00` } : {}),
+    ...(to ? { to: `${to}T23:59:59+07:00` } : {}),
     ...(groundingStatusFilter ? { groundingStatus: groundingStatusFilter } : {}),
     ...(debouncedSearch ? { q: debouncedSearch } : {}),
   };
