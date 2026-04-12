@@ -42,3 +42,10 @@ out/
 # Local environment
 .env
 .claude/
+.clone/
+.claude-vn-chat-request.json
+
+# Playwright
+.playwright-cli/
+.playwright-mcp/
+frontend/playwright-report/
