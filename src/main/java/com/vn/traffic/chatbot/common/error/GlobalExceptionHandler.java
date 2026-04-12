@@ -25,19 +25,8 @@ public class GlobalExceptionHandler {
 
     private final Environment env;
 
-    /**
-     * Primary constructor — used by Spring when the bean is wired from the application context.
-     */
     public GlobalExceptionHandler(Environment env) {
         this.env = env;
-    }
-
-    /**
-     * No-arg constructor for standalone MockMvc tests that do not need prod-profile masking.
-     * When {@code env} is null, {@link #isProdProfile()} returns {@code false} (non-prod behaviour).
-     */
-    public GlobalExceptionHandler() {
-        this.env = null;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
