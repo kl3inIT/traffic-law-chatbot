@@ -5,6 +5,7 @@ import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
+import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.metadata.ChatResponseMetadata;
+import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -40,6 +46,11 @@ class ChatServiceTest {
     @Mock private ChatPromptFactory chatPromptFactory;
     @Mock private ChunkInspectionService chunkInspectionService;
     @Mock private AnswerCompositionPolicy answerCompositionPolicy;
+    @Mock private ChatLogService chatLogService;
+    @Mock private ChatResponse aiChatResponse;
+    @Mock private Generation generation;
+    @Mock private ChatResponseMetadata chatResponseMetadata;
+    @Mock private Usage usage;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ChatService chatService;
@@ -55,7 +66,8 @@ class ChatServiceTest {
                 answerComposer,
                 chatPromptFactory,
                 chunkInspectionService,
-                answerCompositionPolicy
+                answerCompositionPolicy,
+                chatLogService
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
         ReflectionTestUtils.setField(chatService, "limitedGroundingThreshold", 2);
@@ -70,15 +82,7 @@ class ChatServiceTest {
         List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 100", "https://vbpl.vn/nd100", 4, "Điều 6"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
 
-        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
-        when(vectorStore.similaritySearch(request)).thenReturn(documents);
-        when(citationMapper.toCitations(documents)).thenReturn(citations);
-        when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt-body");
-        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.user("prompt-body")).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
-        when(callResponseSpec.content()).thenReturn("""
+        String jsonPayload = """
                 {
                   "conclusion": "Kết luận [Nguồn 1].",
                   "answer": "unused",
@@ -93,7 +97,17 @@ class ChatServiceTest {
                   "scenarioOutcome": ["Có thể bị xử phạt [Nguồn 1]"],
                   "scenarioActions": ["Đối chiếu biên bản"]
                 }
-                """);
+                """;
+
+        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
+        when(vectorStore.similaritySearch(request)).thenReturn(documents);
+        when(citationMapper.toCitations(documents)).thenReturn(citations);
+        when(citationMapper.toSources(citations)).thenReturn(sources);
+        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt-body");
+        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.user("prompt-body")).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
+        stubChatResponse(jsonPayload);
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
 
         ChatAnswerResponse response = chatService.answer(question);
@@ -113,16 +127,8 @@ class ChatServiceTest {
         List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 7, "Điều 7"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
 
-        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
-        when(vectorStore.similaritySearch(request)).thenReturn(documents);
-        when(citationMapper.toCitations(documents)).thenReturn(citations);
-        when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt-body");
-        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.user("prompt-body")).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
         // Model wraps JSON in a markdown code block despite being told not to
-        when(callResponseSpec.content()).thenReturn("""
+        String jsonPayload = """
                 ```json
                 {
                   "conclusion": "Kết luận [Nguồn 1].",
@@ -138,7 +144,17 @@ class ChatServiceTest {
                   "scenarioOutcome": ["Có thể bị xử phạt [Nguồn 1]"],
                   "scenarioActions": []
                 }
-                ```""");
+                ```""";
+
+        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
+        when(vectorStore.similaritySearch(request)).thenReturn(documents);
+        when(citationMapper.toCitations(documents)).thenReturn(citations);
+        when(citationMapper.toSources(citations)).thenReturn(sources);
+        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt-body");
+        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.user("prompt-body")).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
+        stubChatResponse(jsonPayload);
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
 
         ChatAnswerResponse response = chatService.answer(question);
@@ -158,15 +174,7 @@ class ChatServiceTest {
         List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Luật Giao thông", "https://vbpl.vn/lgt", 2, "Điều 58"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.LIMITED_GROUNDING, citations, sources);
 
-        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
-        when(vectorStore.similaritySearch(request)).thenReturn(documents);
-        when(citationMapper.toCitations(documents)).thenReturn(citations);
-        when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(question, GroundingStatus.LIMITED_GROUNDING, citations)).thenReturn("limited-prompt");
-        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.user("limited-prompt")).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
-        when(callResponseSpec.content()).thenReturn("""
+        String jsonPayload = """
                 {
                   "conclusion": "Có thể bị xử lý về giấy tờ xe [Nguồn 1].",
                   "answer": "unused",
@@ -181,7 +189,17 @@ class ChatServiceTest {
                   "scenarioOutcome": ["Có thể bị xử lý [Nguồn 1]"],
                   "scenarioActions": ["Bổ sung giấy tờ"]
                 }
-                """);
+                """;
+
+        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
+        when(vectorStore.similaritySearch(request)).thenReturn(documents);
+        when(citationMapper.toCitations(documents)).thenReturn(citations);
+        when(citationMapper.toSources(citations)).thenReturn(sources);
+        when(chatPromptFactory.buildPrompt(question, GroundingStatus.LIMITED_GROUNDING, citations)).thenReturn("limited-prompt");
+        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.user("limited-prompt")).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
+        stubChatResponse(jsonPayload);
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
 
         ChatAnswerResponse response = chatService.answer(question);
@@ -260,6 +278,18 @@ class ChatServiceTest {
         assertThat(response).isSameAs(expected);
         verify(chunkInspectionService).getRetrievalReadinessCounts();
         verify(chatClient, never()).prompt();
+    }
+
+    // Helper to stub the chatResponse() call chain used by the retrofitted ChatService
+    private void stubChatResponse(String textPayload) {
+        AssistantMessage assistantMsg = new AssistantMessage(textPayload);
+        Generation gen = new Generation(assistantMsg);
+        when(aiChatResponse.getResult()).thenReturn(gen);
+        when(aiChatResponse.getMetadata()).thenReturn(chatResponseMetadata);
+        when(chatResponseMetadata.getUsage()).thenReturn(usage);
+        when(usage.getPromptTokens()).thenReturn(100);
+        when(usage.getCompletionTokens()).thenReturn(200);
+        when(callResponseSpec.chatResponse()).thenReturn(aiChatResponse);
     }
 
     private ChatAnswerResponse standardResponse(
