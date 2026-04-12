@@ -32,30 +32,59 @@ public class CheckRunner {
     private final SemanticEvaluator evaluator;
 
     @Async("ingestionExecutor")
-    @Transactional
     public void runAll(UUID checkRunId) {
-        CheckRun run = checkRunRepository.findById(checkRunId)
-                .orElseThrow(() -> new IllegalStateException("CheckRun not found: " + checkRunId));
-        List<CheckDef> activeDefs = checkDefRepository.findByActiveTrue();
+        try {
+            CheckRun run = loadRun(checkRunId);
+            List<CheckDef> activeDefs = loadActiveDefs();
 
-        if (activeDefs.isEmpty()) {
-            run.setAverageScore(0.0);
-            run.setCheckCount(0);
-            run.setStatus(CheckRunStatus.FAILED);
+            if (activeDefs.isEmpty()) {
+                persistRunStatus(checkRunId, 0.0, 0, CheckRunStatus.FAILED);
+                return;
+            }
+
+            List<CheckResult> results = new ArrayList<>();
+            for (CheckDef def : activeDefs) {
+                results.add(runSingle(def, run));
+            }
+
+            double avg = results.stream()
+                    .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
+                    .average()
+                    .orElse(0.0);
+
+            persistResults(results, run, avg);
+        } catch (Exception ex) {
+            log.error("CheckRunner: run {} failed unexpectedly: {}", checkRunId, ex.getMessage(), ex);
+            checkRunRepository.findById(checkRunId).ifPresent(run -> {
+                run.setStatus(CheckRunStatus.FAILED);
+                checkRunRepository.save(run);
+            });
+        }
+    }
+
+    @Transactional(readOnly = true)
+    protected CheckRun loadRun(UUID id) {
+        return checkRunRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("CheckRun not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    protected List<CheckDef> loadActiveDefs() {
+        return checkDefRepository.findByActiveTrue();
+    }
+
+    @Transactional
+    protected void persistRunStatus(UUID runId, double avg, int count, CheckRunStatus status) {
+        checkRunRepository.findById(runId).ifPresent(run -> {
+            run.setAverageScore(avg);
+            run.setCheckCount(count);
+            run.setStatus(status);
             checkRunRepository.save(run);
-            return;
-        }
+        });
+    }
 
-        List<CheckResult> results = new ArrayList<>();
-        for (CheckDef def : activeDefs) {
-            results.add(runSingle(def, run));
-        }
-
-        double avg = results.stream()
-                .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                .average()
-                .orElse(0.0);
-
+    @Transactional
+    protected void persistResults(List<CheckResult> results, CheckRun run, double avg) {
         checkResultRepository.saveAll(results);
         run.setAverageScore(avg);
         run.setCheckCount(results.size());
