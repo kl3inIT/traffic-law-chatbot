@@ -41,7 +41,9 @@ out/
 
 # Local environment
 .env
-.claude/
+.claude/settings.local.json
+.claude/tmp/
+.claude/worktrees/
 .clone/
 .claude-vn-chat-request.json
 
