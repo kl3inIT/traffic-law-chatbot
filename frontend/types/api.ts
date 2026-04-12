@@ -264,6 +264,7 @@ export interface ChatLogListItem {
 export interface ChatLogDetail extends ChatLogListItem {
   answer: string;
   sources: string | null;
+  pipelineLog: string | null;
 }
 
 export interface ChatLogPage {

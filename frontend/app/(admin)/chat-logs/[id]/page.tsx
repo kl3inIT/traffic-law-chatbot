@@ -42,7 +42,7 @@ export default function ChatLogDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6 max-w-4xl">
+      <div className="max-w-4xl space-y-6 p-6">
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-6 w-64" />
         <Skeleton className="h-32 w-full" />
@@ -54,77 +54,86 @@ export default function ChatLogDetailPage() {
 
   if (isError || !log) {
     return (
-      <div className="p-6 space-y-4">
+      <div className="space-y-4 p-6">
         <Button variant="ghost" size="sm" onClick={() => router.back()}>
           <ChevronLeft size={16} />
           Quay lại danh sách
         </Button>
-        <p className="text-sm text-muted-foreground">Không tìm thấy bản ghi.</p>
+        <p className="text-muted-foreground text-sm">Không tìm thấy bản ghi.</p>
       </div>
     );
   }
 
-  const sources = log.sources
-    ? log.sources.split(', ').filter((s) => s.trim())
-    : [];
+  const sources = log.sources ? log.sources.split(', ').filter((s) => s.trim()) : [];
 
   const totalTokens = log.promptTokens + log.completionTokens;
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
+    <div className="max-w-4xl space-y-6 p-6">
       <Button variant="ghost" size="sm" onClick={() => router.back()}>
         <ChevronLeft size={16} />
         Quay lại danh sách
       </Button>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-sm text-muted-foreground">{formatDate(log.createdDate)}</span>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-muted-foreground text-sm">{formatDate(log.createdDate)}</span>
         <Badge variant="outline" className={groundingStatusClass[log.groundingStatus]}>
           {groundingStatusLabel[log.groundingStatus]}
         </Badge>
         {log.conversationId && (
-          <span className="text-xs text-muted-foreground">ID hội thoại: {log.conversationId}</span>
+          <span className="text-muted-foreground text-xs">ID hội thoại: {log.conversationId}</span>
         )}
       </div>
 
-      <Card className="p-4 space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Câu hỏi</p>
+      <Card className="space-y-2 p-4">
+        <p className="text-muted-foreground text-sm font-medium">Câu hỏi</p>
         <p className="text-sm">{log.question}</p>
       </Card>
 
-      <Card className="p-4 space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Câu trả lời</p>
+      <Card className="space-y-2 p-4">
+        <p className="text-muted-foreground text-sm font-medium">Câu trả lời</p>
         <p className="text-sm whitespace-pre-wrap">{log.answer}</p>
       </Card>
 
-      <Card className="p-4 space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Nguồn trích dẫn</p>
+      <Card className="space-y-2 p-4">
+        <p className="text-muted-foreground text-sm font-medium">Nguồn trích dẫn</p>
         {sources.length > 0 ? (
-          <ul className="list-disc list-inside space-y-1">
+          <ul className="list-inside list-disc space-y-1">
             {sources.map((src, i) => (
-              <li key={i} className="text-sm">{src}</li>
+              <li key={i} className="text-sm">
+                {src}
+              </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">Không có nguồn trích dẫn</p>
+          <p className="text-muted-foreground text-sm">Không có nguồn trích dẫn</p>
         )}
       </Card>
 
+      {log.pipelineLog && (
+        <Card className="space-y-2 p-4">
+          <p className="text-muted-foreground text-sm font-medium">Pipeline log</p>
+          <pre className="text-muted-foreground bg-muted overflow-x-auto rounded p-3 font-mono text-xs whitespace-pre-wrap">
+            {log.pipelineLog}
+          </pre>
+        </Card>
+      )}
+
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div>
-          <dt className="text-xs text-muted-foreground">Prompt tokens</dt>
+          <dt className="text-muted-foreground text-xs">Prompt tokens</dt>
           <dd className="text-sm font-medium">{log.promptTokens}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Completion tokens</dt>
+          <dt className="text-muted-foreground text-xs">Completion tokens</dt>
           <dd className="text-sm font-medium">{log.completionTokens}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Tổng tokens</dt>
+          <dt className="text-muted-foreground text-xs">Tổng tokens</dt>
           <dd className="text-sm font-medium">{totalTokens}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Thời gian phản hồi</dt>
+          <dt className="text-muted-foreground text-xs">Thời gian phản hồi</dt>
           <dd className="text-sm font-medium">{log.responseTime} ms</dd>
         </div>
       </dl>
