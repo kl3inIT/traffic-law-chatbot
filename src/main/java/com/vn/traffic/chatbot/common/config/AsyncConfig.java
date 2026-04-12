@@ -3,6 +3,7 @@ package com.vn.traffic.chatbot.common.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.task.ThreadPoolTaskExecutorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,8 @@ import java.util.concurrent.Executor;
  * surfaced to the default executor produce an ERROR log entry instead of being silently dropped.
  *
  * <p>The {@code ingestionExecutor} bean is also returned as the registered default async executor
- * so that the uncaught handler covers {@code @Async("ingestionExecutor")} invocations.
+ * so that the uncaught handler covers both {@code @Async("ingestionExecutor")} and plain
+ * {@code @Async} invocations — a single pool instance is used for both.
  */
 @Configuration
 @EnableAsync
@@ -28,27 +30,27 @@ public class AsyncConfig implements AsyncConfigurer {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsyncConfig.class);
 
+    @Autowired
+    private ThreadPoolTaskExecutor ingestionExecutor;
+
     @Bean(name = "ingestionExecutor")
     public ThreadPoolTaskExecutor ingestionExecutor(ThreadPoolTaskExecutorBuilder builder) {
-        return builder.build();
+        return builder
+                .corePoolSize(4)
+                .maxPoolSize(10)
+                .queueCapacity(100)
+                .threadNamePrefix("ingestion-")
+                .build();
     }
 
     /**
-     * Returns the {@code ingestionExecutor} as the default async executor so that the
-     * uncaught exception handler applies to all {@code @Async} invocations, including
-     * those explicitly annotated with {@code @Async("ingestionExecutor")}.
+     * Returns the same {@code ingestionExecutor} bean as the default async executor so that
+     * the uncaught exception handler applies to all {@code @Async} invocations and a single
+     * thread pool is used throughout.
      */
     @Override
     public Executor getAsyncExecutor() {
-        // Delegate to the named bean; it is initialized by Spring before this is called
-        // via the @Bean method above. We create a fresh instance here for the default.
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(10);
-        executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("ingestion-");
-        executor.initialize();
-        return executor;
+        return ingestionExecutor;
     }
 
     /**
