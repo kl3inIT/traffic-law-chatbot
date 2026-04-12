@@ -76,6 +76,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 | ID | Description | Commits | Date |
 |----|-------------|---------|------|
 | 260412-olx | Pipeline logging (jmix pattern) + Parameters UI YAML preview | bf4a959, 3f146de | 2026-04-12 |
+| 260412-wwk | Fix YAML form UX (structured inputs), Run Check race condition, pipeline log coverage | f51807c, 1876a54, 7d4a457 | 2026-04-12 |
 
 ---
-*Last updated: 2026-04-12 — quick task 260412-olx: pipeline logging rework + parameters YAML preview panel*
+*Last updated: 2026-04-12 — quick task 260412-wwk: parameters structured form, CheckRunner @Async fix, full pipeline log coverage*
