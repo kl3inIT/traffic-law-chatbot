@@ -3,6 +3,7 @@ package com.vn.traffic.chatbot.chunk.api;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.common.api.ApiPaths;
 import com.vn.traffic.chatbot.common.error.GlobalExceptionHandler;
+import org.springframework.mock.env.MockEnvironment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,7 +32,7 @@ class ChunkAdminControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(new ChunkAdminController(chunkInspectionService))
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(new MockEnvironment()))
                 .build();
     }
 

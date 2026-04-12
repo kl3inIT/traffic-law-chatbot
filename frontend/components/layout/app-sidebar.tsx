@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { MessageSquare, Database, BookOpen, Settings } from 'lucide-react';
+import { MessageSquare, Database, BookOpen, Settings, ShieldCheck } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +21,7 @@ export const adminNavItems = [
   { title: 'Quản lý nguồn', href: '/sources', icon: Database },
   { title: 'Chỉ mục kiến thức', href: '/index', icon: BookOpen },
   { title: 'Bộ tham số AI', href: '/parameters', icon: Settings },
+  { title: 'Chính sách tin cậy', href: '/trust-policy', icon: ShieldCheck },
 ];
 
 export function AppSidebar() {

@@ -40,4 +40,11 @@ public final class ApiPaths {
     public static final String PARAMETER_SET_BY_ID = PARAMETER_SETS + "/{parameterSetId}";
     public static final String PARAMETER_SET_ACTIVATE = PARAMETER_SET_BY_ID + "/activate";
     public static final String PARAMETER_SET_COPY = PARAMETER_SET_BY_ID + "/copy";
+
+    // Batch ingestion
+    public static final String INGESTION_BATCH = ADMIN_BASE + "/ingestion/batch";
+
+    // Trust policy
+    public static final String TRUST_POLICIES = ADMIN_BASE + "/trust-policies";
+    public static final String TRUST_POLICY_BY_ID = TRUST_POLICIES + "/{policyId}";
 }

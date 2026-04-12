@@ -2,6 +2,9 @@ package com.vn.traffic.chatbot.ingestion.api;
 
 import com.vn.traffic.chatbot.common.api.ApiPaths;
 import com.vn.traffic.chatbot.common.api.PageResponse;
+import com.vn.traffic.chatbot.common.error.AppException;
+import com.vn.traffic.chatbot.common.error.ErrorCode;
+import com.vn.traffic.chatbot.common.log.CrlfSanitizer;
 import com.vn.traffic.chatbot.ingestion.api.dto.*;
 import com.vn.traffic.chatbot.ingestion.domain.IngestionJobStatus;
 import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
@@ -16,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -33,10 +38,55 @@ public class IngestionAdminController {
     public ResponseEntity<IngestionAcceptedResponse> uploadSource(
             @RequestPart("file") MultipartFile file,
             @Valid @RequestPart("metadata") UploadSourceRequest metadata) {
-        log.info("Upload source request: title={}", metadata.getTitle());
+        log.info("Upload source request: title={}", CrlfSanitizer.sanitize(metadata.getTitle()));
         IngestionAcceptedResponse response = ingestionService.submitUpload(
                 file, metadata.getTitle(), metadata.getPublisherName(), metadata.getCreatedBy());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    /**
+     * POST /api/v1/admin/ingestion/batch
+     * Submit multiple URLs for ingestion in one call. Returns 200 with per-item results.
+     * Each item is processed independently — a duplicate or error on one item does NOT abort others.
+     * CRITICAL: method is NOT @Transactional — each item uses its own transaction via IngestionService.
+     */
+    @PostMapping(ApiPaths.INGESTION_BATCH)
+    public ResponseEntity<BatchImportResponse> batchImport(
+            @RequestBody @Valid BatchImportRequest request) {
+        List<BatchImportItemResult> results = new ArrayList<>();
+        int accepted = 0;
+        int rejected = 0;
+
+        for (BatchImportItemRequest item : request.items()) {
+            String sanitizedUrl = CrlfSanitizer.sanitize(item.url());
+            try {
+                var urlReq = new UrlSourceRequest(
+                        item.url(), item.title(), null, null,
+                        item.sourceType(), item.trustCategory());
+                IngestionAcceptedResponse response = ingestionService.submitUrl(urlReq);
+                results.add(new BatchImportItemResult(
+                        item.url(), "ACCEPTED", response.sourceId(), response.jobId(), null));
+                accepted++;
+            } catch (AppException ex) {
+                if (ex.getErrorCode() == ErrorCode.DUPLICATE_SOURCE) {
+                    results.add(new BatchImportItemResult(
+                            item.url(), "DUPLICATE", null, null, "Duplicate source URL"));
+                } else {
+                    log.error("Application error processing batch item url={}: {}", sanitizedUrl, ex.getMessage());
+                    results.add(new BatchImportItemResult(
+                            item.url(), "ERROR", null, null, ex.getMessage()));
+                }
+                rejected++;
+            } catch (Exception ex) {
+                log.error("Unexpected error processing batch item url={}: {}", sanitizedUrl, ex.getMessage(), ex);
+                results.add(new BatchImportItemResult(
+                        item.url(), "ERROR", null, null, "Ingestion failed"));
+                rejected++;
+            }
+        }
+
+        log.info("Batch import: {} items, {} accepted, {} rejected", results.size(), accepted, rejected);
+        return ResponseEntity.ok(new BatchImportResponse(results, accepted, rejected));
     }
 
     /**
@@ -46,7 +96,7 @@ public class IngestionAdminController {
     @PostMapping(ApiPaths.SOURCES_URL)
     public ResponseEntity<IngestionAcceptedResponse> submitUrl(
             @RequestBody @Valid UrlSourceRequest req) {
-        log.info("URL ingest request: url={}", req.url());
+        log.info("URL ingest request: url={}", CrlfSanitizer.sanitize(req.url()));
         IngestionAcceptedResponse response = ingestionService.submitUrl(req);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }

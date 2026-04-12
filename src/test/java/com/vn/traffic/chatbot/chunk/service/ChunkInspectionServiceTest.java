@@ -39,7 +39,7 @@ class ChunkInspectionServiceTest {
     @Test
     void listChunks_withoutFilters_queriesVectorTableWithPagination() {
         when(jdbcTemplate.query(anyString(), any(RowMapper.class), any(Object[].class)))
-                .thenReturn(List.of(new ChunkSummaryResponse(UUID.randomUUID(), "s1", "v1", 1, 2, "sec-1", "APPROVED", "true", "true")));
+                .thenReturn(List.of(new ChunkSummaryResponse(UUID.randomUUID(), "s1", "v1", 1, 2, "sec-1", "APPROVED", "true", "true", "preview...", List.of(), 1536)));
 
         var result = chunkInspectionService.listChunks(null, null, PageRequest.of(0, 20));
 
@@ -80,7 +80,7 @@ class ChunkInspectionServiceTest {
     void getChunk_returnsChunkDetailResponse() {
         UUID chunkId = UUID.randomUUID();
         when(jdbcTemplate.query(anyString(), any(RowMapper.class), any(Object.class)))
-                .thenReturn(List.of(new ChunkDetailResponse(chunkId, "content", "source-1", "version-1", 3, 4, "sec-a", "hash", "1.0", "APPROVED", "true", "true", "origin")));
+                .thenReturn(List.of(new ChunkDetailResponse(chunkId, "content", "source-1", "version-1", 3, 4, "sec-a", "hash", "1.0", "APPROVED", "true", "true", "origin", List.of(), 1536)));
 
         ChunkDetailResponse result = chunkInspectionService.getChunk(chunkId);
 

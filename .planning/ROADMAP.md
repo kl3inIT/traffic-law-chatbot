@@ -15,6 +15,7 @@ This roadmap delivers the Vietnam Traffic Law Chatbot as a REST-first Spring + N
 | 2 | Grounded Legal Q&A Core | Deliver source-backed Vietnamese chat answers with citations and legal guidance structure | CHAT-01, CHAT-03, CHAT-04, LEGAL-01, LEGAL-02, LEGAL-03, LEGAL-04 | 5 |
 | 3 | Multi-turn Case Analysis | Add thread memory, clarifying questions, and structured scenario analysis | CHAT-02, CASE-01, CASE-02, CASE-03, CASE-04 | 5 |
 | 4 | Next.js Chat & Admin App | Build the sidebar-style Next.js app for public chat and core admin workflows | PLAT-02, ADMIN-01, ADMIN-02, ADMIN-03, ADMIN-06 | 5 |
+| 4.1 | Backend Hardening, ETL Maturation & Use-Case Architecture | Harden backend operations layer, complete Spring AI ETL pipeline, and explore legal use-case management architecture | PLAT-01, KNOW-01, KNOW-02, KNOW-03, KNOW-04 | 4 |
 | 5 | Quality Operations & Evaluation | Add chat-log review, answer checks, and operational safeguards for safe iteration | ADMIN-04, ADMIN-05 | 4 |
 
 ## Phase Details
@@ -53,7 +54,7 @@ Plans:
 - [x] 01.1-01-PLAN.md — Fix final_url provenance with a safe fetch/result contract and URL snapshot regression coverage
 - [x] 01.1-02-PLAN.md — Add adapter-based Spring AI HTML parsing behind ParsedDocument while preserving retrieval/inspection metadata
 - [x] 01.1-03-PLAN.md — Run bounded PDF parser parity evaluation and adopt Spring AI PDF only if provenance compatibility is proven
-- [ ] 01.1-04-PLAN.md — Promote Spring AI ETL/readers to the primary ingestion path, replace safe remaining default Tika paths, and move chunking toward token splitting while preserving metadata and auditability
+- [x] 01.1-04-PLAN.md — Promote Spring AI ETL/readers to the primary ingestion path, replace safe remaining default Tika paths, and move chunking toward token splitting while preserving metadata and auditability
 
 ### Phase 2: Grounded Legal Q&A Core
 **Goal:** Deliver Vietnamese-first source-backed legal Q&A with visible citations and practical legal guidance.
@@ -115,6 +116,48 @@ Plans:
 4. Admins can inspect vector-store/indexed content and manage AI parameter sets.
 5. Frontend flows are wired to the Spring REST backend rather than duplicating backend logic in Node.
 
+### Phase 4.1: Backend Hardening, ETL Maturation & Use-Case Architecture (INSERTED)
+**Goal:** Strengthen the backend operations layer based on a gap analysis against JHipster conventions, complete the Spring AI ETL pipeline, and shape the architecture for legal use-case management — without locking ETL or use-case design prematurely.
+
+**Requirements:** PLAT-01, KNOW-01, KNOW-02, KNOW-03, KNOW-04
+**Depends on:** Phase 4
+
+**Tracks:**
+
+**Track A — Backend operational hardening** (concrete):
+- AOP-based `LoggingAspect` for service/repository/controller exception logging and debug-level method tracing, dev-profile-gated
+- `AsyncConfig` upgraded to implement `AsyncConfigurer` with an explicit `getAsyncUncaughtExceptionHandler()` to surface silent `@Async` failures from ingestion tasks
+- Typed `AppProperties` `@ConfigurationProperties` bean to centralize `app.*` config, replacing scattered `@Value` injection
+- `GlobalExceptionHandler` hardening: `DataAccessException` → 500 with masked details in prod, `ConstraintViolationException` → 400, 404 for unmapped paths, profile-aware error detail suppression
+- CRLF log injection prevention in log output
+
+**Track B — ETL maturation** (partially concrete; final design open for discussion):
+- Complete Phase 01.1-04: promote Spring AI ETL/readers to the primary ingestion path with token splitting and preserved metadata
+- Identify what real trusted Vietnamese legal sources should be batch-imported and sketch the ingestion shape
+- Leave dedup, refresh, and scheduling strategy open for a dedicated discussion before locking the design
+
+**Track C — Use-case architecture exploration** (discussion-first, no implementation lock):
+- Define what "legal use cases" means in the chatbot context and what documents they should be extracted from
+- Explore storage options: YAML files vs. DB table vs. hybrid
+- Sketch a review/approval flow for extracted or authored use cases
+- Explore runtime retrieval strategy and tool/function-call integration approach
+- Produce an architecture decision record capturing options and trade-offs, not a fixed implementation plan
+
+**Plans:** 3 plans
+
+Plans:
+- [x] 04.1-01-PLAN.md — Track A: LoggingAspect, AsyncConfig upgrade, AppProperties, GlobalExceptionHandler hardening, CRLF prevention
+- [x] 04.1-02-PLAN.md — Track B: ROADMAP 01.1-04 checkbox fix, batch ingestion endpoint, source trust policy domain (DB + REST + admin UI)
+- [x] 04.1-03-PLAN.md — Track C: Configurability audit — ClarificationPolicy, AnswerCompositionPolicy, RetrievalPolicy inventory report
+
+**Success criteria:**
+1. The backend emits structured exception logs from service and repository layers without requiring per-method try/catch.
+2. Async ingestion failures are surfaced in logs rather than silently dropped.
+3. All `app.*` configuration properties are centralized in a typed `AppProperties` bean.
+4. The exception handler handles `DataAccessException`, validation, and unmapped-path errors with appropriate status codes and prod-safe detail masking.
+5. Spring AI ETL/readers are the primary ingestion path with token-based chunking and full provenance metadata.
+6. A written architecture summary documents the options explored for use-case management and retrieval, including storage model, approval flow, and runtime retrieval strategy.
+
 ### Phase 5: Quality Operations & Evaluation
 **Goal:** Make the system safe to operate and improve through observable logs and repeatable answer checks.
 
@@ -151,4 +194,4 @@ Plans:
 5. **Quality ops last, but not optional** — logs and answer checks complete the Jmix-like operational loop.
 
 ---
-*Last updated: 2026-04-10 after Phase 4 planning*
+*Last updated: 2026-04-11 after inserting Phase 4.1 — backend hardening, ETL maturation, use-case architecture*

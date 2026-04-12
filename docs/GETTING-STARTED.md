@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Getting Started
 
-This guide gets the Spring Boot backend running locally with its PostgreSQL-backed vector store and chat API.
+This guide gets the Spring Boot API running locally and, if you want the bundled UI, the Next.js frontend in `frontend/`.
 
 ## Prerequisites
 
@@ -10,6 +10,7 @@ This guide gets the Spring Boot backend running locally with its PostgreSQL-back
 - A reachable `PostgreSQL` database for the app datasource.
 - Database support for the `vector`, `hstore`, and `uuid-ossp` extensions used by the Liquibase changelogs.
 - `OPENAI_API_KEY` if you want `/api/v1/chat` to produce model-backed answers.
+- `Node.js` and `pnpm 10.32.1` if you want to run the bundled Next.js UI in `frontend/`.
 
 ## Installation Steps
 
@@ -20,16 +21,16 @@ This guide gets the Spring Boot backend running locally with its PostgreSQL-back
    cd traffic-law-chatbot
    ```
 
-2. Configure the runtime variables. The app imports a repo-root `.env` file through `spring.config.import`, and there is no checked-in `.env.example`.
+2. Configure the backend runtime variables. Spring imports a repo-root `.env` through `spring.config.import`, and the repository does not include a separate `.env.example` template.
 
-   ```bash
+   ```dotenv
    DB_URL=jdbc:postgresql://localhost:5432/traffic_law
    DB_USERNAME=traffic_user
    DB_PASSWORD=traffic_pass
    OPENAI_API_KEY=your_openai_api_key
    ```
 
-3. Resolve dependencies and build the project with the Gradle wrapper.
+3. Resolve dependencies and build the backend with the Gradle wrapper. The wrapper downloads `Gradle 9.4.1` automatically.
 
    ```bash
    ./gradlew build
@@ -37,10 +38,18 @@ This guide gets the Spring Boot backend running locally with its PostgreSQL-back
 
    On Windows, use `gradlew.bat build`.
 
+4. If you want the bundled web UI, install the frontend dependencies.
+
+   ```bash
+   cd frontend
+   pnpm install
+   cd ..
+   ```
+
 ## First Run
 
 1. Make sure your PostgreSQL instance is running and the `.env` values point to it.
-2. Start the application:
+2. Start the backend application:
 
    ```bash
    ./gradlew bootRun
@@ -48,20 +57,32 @@ This guide gets the Spring Boot backend running locally with its PostgreSQL-back
 
    On Windows, use `gradlew.bat bootRun`.
 
-3. Verify that the service is up on port `8088`:
+3. Verify that the backend is up on port `8089`:
 
    ```bash
-   curl http://localhost:8088/actuator/health
+   curl http://localhost:8089/actuator/health
    ```
 
    A healthy instance returns a JSON payload whose `status` is `UP`.
 
-4. Before expecting grounded legal answers from `POST /api/v1/chat`, ingest at least one source through the admin API and then approve and activate it.
+4. If you want the bundled UI, start it in another terminal and point it at the backend's current port.
+
+   ```bash
+   cd frontend
+   export NEXT_PUBLIC_API_BASE_URL=http://localhost:8089
+   pnpm dev
+   ```
+
+   In PowerShell, use `$env:NEXT_PUBLIC_API_BASE_URL='http://localhost:8089'` before `pnpm dev`. This override is required because `frontend/lib/api/client.ts` otherwise falls back to `http://localhost:8088`.
+
+5. Open `http://localhost:3000` for the chat and admin UI, or call the backend directly. Before expecting grounded answers from `POST /api/v1/chat`, ingest at least one source through the admin API and then approve and activate it.
 
 ## Common Setup Issues
 
 - `bootRun` fails during datasource or Liquibase startup:
   Check `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`, and make sure the target PostgreSQL database can use the `vector`, `hstore`, and `uuid-ossp` extensions referenced by the Liquibase changelogs.
+- The frontend starts, but API calls fail or hit the wrong port:
+  `frontend/lib/api/client.ts` falls back to `http://localhost:8088`, while the backend now defaults to `server.port: 8089`. Set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8089` in your shell or `frontend/.env.local` before running `pnpm dev`.
 - The app starts, but chat answers are missing or refuse to answer:
   `OPENAI_API_KEY` is required for OpenAI-backed completions, and retrieval only returns chunks whose metadata is `APPROVED`, `trusted == true`, and `active == true`.
 - You expected Docker Compose to start PostgreSQL automatically:

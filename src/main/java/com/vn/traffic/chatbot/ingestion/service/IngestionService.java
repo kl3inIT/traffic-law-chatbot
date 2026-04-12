@@ -119,8 +119,16 @@ public class IngestionService {
         // SSRF check before any DB writes
         urlPageParser.validateHost(req.url());
 
+        // Duplicate-URL check — belongs in service so it participates in the transaction boundary
+        sourceRepo.findByOriginValue(req.url()).ifPresent(existing -> {
+            throw new AppException(ErrorCode.DUPLICATE_SOURCE,
+                    "Duplicate source URL: " + req.url());
+        });
+
+        SourceType sourceType = req.sourceType() != null ? req.sourceType() : SourceType.WEBSITE_PAGE;
+
         KbSource source = sourceService.createSource(new CreateSourceRequest(
-                SourceType.WEBSITE_PAGE,
+                sourceType,
                 req.title() != null ? req.title() : req.url(),
                 OriginKind.URL_IMPORT,
                 req.url(),

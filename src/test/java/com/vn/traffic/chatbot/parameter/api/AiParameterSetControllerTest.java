@@ -6,6 +6,7 @@ import com.vn.traffic.chatbot.common.api.ApiPaths;
 import com.vn.traffic.chatbot.common.error.AppException;
 import com.vn.traffic.chatbot.common.error.ErrorCode;
 import com.vn.traffic.chatbot.common.error.GlobalExceptionHandler;
+import org.springframework.mock.env.MockEnvironment;
 import com.vn.traffic.chatbot.parameter.api.dto.AiParameterSetResponse;
 import com.vn.traffic.chatbot.parameter.api.dto.CreateAiParameterSetRequest;
 import com.vn.traffic.chatbot.parameter.api.dto.UpdateAiParameterSetRequest;
@@ -48,7 +49,7 @@ class AiParameterSetControllerTest {
 
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new AiParameterSetController(service))
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(new MockEnvironment()))
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
                 .setValidator(validator)
                 .build();

@@ -57,6 +57,11 @@ public class KbSource {
     @Column(name = "approval_state", nullable = false, length = 50)
     private ApprovalState approvalState = ApprovalState.PENDING;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trust_tier", nullable = false, length = 50)
+    private TrustTier trustTier = TrustTier.MANUAL_REVIEW;
+
     @Column(name = "active_version_id", columnDefinition = "uuid")
     private UUID activeVersionId;
 
