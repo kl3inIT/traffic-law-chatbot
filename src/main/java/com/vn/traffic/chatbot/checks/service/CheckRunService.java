@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +37,16 @@ public class CheckRunService {
                 .parameterSetName(activeParamSet != null ? activeParamSet.getName() : "Unknown")
                 .build();
         run = checkRunRepository.save(run);
-        checkRunner.runAll(run.getId());
+        // Fire the async runner only after this transaction commits so the CheckRun row
+        // is visible to the new thread. Calling checkRunner.runAll() directly here would
+        // cause "CheckRun not found" because @Async spawns a new thread before commit.
+        UUID runId = run.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                checkRunner.runAll(runId);
+            }
+        });
         return run;
     }
 
