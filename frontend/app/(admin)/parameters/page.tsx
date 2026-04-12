@@ -8,8 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import {
   useParameterSets,
@@ -19,12 +17,10 @@ import {
   useCopyParameterSet,
   useDeleteParameterSet,
 } from '@/hooks/use-parameters';
-import type { AiParameterSetResponse, AllowedModel } from '@/types/api';
-import { useForm, Controller } from 'react-hook-form';
+import type { AiParameterSetResponse } from '@/types/api';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,17 +35,11 @@ import {
 const schema = z.object({
   name: z.string().min(1, 'Tên bộ tham số là bắt buộc'),
   content: z.string().min(1, 'Nội dung YAML là bắt buộc'),
-  chatModel: z.string().optional(),
-  evaluatorModel: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
 export default function ParametersPage() {
   const { data: parameterSets, isLoading } = useParameterSets();
-  const { data: allowedModels = [] } = useQuery<AllowedModel[]>({
-    queryKey: ['allowed-models'],
-    queryFn: () => apiGet('/api/v1/admin/allowed-models'),
-  });
   const [selected, setSelected] = useState<AiParameterSetResponse | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AiParameterSetResponse | null>(null);
@@ -62,34 +52,28 @@ export default function ParametersPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', content: '', chatModel: '', evaluatorModel: '' },
+    defaultValues: { name: '', content: '' },
   });
 
   const openNew = () => {
     setSelected(null);
     setIsNew(true);
-    form.reset({ name: '', content: '', chatModel: '', evaluatorModel: '' });
+    form.reset({ name: '', content: '' });
   };
 
   const openEdit = (ps: AiParameterSetResponse) => {
     setSelected(ps);
     setIsNew(false);
-    form.reset({ name: ps.name, content: ps.content, chatModel: ps.chatModel ?? '', evaluatorModel: ps.evaluatorModel ?? '' });
+    form.reset({ name: ps.name, content: ps.content });
   };
 
   const onSubmit = async (values: FormValues) => {
-    const payload = {
-      name: values.name,
-      content: values.content,
-      chatModel: values.chatModel || undefined,
-      evaluatorModel: values.evaluatorModel || undefined,
-    };
     if (isNew) {
-      await createMutation.mutateAsync(payload);
+      await createMutation.mutateAsync({ name: values.name, content: values.content });
       setIsNew(false);
       form.reset();
     } else if (selected) {
-      await updateMutation.mutateAsync({ id: selected.id, data: payload });
+      await updateMutation.mutateAsync({ id: selected.id, data: { name: values.name, content: values.content } });
     }
   };
 
@@ -127,32 +111,19 @@ export default function ParametersPage() {
               </div>
               <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
                 {!ps.active && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 text-xs px-2"
-                    onClick={() => activate.mutate(ps.id)}
-                    disabled={activate.isPending}
-                  >
+                  <Button size="sm" variant="outline" className="h-6 text-xs px-2"
+                    onClick={() => activate.mutate(ps.id)} disabled={activate.isPending}>
                     Kích hoạt
                   </Button>
                 )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 text-xs px-2"
-                  onClick={() => copy.mutate(ps.id)}
-                  disabled={copy.isPending}
-                >
+                <Button size="sm" variant="outline" className="h-6 text-xs px-2"
+                  onClick={() => copy.mutate(ps.id)} disabled={copy.isPending}>
                   Sao chép
                 </Button>
                 {!ps.active && (
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <Button size="sm" variant="outline"
                     className="h-6 text-xs px-2 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => setDeleteTarget(ps)}
-                  >
+                    onClick={() => setDeleteTarget(ps)}>
                     Xóa
                   </Button>
                 )}
@@ -181,60 +152,15 @@ export default function ParametersPage() {
               </div>
 
               <div className="flex flex-col flex-1 min-h-0 space-y-1">
-                <Label htmlFor="content">Nội dung YAML</Label>
+                <Label htmlFor="content">Cấu hình YAML</Label>
                 <Textarea
                   id="content"
                   {...form.register('content')}
                   className="font-mono text-sm flex-1 resize-none"
-                  placeholder={"model:\n  name: openai\n  temperature: 0.3\nretrieval:\n  topK: 5"}
+                  placeholder={"model:\n  name: claude-sonnet-4-6\n  temperature: 0.3\n  maxTokens: 2048\nretrieval:\n  topK: 5\n  similarityThreshold: 0.7\n  groundingLimitedThreshold: 0.5\nsystemPrompt: |\n  ..."}
                 />
                 {form.formState.errors.content && (
                   <p className="text-xs text-destructive">{form.formState.errors.content.message}</p>
-                )}
-              </div>
-
-              <Separator className="my-2 flex-shrink-0" />
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex-shrink-0">Cấu hình mô hình</p>
-
-              <div className="space-y-1 flex-shrink-0">
-                <Label>Mô hình trò chuyện</Label>
-                <Controller
-                  name="chatModel"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                      <SelectTrigger><SelectValue placeholder="Chọn mô hình" /></SelectTrigger>
-                      <SelectContent>
-                        {allowedModels.map((m: AllowedModel) => (
-                          <SelectItem key={m.modelId} value={m.modelId}>{m.displayName}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.chatModel && (
-                  <p className="text-xs text-destructive">{form.formState.errors.chatModel.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1 flex-shrink-0">
-                <Label>Mô hình đánh giá</Label>
-                <Controller
-                  name="evaluatorModel"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                      <SelectTrigger><SelectValue placeholder="Chọn mô hình" /></SelectTrigger>
-                      <SelectContent>
-                        {allowedModels.map((m: AllowedModel) => (
-                          <SelectItem key={m.modelId} value={m.modelId}>{m.displayName}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.evaluatorModel && (
-                  <p className="text-xs text-destructive">{form.formState.errors.evaluatorModel.message}</p>
                 )}
               </div>
 
@@ -245,11 +171,8 @@ export default function ParametersPage() {
               )}
 
               <div className="flex gap-2 justify-end flex-shrink-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => { setSelected(null); setIsNew(false); form.reset(); }}
-                >
+                <Button type="button" variant="outline"
+                  onClick={() => { setSelected(null); setIsNew(false); form.reset(); }}>
                   Hủy
                 </Button>
                 <Button type="submit" disabled={isPending}>
@@ -261,7 +184,6 @@ export default function ParametersPage() {
         </div>
       </div>
 
-      {/* Xác nhận xóa */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -277,7 +199,7 @@ export default function ParametersPage() {
               onClick={() => {
                 if (deleteTarget) {
                   deleteMutation.mutate(deleteTarget.id);
-                  if (selected?.id === deleteTarget.id) { setSelected(null); }
+                  if (selected?.id === deleteTarget.id) setSelected(null);
                   setDeleteTarget(null);
                 }
               }}
