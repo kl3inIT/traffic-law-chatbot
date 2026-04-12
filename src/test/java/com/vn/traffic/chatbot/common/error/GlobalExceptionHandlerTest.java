@@ -97,7 +97,7 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/test/no-resource")
         public String noResource() throws NoResourceFoundException {
             throw new NoResourceFoundException(
-                    org.springframework.http.HttpMethod.GET, "/test/no-resource", "/test/no-resource");
+                    org.springframework.http.HttpMethod.GET, "/test/no-resource");
         }
     }
 }
