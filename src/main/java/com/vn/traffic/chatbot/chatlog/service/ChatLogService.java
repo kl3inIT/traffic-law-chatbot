@@ -28,7 +28,7 @@ public class ChatLogService {
 
     public void save(String question, ChatAnswerResponse response, GroundingStatus groundingStatus,
                      String conversationId, int promptTokens, int completionTokens, int responseTime,
-                     String retrievedChunks, String promptText, String rawModelResponse) {
+                     String pipelineLog) {
         ChatLog chatLog = ChatLog.builder()
                 .question(question)
                 .answer(response.answer())
@@ -38,9 +38,7 @@ public class ChatLogService {
                 .promptTokens(promptTokens)
                 .completionTokens(completionTokens)
                 .responseTime(responseTime)
-                .retrievedChunks(retrievedChunks)
-                .promptText(promptText)
-                .rawModelResponse(rawModelResponse)
+                .pipelineLog(pipelineLog)
                 .build();
         chatLogRepository.save(chatLog);
     }

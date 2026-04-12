@@ -19,9 +19,10 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -46,19 +47,46 @@ public class ChatService {
     private int limitedGroundingThreshold;
 
     public ChatAnswerResponse answer(String question) {
+        List<String> logMessages = new ArrayList<>();
+        Consumer<String> logger = msg -> {
+            log.info(msg);
+            logMessages.add(msg);
+        };
+
+        // Step: user prompt
+        logger.accept("User prompt: " + question);
+
+        // Step: retrieval
         SearchRequest request = retrievalPolicy.buildRequest(question, retrievalTopK);
+        double threshold = retrievalPolicy.getSimilarityThreshold();
+        logger.accept(String.format(">>> Using vector_store [topK=%d, threshold=%.2f]: %s",
+                retrievalTopK, threshold, question));
+
         List<Document> documents = safeDocuments(vectorStore.similaritySearch(request));
+
+        // Step: found documents summary
+        String docSummary = documents.stream()
+                .map(doc -> {
+                    Double score = doc.getScore();
+                    String scoreStr = score != null ? String.format("(%.3f)", score) : "(?.???)";
+                    return scoreStr + " " + doc.getId();
+                })
+                .collect(Collectors.joining(", "));
+        logger.accept(String.format("Found %d documents: [%s]", documents.size(), docSummary));
+
         List<CitationResponse> citations = safeCitations(citationMapper.toCitations(documents));
         List<SourceReferenceResponse> sources = citationMapper.toSources(citations);
         GroundingStatus groundingStatus = determineGroundingStatus(documents.size());
+
+        // Step: grounding status
+        logger.accept(String.format("Grounding: %s (%d docs)", groundingStatus.name(), documents.size()));
 
         if (groundingStatus == GroundingStatus.REFUSED || !containsAnyLegalCitation(citations)) {
             chunkInspectionService.getRetrievalReadinessCounts();
             ChatAnswerResponse refused = refusalResponse();
             try {
-                String chunksJson = serializeChunks(documents);
-                chatLogService.save(question, refused, GroundingStatus.REFUSED, null, 0, 0, 0,
-                        chunksJson, null, null);
+                String pipelineLog = String.join("\n", logMessages);
+                chatLogService.save(question, refused, GroundingStatus.REFUSED, null, 0, 0, 0, pipelineLog);
             } catch (Exception ex) {
                 log.warn("Failed to persist chat log entry for refusal: {}", ex.getMessage());
             }
@@ -73,48 +101,30 @@ public class ChatService {
                 .chatResponse();
 
         String modelPayload = chatResponse.getResult().getOutput().getText();
-
         var usage = chatResponse.getMetadata().getUsage();
         int promptTokens = usage != null ? (int) usage.getPromptTokens() : 0;
         int completionTokens = usage != null ? (int) usage.getCompletionTokens() : 0;
         int responseTime = (int) (System.currentTimeMillis() - startTime);
 
+        // Step: response summary (preview first 120 chars of answer)
+        String answerPreview = modelPayload != null && modelPayload.length() > 120
+                ? modelPayload.substring(0, 120) + "…"
+                : modelPayload;
+        logger.accept(String.format("Response in %dms [prompt=%d, completion=%d]: %s",
+                responseTime, promptTokens, completionTokens, answerPreview));
+
         LegalAnswerDraft draft = parseDraft(modelPayload, groundingStatus, citations, sources);
         ChatAnswerResponse response = answerComposer.compose(groundingStatus, draft, citations, sources);
 
         try {
-            String chunksJson = serializeChunks(documents);
+            String pipelineLog = String.join("\n", logMessages);
             chatLogService.save(question, response, groundingStatus, null,
-                    promptTokens, completionTokens, responseTime,
-                    chunksJson, prompt, modelPayload);
+                    promptTokens, completionTokens, responseTime, pipelineLog);
         } catch (Exception ex) {
             log.warn("Failed to persist chat log entry: {}", ex.getMessage());
         }
 
         return response;
-    }
-
-    private String serializeChunks(List<Document> documents) {
-        if (documents == null || documents.isEmpty()) return null;
-        try {
-            List<Map<String, Object>> chunks = documents.stream().map(doc -> {
-                Map<String, Object> entry = new java.util.LinkedHashMap<>();
-                entry.put("id", doc.getId());
-                Object score = doc.getMetadata().get("distance");
-                if (score == null) score = doc.getMetadata().get("score");
-                entry.put("score", score);
-                entry.put("content", doc.getText() != null
-                        ? (doc.getText().length() > 300 ? doc.getText().substring(0, 300) + "…" : doc.getText())
-                        : null);
-                entry.put("source", doc.getMetadata().get("source"));
-                entry.put("sourceTitle", doc.getMetadata().get("sourceTitle"));
-                return entry;
-            }).collect(Collectors.toList());
-            return objectMapper.writeValueAsString(chunks);
-        } catch (Exception ex) {
-            log.warn("Failed to serialize retrieved chunks: {}", ex.getMessage());
-            return null;
-        }
     }
 
     public ChatAnswerResponse refusalResponse() {

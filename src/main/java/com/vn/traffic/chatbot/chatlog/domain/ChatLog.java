@@ -53,14 +53,8 @@ public class ChatLog {
     @Column(name = "response_time")
     private Integer responseTime;
 
-    @Column(name = "retrieved_chunks", columnDefinition = "TEXT")
-    private String retrievedChunks;
-
-    @Column(name = "prompt_text", columnDefinition = "TEXT")
-    private String promptText;
-
-    @Column(name = "raw_model_response", columnDefinition = "TEXT")
-    private String rawModelResponse;
+    @Column(name = "pipeline_log", columnDefinition = "TEXT")
+    private String pipelineLog;
 
     @CreationTimestamp
     @Column(name = "created_date", nullable = false, updatable = false)
