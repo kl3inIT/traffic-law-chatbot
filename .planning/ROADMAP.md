@@ -165,13 +165,6 @@ Plans:
 
 **UI hint:** yes
 
-**Plans:** 3 plans
-
-Plans:
-- [ ] 05-01-PLAN.md — Wave 0 test stubs + domain entities (ChatLog, CheckDef, CheckRun, CheckResult) + Liquibase migrations 008–011 + AiParameterSet model columns + ApiPaths + ChatService log retrofit
-- [ ] 05-02-PLAN.md — Check engine: CheckDef CRUD service + REST, async CheckRunner, LlmSemanticEvaluator, CheckRun REST (trigger/history/results), AllowedModel endpoint
-- [ ] 05-03-PLAN.md — Admin UI: chat-log list/detail, check definitions CRUD, check run history/detail, AiParameterSet model dropdowns + human verification checkpoint
-
 **Success criteria:**
 1. Admins can review chat logs for past conversations and investigate answer quality.
 2. Admins can define and run answer checks against the chatbot.
@@ -201,4 +194,4 @@ Plans:
 5. **Quality ops last, but not optional** — logs and answer checks complete the Jmix-like operational loop.
 
 ---
-*Last updated: 2026-04-12 after planning Phase 5 — quality operations and evaluation*
+*Last updated: 2026-04-11 after inserting Phase 4.1 — backend hardening, ETL maturation, use-case architecture*
