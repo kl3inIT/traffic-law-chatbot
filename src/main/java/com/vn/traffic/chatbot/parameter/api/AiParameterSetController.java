@@ -5,6 +5,7 @@ import com.vn.traffic.chatbot.parameter.api.dto.AiParameterSetResponse;
 import com.vn.traffic.chatbot.parameter.api.dto.CreateAiParameterSetRequest;
 import com.vn.traffic.chatbot.parameter.api.dto.UpdateAiParameterSetRequest;
 import com.vn.traffic.chatbot.parameter.domain.AiParameterSet;
+import com.vn.traffic.chatbot.parameter.domain.AllowedModel;
 import com.vn.traffic.chatbot.parameter.service.AiParameterSetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -70,6 +72,13 @@ public class AiParameterSetController {
         return ResponseEntity.status(201).body(toResponse(copied));
     }
 
+    @GetMapping(ApiPaths.ALLOWED_MODELS)
+    public List<AllowedModelResponse> getAllowedModels() {
+        return Arrays.stream(AllowedModel.values())
+                .map(m -> new AllowedModelResponse(m.getModelId(), m.getDisplayName()))
+                .toList();
+    }
+
     private AiParameterSetResponse toResponse(AiParameterSet entity) {
         return new AiParameterSetResponse(
                 entity.getId(),
@@ -80,4 +89,6 @@ public class AiParameterSetController {
                 entity.getUpdatedAt()
         );
     }
+
+    public record AllowedModelResponse(String modelId, String displayName) {}
 }
