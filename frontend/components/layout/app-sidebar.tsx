@@ -2,7 +2,15 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { MessageSquare, Database, BookOpen, Settings, ShieldCheck } from 'lucide-react';
+import {
+  MessageSquare,
+  Database,
+  BookOpen,
+  Settings,
+  ShieldCheck,
+  ClipboardCheck,
+  History,
+} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +30,9 @@ export const adminNavItems = [
   { title: 'Chỉ mục kiến thức', href: '/index', icon: BookOpen },
   { title: 'Bộ tham số AI', href: '/parameters', icon: Settings },
   { title: 'Chính sách tin cậy', href: '/trust-policy', icon: ShieldCheck },
+  { title: 'Lịch sử hội thoại', href: '/chat-logs', icon: MessageSquare },
+  { title: 'Kiểm tra chất lượng', href: '/checks', icon: ClipboardCheck },
+  { title: 'Lịch sử chạy', href: '/checks/runs', icon: History },
 ];
 
 export function AppSidebar() {
@@ -56,7 +67,7 @@ export function AppSidebar() {
               {adminNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname.startsWith(item.href)}
+                    isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
                     render={<Link href={item.href} />}
                   >
                     <item.icon className="h-4 w-4" />

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="008-chat-log" author="system">
+        <comment>Create chat_log table for persisting chat interaction history</comment>
+        <createTable tableName="chat_log">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="conversation_id" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="question" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="answer" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="sources" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="grounding_status" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="prompt_tokens" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="completion_tokens" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="response_time" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_date" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="chat_log" indexName="idx_chat_log_created_date">
+            <column name="created_date"/>
+        </createIndex>
+        <createIndex tableName="chat_log" indexName="idx_chat_log_grounding_status">
+            <column name="grounding_status"/>
+        </createIndex>
+        <createIndex tableName="chat_log" indexName="idx_chat_log_conversation_id">
+            <column name="conversation_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

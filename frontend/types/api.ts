@@ -229,6 +229,8 @@ export interface AiParameterSetResponse {
   name: string;
   active: boolean;
   content: string;
+  chatModel?: string;
+  evaluatorModel?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -241,4 +243,69 @@ export interface CreateAiParameterSetRequest {
 export interface UpdateAiParameterSetRequest {
   name: string;
   content: string;
+  chatModel?: string;
+  evaluatorModel?: string;
+}
+
+// Chat Log DTOs
+export type CheckRunStatus = 'RUNNING' | 'COMPLETED' | 'FAILED';
+
+export interface ChatLogListItem {
+  id: string;
+  conversationId: string | null;
+  question: string;
+  groundingStatus: GroundingStatus;
+  promptTokens: number;
+  completionTokens: number;
+  responseTime: number;
+  createdDate: string;
+}
+
+export interface ChatLogDetail extends ChatLogListItem {
+  answer: string;
+  sources: string | null;
+  pipelineLog: string | null;
+}
+
+export interface ChatLogPage {
+  content: ChatLogListItem[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+}
+
+// Check Definition DTOs
+export interface CheckDef {
+  id: string;
+  question: string;
+  referenceAnswer: string;
+  category: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
+// Check Run DTOs
+export interface CheckRun {
+  id: string;
+  status: CheckRunStatus;
+  averageScore: number | null;
+  parameterSetName: string | null;
+  checkCount: number | null;
+  createdDate: string;
+}
+
+export interface CheckResult {
+  id: string;
+  question: string;
+  referenceAnswer: string;
+  actualAnswer: string | null;
+  score: number | null;
+  log: string | null;
+  createdDate: string;
+}
+
+// Allowed Model DTO
+export interface AllowedModel {
+  modelId: string;
+  displayName: string;
 }

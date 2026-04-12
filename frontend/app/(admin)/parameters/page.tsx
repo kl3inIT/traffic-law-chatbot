@@ -31,18 +31,194 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+
+// ─── YAML helpers ───────────────────────────────────────────────────────────
+
+interface ParameterYaml {
+  model?: { name?: string; temperature?: number; maxTokens?: number };
+  retrieval?: {
+    topK?: number;
+    similarityThreshold?: number;
+    groundingLimitedThreshold?: number;
+  };
+  systemPrompt?: string;
+  messages?: {
+    disclaimer?: string;
+    refusal?: string;
+    limitedNotice?: string;
+    refusalNextStep1?: string;
+    refusalNextStep2?: string;
+    refusalNextStep3?: string;
+    clarificationIntro?: string;
+    clarificationNextStep?: string;
+  };
+  caseAnalysis?: {
+    maxClarifications?: number;
+    requiredFacts?: unknown;
+  };
+  [key: string]: unknown;
+}
+
+function yamlToForm(content: string): Partial<FormValues> {
+  try {
+    const parsed = parseYaml(content) as ParameterYaml;
+    return {
+      modelName: parsed?.model?.name ?? '',
+      modelTemperature: String(parsed?.model?.temperature ?? '0.3'),
+      modelMaxTokens: String(parsed?.model?.maxTokens ?? '2048'),
+      retrievalTopK: String(parsed?.retrieval?.topK ?? '5'),
+      retrievalSimilarityThreshold: String(parsed?.retrieval?.similarityThreshold ?? '0.7'),
+      retrievalGroundingLimitedThreshold: String(
+        parsed?.retrieval?.groundingLimitedThreshold ?? '0.5',
+      ),
+      systemPrompt: parsed?.systemPrompt ?? '',
+      messagesDisclaimer: parsed?.messages?.disclaimer ?? '',
+      messagesRefusal: parsed?.messages?.refusal ?? '',
+      messagesLimitedNotice: parsed?.messages?.limitedNotice ?? '',
+      messagesRefusalNextStep1: parsed?.messages?.refusalNextStep1 ?? '',
+      messagesRefusalNextStep2: parsed?.messages?.refusalNextStep2 ?? '',
+      messagesRefusalNextStep3: parsed?.messages?.refusalNextStep3 ?? '',
+      messagesClarificationIntro: parsed?.messages?.clarificationIntro ?? '',
+      messagesClarificationNextStep: parsed?.messages?.clarificationNextStep ?? '',
+      caseAnalysisMaxClarifications: String(parsed?.caseAnalysis?.maxClarifications ?? '2'),
+    };
+  } catch {
+    return {};
+  }
+}
+
+function formToYaml(values: FormValues, existingContent?: string): string {
+  // Preserve caseAnalysis.requiredFacts from existing YAML (it's complex structured data)
+  let existingRequiredFacts: unknown = undefined;
+  try {
+    if (existingContent) {
+      const existing = parseYaml(existingContent) as ParameterYaml;
+      existingRequiredFacts = existing?.caseAnalysis?.requiredFacts;
+    }
+  } catch {
+    // ignore
+  }
+
+  const obj: ParameterYaml = {
+    model: {
+      name: values.modelName,
+      temperature: parseFloat(values.modelTemperature),
+      maxTokens: parseInt(values.modelMaxTokens, 10),
+    },
+    retrieval: {
+      topK: parseInt(values.retrievalTopK, 10),
+      similarityThreshold: parseFloat(values.retrievalSimilarityThreshold),
+      groundingLimitedThreshold: parseFloat(values.retrievalGroundingLimitedThreshold),
+    },
+    systemPrompt: values.systemPrompt,
+    caseAnalysis: {
+      maxClarifications: parseInt(values.caseAnalysisMaxClarifications, 10),
+      ...(existingRequiredFacts !== undefined ? { requiredFacts: existingRequiredFacts } : {}),
+    },
+    messages: {
+      disclaimer: values.messagesDisclaimer,
+      refusal: values.messagesRefusal,
+      limitedNotice: values.messagesLimitedNotice,
+      refusalNextStep1: values.messagesRefusalNextStep1,
+      refusalNextStep2: values.messagesRefusalNextStep2,
+      refusalNextStep3: values.messagesRefusalNextStep3,
+      clarificationIntro: values.messagesClarificationIntro,
+      clarificationNextStep: values.messagesClarificationNextStep,
+    },
+  };
+
+  return stringifyYaml(obj);
+}
+
+// ─── Schema ─────────────────────────────────────────────────────────────────
 
 const schema = z.object({
   name: z.string().min(1, 'Tên bộ tham số là bắt buộc'),
-  content: z.string().min(1, 'Nội dung YAML là bắt buộc'),
+  modelName: z.string().min(1, 'Tên mô hình là bắt buộc'),
+  modelTemperature: z.string().min(1),
+  modelMaxTokens: z.string().min(1),
+  retrievalTopK: z.string().min(1),
+  retrievalSimilarityThreshold: z.string().min(1),
+  retrievalGroundingLimitedThreshold: z.string().min(1),
+  systemPrompt: z.string().min(1, 'System prompt là bắt buộc'),
+  messagesDisclaimer: z.string(),
+  messagesRefusal: z.string(),
+  messagesLimitedNotice: z.string(),
+  messagesRefusalNextStep1: z.string(),
+  messagesRefusalNextStep2: z.string(),
+  messagesRefusalNextStep3: z.string(),
+  messagesClarificationIntro: z.string(),
+  messagesClarificationNextStep: z.string(),
+  caseAnalysisMaxClarifications: z.string().min(1),
 });
+
 type FormValues = z.infer<typeof schema>;
+
+const DEFAULT_VALUES: FormValues = {
+  name: '',
+  modelName: 'openai',
+  modelTemperature: '0.3',
+  modelMaxTokens: '2048',
+  retrievalTopK: '5',
+  retrievalSimilarityThreshold: '0.7',
+  retrievalGroundingLimitedThreshold: '0.5',
+  systemPrompt:
+    'Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam.\nHãy trả lời bằng tiếng Việt với giọng điệu rõ ràng, trang trọng, dễ hiểu.\nThông tin chỉ mang tính chất tham khảo, không phải tư vấn pháp lý chính thức.',
+  messagesDisclaimer:
+    'Thông tin chỉ nhằm mục đích tham khảo, không thay thế tư vấn pháp lý chính thức.',
+  messagesRefusal:
+    'Tôi chưa thể trả lời chắc chắn vì chưa tìm thấy đủ căn cứ đáng tin cậy trong nguồn pháp lý đã được phê duyệt.',
+  messagesLimitedNotice:
+    'Một số nội dung dưới đây chỉ được trả lời trong phạm vi nguồn đã truy xuất được.',
+  messagesRefusalNextStep1: 'Nêu rõ hành vi vi phạm, loại phương tiện, thời gian hoặc địa điểm.',
+  messagesRefusalNextStep2: 'Nếu bạn đang hỏi về giấy tờ hoặc thủ tục, hãy ghi rõ tên giấy tờ.',
+  messagesRefusalNextStep3: 'Ưu tiên đối chiếu thêm với văn bản hoặc cổng thông tin chính thức.',
+  messagesClarificationIntro: 'Tôi cần làm rõ thêm một số tình tiết trước khi kết luận.',
+  messagesClarificationNextStep:
+    'Vui lòng trả lời trực tiếp các câu hỏi làm rõ để tôi phân tích đúng căn cứ.',
+  caseAnalysisMaxClarifications: '2',
+};
+
+// ─── Section helpers ─────────────────────────────────────────────────────────
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-muted-foreground mt-4 mb-2 text-xs font-semibold tracking-wide uppercase">
+      {children}
+    </p>
+  );
+}
+
+function FieldRow({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-sm">
+        {label}
+        {hint && <span className="text-muted-foreground ml-1 text-xs font-normal">({hint})</span>}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+// ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function ParametersPage() {
   const { data: parameterSets, isLoading } = useParameterSets();
   const [selected, setSelected] = useState<AiParameterSetResponse | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AiParameterSetResponse | null>(null);
+  const [existingContent, setExistingContent] = useState<string | undefined>(undefined);
 
   const createMutation = useCreateParameterSet();
   const updateMutation = useUpdateParameterSet();
@@ -52,28 +228,35 @@ export default function ParametersPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', content: '' },
+    defaultValues: DEFAULT_VALUES,
   });
+
+  const watchedValues = form.watch();
 
   const openNew = () => {
     setSelected(null);
     setIsNew(true);
-    form.reset({ name: '', content: '' });
+    setExistingContent(undefined);
+    form.reset(DEFAULT_VALUES);
   };
 
   const openEdit = (ps: AiParameterSetResponse) => {
     setSelected(ps);
     setIsNew(false);
-    form.reset({ name: ps.name, content: ps.content });
+    setExistingContent(ps.content);
+    const parsed = yamlToForm(ps.content);
+    form.reset({ ...DEFAULT_VALUES, ...parsed, name: ps.name });
   };
 
   const onSubmit = async (values: FormValues) => {
+    const content = formToYaml(values, existingContent);
     if (isNew) {
-      await createMutation.mutateAsync(values);
+      await createMutation.mutateAsync({ name: values.name, content });
       setIsNew(false);
-      form.reset();
+      form.reset(DEFAULT_VALUES);
     } else if (selected) {
-      await updateMutation.mutateAsync({ id: selected.id, data: values });
+      await updateMutation.mutateAsync({ id: selected.id, data: { name: values.name, content } });
+      setExistingContent(content);
     }
   };
 
@@ -82,18 +265,20 @@ export default function ParametersPage() {
   const showEditor = isNew || selected !== null;
 
   return (
-    <div className="p-6 flex flex-col gap-4 h-screen">
-      <div className="flex items-center justify-between flex-shrink-0">
+    <div className="flex h-screen flex-col gap-4 p-6">
+      <div className="flex flex-shrink-0 items-center justify-between">
         <h1 className="text-xl font-semibold">Bộ tham số AI</h1>
         <Button onClick={openNew}>+ Tạo mới</Button>
       </div>
 
-      <div className="flex gap-4 flex-1 min-h-0">
-        {/* Danh sách bên trái */}
-        <div className="w-64 flex-shrink-0 border rounded-lg overflow-y-auto">
+      <div className="flex min-h-0 flex-1 gap-4">
+        {/* Parameter set list */}
+        <div className="w-64 flex-shrink-0 overflow-y-auto rounded-lg border">
           {isLoading && (
-            <div className="p-3 space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+            <div className="space-y-2 p-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
             </div>
           )}
           {parameterSets?.map((ps) => (
@@ -101,20 +286,20 @@ export default function ParametersPage() {
               key={ps.id}
               onClick={() => openEdit(ps)}
               className={cn(
-                'p-3 border-b cursor-pointer hover:bg-muted transition-colors',
-                selected?.id === ps.id && !isNew && 'bg-primary/10 border-l-2 border-l-primary'
+                'hover:bg-muted cursor-pointer border-b p-3 transition-colors',
+                selected?.id === ps.id && !isNew && 'bg-primary/10 border-l-primary border-l-2',
               )}
             >
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium truncate">{ps.name}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="truncate text-sm font-medium">{ps.name}</span>
                 {ps.active && <Badge className="text-xs">Đang hoạt động</Badge>}
               </div>
-              <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
+              <div className="mt-2 flex gap-1" onClick={(e) => e.stopPropagation()}>
                 {!ps.active && (
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-6 text-xs px-2"
+                    className="h-6 px-2 text-xs"
                     onClick={() => activate.mutate(ps.id)}
                     disabled={activate.isPending}
                   >
@@ -124,7 +309,7 @@ export default function ParametersPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-6 text-xs px-2"
+                  className="h-6 px-2 text-xs"
                   onClick={() => copy.mutate(ps.id)}
                   disabled={copy.isPending}
                 >
@@ -134,7 +319,7 @@ export default function ParametersPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-6 text-xs px-2 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-6 px-2 text-xs"
                     onClick={() => setDeleteTarget(ps)}
                   >
                     Xóa
@@ -144,50 +329,171 @@ export default function ParametersPage() {
             </div>
           ))}
           {!isLoading && parameterSets?.length === 0 && (
-            <p className="p-4 text-sm text-muted-foreground text-center">Chưa có bộ tham số</p>
+            <p className="text-muted-foreground p-4 text-center text-sm">Chưa có bộ tham số</p>
           )}
         </div>
 
-        {/* Editor bên phải */}
-        <div className="flex-1 border rounded-lg overflow-hidden flex flex-col">
+        {/* Editor */}
+        <div className="flex flex-1 flex-col overflow-hidden rounded-lg border">
           {!showEditor ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              Chọn bộ tham số để chỉnh sửa hoặc nhấn "+ Tạo mới"
+            <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
+              Chọn bộ tham số để chỉnh sửa hoặc nhấn &quot;+ Tạo mới&quot;
             </div>
           ) : (
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full p-4 gap-4">
-              <div className="space-y-1 flex-shrink-0">
-                <Label htmlFor="name">Tên bộ tham số</Label>
-                <Input id="name" {...form.register('name')} placeholder="Nhập tên bộ tham số" />
-                {form.formState.errors.name && (
-                  <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
-                )}
-              </div>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex h-full flex-col overflow-hidden"
+            >
+              <Tabs defaultValue="form" className="flex min-h-0 flex-1 flex-col">
+                <div className="flex-shrink-0 border-b px-5 pt-3">
+                  <TabsList variant="line">
+                    <TabsTrigger value="form">Cấu hình</TabsTrigger>
+                    <TabsTrigger value="yaml">YAML</TabsTrigger>
+                  </TabsList>
+                </div>
+                <TabsContent value="form" className="min-h-0 overflow-y-auto">
+                  <div className="space-y-2 p-5">
+                    {/* Name */}
+                    <FieldRow label="Tên bộ tham số">
+                      <Input {...form.register('name')} placeholder="Ví dụ: Bộ tham số mặc định" />
+                      {form.formState.errors.name && (
+                        <p className="text-destructive text-xs">
+                          {form.formState.errors.name.message}
+                        </p>
+                      )}
+                    </FieldRow>
 
-              <div className="flex flex-col flex-1 min-h-0 space-y-1">
-                <Label htmlFor="content">Nội dung YAML</Label>
-                <Textarea
-                  id="content"
-                  {...form.register('content')}
-                  className="font-mono text-sm flex-1 resize-none"
-                  placeholder={"model:\n  name: openai\n  temperature: 0.3\nretrieval:\n  topK: 5"}
-                />
-                {form.formState.errors.content && (
-                  <p className="text-xs text-destructive">{form.formState.errors.content.message}</p>
-                )}
-              </div>
+                    {/* Model */}
+                    <SectionHeader>Mô hình AI</SectionHeader>
+                    <div className="grid grid-cols-3 gap-3">
+                      <FieldRow label="Tên mô hình">
+                        <Input {...form.register('modelName')} placeholder="openai" />
+                      </FieldRow>
+                      <FieldRow label="Temperature" hint="0 – 2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="2"
+                          {...form.register('modelTemperature')}
+                        />
+                      </FieldRow>
+                      <FieldRow label="Max tokens">
+                        <Input type="number" min="1" {...form.register('modelMaxTokens')} />
+                      </FieldRow>
+                    </div>
+
+                    {/* Retrieval */}
+                    <SectionHeader>Truy xuất ngữ nghĩa</SectionHeader>
+                    <div className="grid grid-cols-3 gap-3">
+                      <FieldRow label="Top K" hint="số tài liệu">
+                        <Input type="number" min="1" {...form.register('retrievalTopK')} />
+                      </FieldRow>
+                      <FieldRow label="Ngưỡng tương đồng" hint="0 – 1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="1"
+                          {...form.register('retrievalSimilarityThreshold')}
+                        />
+                      </FieldRow>
+                      <FieldRow label="Ngưỡng grounding hạn chế" hint="0 – 1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="1"
+                          {...form.register('retrievalGroundingLimitedThreshold')}
+                        />
+                      </FieldRow>
+                    </div>
+
+                    {/* System Prompt */}
+                    <SectionHeader>System Prompt</SectionHeader>
+                    <Textarea
+                      {...form.register('systemPrompt')}
+                      className="min-h-[100px] resize-y text-sm"
+                      placeholder="Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam..."
+                    />
+                    {form.formState.errors.systemPrompt && (
+                      <p className="text-destructive text-xs">
+                        {form.formState.errors.systemPrompt.message}
+                      </p>
+                    )}
+
+                    {/* Case Analysis */}
+                    <SectionHeader>Phân tích tình huống</SectionHeader>
+                    <FieldRow label="Số câu hỏi làm rõ tối đa">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="10"
+                        className="w-32"
+                        {...form.register('caseAnalysisMaxClarifications')}
+                      />
+                    </FieldRow>
+
+                    {/* Messages */}
+                    <SectionHeader>Thông điệp hệ thống</SectionHeader>
+                    <div className="space-y-3">
+                      <FieldRow label="Tuyên bố miễn trách nhiệm">
+                        <Input {...form.register('messagesDisclaimer')} />
+                      </FieldRow>
+                      <FieldRow label="Phản hồi từ chối">
+                        <Textarea
+                          {...form.register('messagesRefusal')}
+                          className="min-h-[60px] resize-y text-sm"
+                        />
+                      </FieldRow>
+                      <FieldRow label="Thông báo grounding hạn chế">
+                        <Input {...form.register('messagesLimitedNotice')} />
+                      </FieldRow>
+                      <FieldRow label="Bước tiếp theo khi từ chối — 1">
+                        <Input {...form.register('messagesRefusalNextStep1')} />
+                      </FieldRow>
+                      <FieldRow label="Bước tiếp theo khi từ chối — 2">
+                        <Input {...form.register('messagesRefusalNextStep2')} />
+                      </FieldRow>
+                      <FieldRow label="Bước tiếp theo khi từ chối — 3">
+                        <Input {...form.register('messagesRefusalNextStep3')} />
+                      </FieldRow>
+                      <FieldRow label="Giới thiệu câu hỏi làm rõ">
+                        <Input {...form.register('messagesClarificationIntro')} />
+                      </FieldRow>
+                      <FieldRow label="Hướng dẫn câu hỏi làm rõ">
+                        <Input {...form.register('messagesClarificationNextStep')} />
+                      </FieldRow>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="yaml" className="min-h-0 overflow-auto p-5">
+                  <pre className="bg-muted h-full min-h-[200px] rounded-md p-4 text-xs leading-relaxed break-all whitespace-pre-wrap">
+                    {formToYaml(watchedValues, existingContent)}
+                  </pre>
+                </TabsContent>
+              </Tabs>
 
               {isError && (
-                <Alert variant="destructive" className="flex-shrink-0">
-                  <AlertDescription>Thao tác không thành công. Vui lòng thử lại.</AlertDescription>
-                </Alert>
+                <div className="flex-shrink-0 px-5 pb-2">
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      Thao tác không thành công. Vui lòng thử lại.
+                    </AlertDescription>
+                  </Alert>
+                </div>
               )}
 
-              <div className="flex gap-2 justify-end flex-shrink-0">
+              <div className="flex flex-shrink-0 justify-end gap-2 border-t px-5 py-3">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => { setSelected(null); setIsNew(false); form.reset(); }}
+                  onClick={() => {
+                    setSelected(null);
+                    setIsNew(false);
+                    form.reset(DEFAULT_VALUES);
+                  }}
                 >
                   Hủy
                 </Button>
@@ -200,13 +506,12 @@ export default function ParametersPage() {
         </div>
       </div>
 
-      {/* Xác nhận xóa */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
             <AlertDialogDescription>
-              Xóa bộ tham số "{deleteTarget?.name}"? Dữ liệu sẽ bị xóa vĩnh viễn.
+              Xóa bộ tham số &quot;{deleteTarget?.name}&quot;? Dữ liệu sẽ bị xóa vĩnh viễn.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -216,7 +521,7 @@ export default function ParametersPage() {
               onClick={() => {
                 if (deleteTarget) {
                   deleteMutation.mutate(deleteTarget.id);
-                  if (selected?.id === deleteTarget.id) { setSelected(null); }
+                  if (selected?.id === deleteTarget.id) setSelected(null);
                   setDeleteTarget(null);
                 }
               }}

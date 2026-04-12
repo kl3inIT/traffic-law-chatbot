@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Size;
 
 public record CreateAiParameterSetRequest(
         @NotBlank String name,
-        @NotBlank @Size(max = 65536) String content
+        @NotBlank @Size(max = 65536) String content,
+        String chatModel,
+        String evaluatorModel
 ) {
 }

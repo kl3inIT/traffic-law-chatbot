@@ -89,32 +89,32 @@ class AiParameterSetControllerTest {
     @Test
     void createReturns201() throws Exception {
         UUID id = UUID.randomUUID();
-        when(service.create(any(), any())).thenReturn(paramSet(id, "New Set", false));
+        when(service.create(any(), any(), any(), any())).thenReturn(paramSet(id, "New Set", false));
 
         mockMvc.perform(post(ApiPaths.PARAMETER_SETS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new CreateAiParameterSetRequest("New Set", "model:\n  name: openai"))))
+                                new CreateAiParameterSetRequest("New Set", "model:\n  name: openai", null, null))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("New Set"));
 
-        verify(service).create("New Set", "model:\n  name: openai");
+        verify(service).create("New Set", "model:\n  name: openai", null, null);
     }
 
     @Test
     void updateReturns200() throws Exception {
         UUID id = UUID.randomUUID();
-        when(service.update(eq(id), any(), any())).thenReturn(paramSet(id, "Updated Set", false));
+        when(service.update(eq(id), any(), any(), any(), any())).thenReturn(paramSet(id, "Updated Set", false));
 
         mockMvc.perform(put(ApiPaths.PARAMETER_SETS + "/" + id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpdateAiParameterSetRequest("Updated Set", "model:\n  name: openai"))))
+                                new UpdateAiParameterSetRequest("Updated Set", "model:\n  name: openai", null, null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Updated Set"));
 
-        verify(service).update(eq(id), eq("Updated Set"), any());
+        verify(service).update(eq(id), eq("Updated Set"), any(), any(), any());
     }
 
     @Test

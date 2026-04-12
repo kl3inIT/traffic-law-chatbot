@@ -101,13 +101,13 @@ Plans:
 **Plans:** 7 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — AiParameterSet backend: entity, Liquibase migration, CRUD REST API, default seed, thread list endpoint
-- [ ] 04-02-PLAN.md — Refactor hardcoded AI settings to read from active parameter set + CORS config
-- [ ] 04-03-PLAN.md — Frontend scaffold: Next.js 16 project, shadcn/ui init, TypeScript types, API client, test infra
-- [ ] 04-04-PLAN.md — Sidebar shell, thread list component, route group layouts
-- [ ] 04-05-PLAN.md — Chat interface: message bubbles, scenario accordion, chat input, page wiring
-- [ ] 04-06-PLAN.md — Source management DataTable + Knowledge index inspection cards
-- [ ] 04-07-PLAN.md — AI parameter sets admin screen + E2E visual verification checkpoint
+- [x] 04-01-PLAN.md — AiParameterSet backend: entity, Liquibase migration, CRUD REST API, default seed, thread list endpoint
+- [x] 04-02-PLAN.md — Refactor hardcoded AI settings to read from active parameter set + CORS config
+- [x] 04-03-PLAN.md — Frontend scaffold: Next.js 16 project, shadcn/ui init, TypeScript types, API client, test infra
+- [x] 04-04-PLAN.md — Sidebar shell, thread list component, route group layouts
+- [x] 04-05-PLAN.md — Chat interface: message bubbles, scenario accordion, chat input, page wiring
+- [x] 04-06-PLAN.md — Source management DataTable + Knowledge index inspection cards
+- [x] 04-07-PLAN.md — AI parameter sets admin screen + E2E visual verification checkpoint
 
 **Success criteria:**
 1. The frontend is implemented in Next.js and supports the v1 chat workflow end-to-end.
@@ -165,6 +165,13 @@ Plans:
 
 **UI hint:** yes
 
+**Plans:** 3 plans
+
+Plans:
+- [x] 05-01-PLAN.md — Wave 0 test stubs + domain entities (ChatLog, CheckDef, CheckRun, CheckResult) + Liquibase migrations 008–011 + AiParameterSet model columns + ApiPaths + ChatService log retrofit
+- [x] 05-02-PLAN.md — Check engine: CheckDef CRUD service + REST, async CheckRunner, LlmSemanticEvaluator, CheckRun REST (trigger/history/results), AllowedModel endpoint
+- [x] 05-03-PLAN.md — Admin UI: chat-log list/detail, check definitions CRUD, check run history/detail, AiParameterSet model dropdowns + human verification checkpoint
+
 **Success criteria:**
 1. Admins can review chat logs for past conversations and investigate answer quality.
 2. Admins can define and run answer checks against the chatbot.
@@ -194,4 +201,4 @@ Plans:
 5. **Quality ops last, but not optional** — logs and answer checks complete the Jmix-like operational loop.
 
 ---
-*Last updated: 2026-04-11 after inserting Phase 4.1 — backend hardening, ETL maturation, use-case architecture*
+*Last updated: 2026-04-12 after planning Phase 5 — quality operations and evaluation*

@@ -6,20 +6,24 @@ import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
+import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -35,31 +39,111 @@ public class ChatService {
     private final ChatPromptFactory chatPromptFactory;
     private final ChunkInspectionService chunkInspectionService;
     private final AnswerCompositionPolicy answerCompositionPolicy;
+    private final ChatLogService chatLogService;
+
     @Value("${app.chat.retrieval.top-k:5}")
     private int retrievalTopK;
     @Value("${app.chat.grounding.limited-threshold:2}")
     private int limitedGroundingThreshold;
 
     public ChatAnswerResponse answer(String question) {
+        List<String> logMessages = new ArrayList<>();
+        Consumer<String> logger = msg -> {
+            log.info(msg);
+            logMessages.add(msg);
+        };
+
+        // Step: user prompt
+        logger.accept("User prompt: " + question);
+
+        // Step: retrieval
         SearchRequest request = retrievalPolicy.buildRequest(question, retrievalTopK);
+        double threshold = retrievalPolicy.getSimilarityThreshold();
+        logger.accept(String.format(">>> Using vector_store [topK=%d, threshold=%.2f]: %s",
+                retrievalTopK, threshold, question));
+
         List<Document> documents = safeDocuments(vectorStore.similaritySearch(request));
+
+        // Step: found documents summary
+        String docSummary = documents.stream()
+                .map(doc -> {
+                    Double score = doc.getScore();
+                    String scoreStr = score != null ? String.format("(%.3f)", score) : "(?.???)";
+                    return scoreStr + " " + doc.getId();
+                })
+                .collect(Collectors.joining(", "));
+        logger.accept(String.format("Found %d documents: [%s]", documents.size(), docSummary));
+
         List<CitationResponse> citations = safeCitations(citationMapper.toCitations(documents));
+        logger.accept(String.format("Citations mapped: %d citation(s)", citations.size()));
+
         List<SourceReferenceResponse> sources = citationMapper.toSources(citations);
+        logger.accept(String.format("Sources mapped: %d source reference(s)", sources.size()));
+
         GroundingStatus groundingStatus = determineGroundingStatus(documents.size());
 
-        if (groundingStatus == GroundingStatus.REFUSED || !containsAnyLegalCitation(citations)) {
+        // Step: grounding status
+        logger.accept(String.format("Grounding: %s (%d docs)", groundingStatus.name(), documents.size()));
+
+        boolean hasLegalCitation = containsAnyLegalCitation(citations);
+        logger.accept(String.format("Legal citation check: %s", hasLegalCitation ? "passed" : "no legal signals found"));
+
+        if (groundingStatus == GroundingStatus.REFUSED || !hasLegalCitation) {
+            logger.accept("Path: refusal — grounding refused or no legal citations");
             chunkInspectionService.getRetrievalReadinessCounts();
-            return refusalResponse();
+            ChatAnswerResponse refused = refusalResponse();
+            try {
+                String pipelineLog = String.join("\n", logMessages);
+                chatLogService.save(question, refused, GroundingStatus.REFUSED, null, 0, 0, 0, pipelineLog);
+                logger.accept("Chat log: refusal entry saved");
+            } catch (Exception ex) {
+                log.warn("Failed to persist chat log entry for refusal: {}", ex.getMessage());
+                logger.accept("Chat log: save failed — " + ex.getMessage());
+            }
+            return refused;
         }
 
+        long startTime = System.currentTimeMillis();
         String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations);
-        String modelPayload = chatClient.prompt()
+        logger.accept(String.format("Prompt built: %d chars", prompt.length()));
+
+        logger.accept("LLM call: started");
+        ChatResponse chatResponse = chatClient.prompt()
                 .user(prompt)
                 .call()
-                .content();
+                .chatResponse();
+
+        String modelPayload = chatResponse.getResult().getOutput().getText();
+        var usage = chatResponse.getMetadata().getUsage();
+        int promptTokens = usage != null ? (int) usage.getPromptTokens() : 0;
+        int completionTokens = usage != null ? (int) usage.getCompletionTokens() : 0;
+        int responseTime = (int) (System.currentTimeMillis() - startTime);
+
+        // Step: response summary (preview first 120 chars of answer)
+        String answerPreview = modelPayload != null && modelPayload.length() > 120
+                ? modelPayload.substring(0, 120) + "…"
+                : modelPayload;
+        logger.accept(String.format("LLM response in %dms [prompt=%d, completion=%d]: %s",
+                responseTime, promptTokens, completionTokens, answerPreview));
 
         LegalAnswerDraft draft = parseDraft(modelPayload, groundingStatus, citations, sources);
-        return answerComposer.compose(groundingStatus, draft, citations, sources);
+        logger.accept(String.format("Draft parsed: conclusion=%s",
+                draft.conclusion() != null ? "present" : "absent (fallback)"));
+
+        ChatAnswerResponse response = answerComposer.compose(groundingStatus, draft, citations, sources);
+        logger.accept("Answer composed: done");
+
+        try {
+            String pipelineLog = String.join("\n", logMessages);
+            chatLogService.save(question, response, groundingStatus, null,
+                    promptTokens, completionTokens, responseTime, pipelineLog);
+            logger.accept("Chat log: entry saved");
+        } catch (Exception ex) {
+            log.warn("Failed to persist chat log entry: {}", ex.getMessage());
+            logger.accept("Chat log: save failed — " + ex.getMessage());
+        }
+
+        return response;
     }
 
     public ChatAnswerResponse refusalResponse() {

@@ -38,4 +38,10 @@ public class AiParameterSet {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @Column(name = "chat_model", length = 200)
+    private String chatModel;
+
+    @Column(name = "evaluator_model", length = 200)
+    private String evaluatorModel;
 }

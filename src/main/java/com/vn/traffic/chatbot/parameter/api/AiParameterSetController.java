@@ -39,7 +39,7 @@ public class AiParameterSetController {
     @PostMapping
     public ResponseEntity<AiParameterSetResponse> create(@Valid @RequestBody CreateAiParameterSetRequest request) {
         log.info("Creating AI parameter set: {}", request.name());
-        AiParameterSet created = service.create(request.name(), request.content());
+        AiParameterSet created = service.create(request.name(), request.content(), request.chatModel(), request.evaluatorModel());
         return ResponseEntity.status(201).body(toResponse(created));
     }
 
@@ -47,7 +47,7 @@ public class AiParameterSetController {
     public ResponseEntity<AiParameterSetResponse> update(
             @PathVariable UUID parameterSetId,
             @Valid @RequestBody UpdateAiParameterSetRequest request) {
-        AiParameterSet updated = service.update(parameterSetId, request.name(), request.content());
+        AiParameterSet updated = service.update(parameterSetId, request.name(), request.content(), request.chatModel(), request.evaluatorModel());
         return ResponseEntity.ok(toResponse(updated));
     }
 
@@ -76,8 +76,11 @@ public class AiParameterSetController {
                 entity.getName(),
                 entity.isActive(),
                 entity.getContent(),
+                entity.getChatModel(),
+                entity.getEvaluatorModel(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
     }
+
 }

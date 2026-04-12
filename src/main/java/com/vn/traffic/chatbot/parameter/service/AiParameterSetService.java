@@ -38,19 +38,23 @@ public class AiParameterSetService {
         return repository.findByActiveTrue();
     }
 
-    public AiParameterSet create(String name, String content) {
+    public AiParameterSet create(String name, String content, String chatModel, String evaluatorModel) {
         AiParameterSet entity = AiParameterSet.builder()
                 .name(name)
                 .content(content)
+                .chatModel(chatModel)
+                .evaluatorModel(evaluatorModel)
                 .active(false)
                 .build();
         return repository.save(entity);
     }
 
-    public AiParameterSet update(UUID id, String name, String content) {
+    public AiParameterSet update(UUID id, String name, String content, String chatModel, String evaluatorModel) {
         AiParameterSet entity = findById(id);
         entity.setName(name);
         entity.setContent(content);
+        entity.setChatModel(chatModel);
+        entity.setEvaluatorModel(evaluatorModel);
         return repository.save(entity);
     }
 
