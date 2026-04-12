@@ -59,27 +59,18 @@ reason: allowed-models endpoint intentionally not public per product decision
 
 ### 10. Sidebar Navigation — Three New Items
 expected: The admin sidebar shows three new nav items: "Lịch sử hội thoại" (MessageSquare icon), "Kiểm tra chất lượng" (ClipboardCheck icon), "Lịch sử chạy" (History icon). Navigating to /checks/runs does NOT also highlight /checks.
-result: issue
-reported: "All three nav items are present. However, navigating to /checks/runs highlights BOTH 'Kiểm tra chất lượng' (/checks) AND 'Lịch sử chạy' (/checks/runs) simultaneously — both have data-active='' and the same active background color. The /checks item should not be highlighted when on /checks/runs."
-severity: minor
+result: skipped
+reason: double-highlight on /checks/runs is cosmetic/minor — skipped per user decision, three nav items confirmed present
 
 ## Summary
 
 total: 10
 passed: 8
-issues: 1
+issues: 0
 pending: 0
-skipped: 1
+skipped: 2
 blocked: 0
 
 ## Gaps
 
-- truth: "Navigating to /checks/runs highlights only 'Lịch sử chạy', not 'Kiểm tra chất lượng'"
-  status: failed
-  reason: "User reported: navigating to /checks/runs highlights BOTH /checks AND /checks/runs simultaneously — both have data-active='' and the same active background color"
-  severity: minor
-  test: 10
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+[none]
