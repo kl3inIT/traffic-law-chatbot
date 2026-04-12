@@ -2,7 +2,15 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { MessageSquare, Database, BookOpen, Settings, ShieldCheck, ClipboardCheck, History } from 'lucide-react';
+import {
+  MessageSquare,
+  Database,
+  BookOpen,
+  Settings,
+  ShieldCheck,
+  ClipboardCheck,
+  History,
+} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -59,7 +67,7 @@ export function AppSidebar() {
               {adminNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname.startsWith(item.href)}
+                    isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
                     render={<Link href={item.href} />}
                   >
                     <item.icon className="h-4 w-4" />
