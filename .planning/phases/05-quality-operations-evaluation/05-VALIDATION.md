@@ -1,9 +1,9 @@
 ---
 phase: 5
 slug: quality-operations-evaluation
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: verified
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-12
 ---
 
@@ -39,15 +39,15 @@ created: 2026-04-12
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 05-01-01 | 01 | 1 | ADMIN-04 | — | ChatLog written after answer, never before | Unit | `./mvnw test -Dtest=ChatServiceTest -q` | Partial (needs retrofit coverage) | ⬜ pending |
-| 05-01-02 | 01 | 1 | ADMIN-04 | — | Log failure does not break chat response | Unit | `./mvnw test -Dtest=ChatLogServiceTest#*log_failure* -q` | ❌ W0 | ⬜ pending |
-| 05-01-03 | 01 | 1 | ADMIN-04 | — | ChatLog REST returns paginated + filtered list | Integration | `./mvnw test -Dtest=ChatLogControllerTest -q` | ❌ W0 | ⬜ pending |
-| 05-02-01 | 02 | 2 | ADMIN-05 | — | CheckDef CRUD (create, update, delete, findActive) | Unit | `./mvnw test -Dtest=CheckDefServiceTest -q` | ❌ W0 | ⬜ pending |
-| 05-02-02 | 02 | 2 | ADMIN-05 | — | CheckRunner runs all active defs, saves results | Unit | `./mvnw test -Dtest=CheckRunnerTest -q` | ❌ W0 | ⬜ pending |
-| 05-02-03 | 02 | 2 | ADMIN-05 | — | SemanticEvaluator parses score from valid LLM response | Unit | `./mvnw test -Dtest=LlmSemanticEvaluatorTest -q` | ❌ W0 | ⬜ pending |
-| 05-02-04 | 02 | 2 | ADMIN-05 | — | SemanticEvaluator returns 0.0 on LLM failure (no throw) | Unit | `./mvnw test -Dtest=LlmSemanticEvaluatorTest -q` | ❌ W0 | ⬜ pending |
-| 05-02-05 | 02 | 2 | ADMIN-05 | — | CheckRun trigger returns 202 with run ID | Integration | `./mvnw test -Dtest=CheckRunControllerTest -q` | ❌ W0 | ⬜ pending |
-| 05-03-01 | 03 | 3 | ADMIN-04 | — | Frontend build passes with chat-logs and checks pages | Build | `cd frontend && npm run build` | ✅ | ⬜ pending |
+| 05-01-01 | 01 | 1 | ADMIN-04 | — | ChatLog written after answer, never before | Unit | `./gradlew test --tests "*.ChatServiceTest"` | ✅ | ✅ green |
+| 05-01-02 | 01 | 1 | ADMIN-04 | — | Log failure does not break chat response | Unit | `./gradlew test --tests "*.ChatLogServiceTest"` | ✅ | ✅ green |
+| 05-01-03 | 01 | 1 | ADMIN-04 | — | ChatLog REST returns paginated + filtered list | Integration | `./gradlew test --tests "*.ChatLogControllerTest"` | ✅ | ✅ green |
+| 05-02-01 | 02 | 2 | ADMIN-05 | — | CheckDef CRUD (create, update, delete, findActive) | Unit | `./gradlew test --tests "*.CheckDefServiceTest"` | ✅ | ✅ green |
+| 05-02-02 | 02 | 2 | ADMIN-05 | — | CheckRunner runs all active defs, saves results | Unit | `./gradlew test --tests "*.CheckRunnerTest"` | ✅ | ✅ green |
+| 05-02-03 | 02 | 2 | ADMIN-05 | — | SemanticEvaluator parses score from valid LLM response | Unit | `./gradlew test --tests "*.LlmSemanticEvaluatorTest"` | ✅ | ✅ green |
+| 05-02-04 | 02 | 2 | ADMIN-05 | — | SemanticEvaluator returns 0.0 on LLM failure (no throw) | Unit | `./gradlew test --tests "*.LlmSemanticEvaluatorTest"` | ✅ | ✅ green |
+| 05-02-05 | 02 | 2 | ADMIN-05 | — | CheckRun trigger returns 202 with run ID | Integration | `./gradlew test --tests "*.CheckRunControllerTest"` | ✅ | ✅ green |
+| 05-03-01 | 03 | 3 | ADMIN-04 | — | Frontend build passes with chat-logs and checks pages | Build | `cd frontend && npm run build` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -55,12 +55,12 @@ created: 2026-04-12
 
 ## Wave 0 Requirements
 
-- [ ] `src/test/java/com/vn/traffic/chatbot/chatlog/ChatLogServiceTest.java` — ChatService retrofit: log persisted after answer, log failure swallowed
-- [ ] `src/test/java/com/vn/traffic/chatbot/chatlog/ChatLogControllerTest.java` — REST list with filter params (groundingStatus, dateRange), REST detail
-- [ ] `src/test/java/com/vn/traffic/chatbot/checks/CheckDefServiceTest.java` — CRUD operations (create, update, delete, findActive)
-- [ ] `src/test/java/com/vn/traffic/chatbot/checks/CheckRunnerTest.java` — async run, result aggregation, COMPLETED status set on CheckRun
-- [ ] `src/test/java/com/vn/traffic/chatbot/checks/LlmSemanticEvaluatorTest.java` — score parsing from JSON, failure returns 0.0 (no exception propagation)
-- [ ] `src/test/java/com/vn/traffic/chatbot/checks/CheckRunControllerTest.java` — 202 trigger response, GET results endpoint
+- [x] `src/test/java/com/vn/traffic/chatbot/chatlog/ChatLogServiceTest.java` — ChatService retrofit: log persisted after answer, log failure swallowed
+- [x] `src/test/java/com/vn/traffic/chatbot/chatlog/ChatLogControllerTest.java` — REST list with filter params (groundingStatus, dateRange), REST detail
+- [x] `src/test/java/com/vn/traffic/chatbot/checks/CheckDefServiceTest.java` — CRUD operations (create, update, delete, findActive)
+- [x] `src/test/java/com/vn/traffic/chatbot/checks/CheckRunnerTest.java` — async run, result aggregation, COMPLETED status set on CheckRun
+- [x] `src/test/java/com/vn/traffic/chatbot/checks/LlmSemanticEvaluatorTest.java` — score parsing from JSON, failure returns 0.0 (no exception propagation)
+- [x] `src/test/java/com/vn/traffic/chatbot/checks/CheckRunControllerTest.java` — 202 trigger response, GET results endpoint
 
 ---
 
@@ -76,11 +76,19 @@ created: 2026-04-12
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 90s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 90s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+## Validation Audit 2026-04-13
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 6 (Wave 0 unwritten + 1 broken AiParameterSet test) |
+| Resolved | 7 |
+| Escalated | 0 |
+
+**Approval:** verified 2026-04-13
