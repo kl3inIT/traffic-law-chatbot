@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import {
   useParameterSets,
@@ -17,10 +19,12 @@ import {
   useCopyParameterSet,
   useDeleteParameterSet,
 } from '@/hooks/use-parameters';
-import type { AiParameterSetResponse } from '@/types/api';
-import { useForm } from 'react-hook-form';
+import type { AiParameterSetResponse, AllowedModel } from '@/types/api';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useQuery } from '@tanstack/react-query';
+import { apiGet } from '@/lib/api/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,11 +39,17 @@ import {
 const schema = z.object({
   name: z.string().min(1, 'Tên bộ tham số là bắt buộc'),
   content: z.string().min(1, 'Nội dung YAML là bắt buộc'),
+  chatModel: z.string().optional(),
+  evaluatorModel: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
 export default function ParametersPage() {
   const { data: parameterSets, isLoading } = useParameterSets();
+  const { data: allowedModels = [] } = useQuery<AllowedModel[]>({
+    queryKey: ['allowed-models'],
+    queryFn: () => apiGet('/api/v1/admin/allowed-models'),
+  });
   const [selected, setSelected] = useState<AiParameterSetResponse | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AiParameterSetResponse | null>(null);
@@ -52,28 +62,34 @@ export default function ParametersPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', content: '' },
+    defaultValues: { name: '', content: '', chatModel: '', evaluatorModel: '' },
   });
 
   const openNew = () => {
     setSelected(null);
     setIsNew(true);
-    form.reset({ name: '', content: '' });
+    form.reset({ name: '', content: '', chatModel: '', evaluatorModel: '' });
   };
 
   const openEdit = (ps: AiParameterSetResponse) => {
     setSelected(ps);
     setIsNew(false);
-    form.reset({ name: ps.name, content: ps.content });
+    form.reset({ name: ps.name, content: ps.content, chatModel: ps.chatModel ?? '', evaluatorModel: ps.evaluatorModel ?? '' });
   };
 
   const onSubmit = async (values: FormValues) => {
+    const payload = {
+      name: values.name,
+      content: values.content,
+      chatModel: values.chatModel || undefined,
+      evaluatorModel: values.evaluatorModel || undefined,
+    };
     if (isNew) {
-      await createMutation.mutateAsync(values);
+      await createMutation.mutateAsync(payload);
       setIsNew(false);
       form.reset();
     } else if (selected) {
-      await updateMutation.mutateAsync({ id: selected.id, data: values });
+      await updateMutation.mutateAsync({ id: selected.id, data: payload });
     }
   };
 
@@ -174,6 +190,51 @@ export default function ParametersPage() {
                 />
                 {form.formState.errors.content && (
                   <p className="text-xs text-destructive">{form.formState.errors.content.message}</p>
+                )}
+              </div>
+
+              <Separator className="my-2 flex-shrink-0" />
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex-shrink-0">Cấu hình mô hình</p>
+
+              <div className="space-y-1 flex-shrink-0">
+                <Label>Mô hình trò chuyện</Label>
+                <Controller
+                  name="chatModel"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger><SelectValue placeholder="Chọn mô hình" /></SelectTrigger>
+                      <SelectContent>
+                        {allowedModels.map((m: AllowedModel) => (
+                          <SelectItem key={m.modelId} value={m.modelId}>{m.displayName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.chatModel && (
+                  <p className="text-xs text-destructive">{form.formState.errors.chatModel.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1 flex-shrink-0">
+                <Label>Mô hình đánh giá</Label>
+                <Controller
+                  name="evaluatorModel"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger><SelectValue placeholder="Chọn mô hình" /></SelectTrigger>
+                      <SelectContent>
+                        {allowedModels.map((m: AllowedModel) => (
+                          <SelectItem key={m.modelId} value={m.modelId}>{m.displayName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.evaluatorModel && (
+                  <p className="text-xs text-destructive">{form.formState.errors.evaluatorModel.message}</p>
                 )}
               </div>
 
