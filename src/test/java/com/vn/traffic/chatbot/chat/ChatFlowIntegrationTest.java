@@ -10,6 +10,7 @@ import com.vn.traffic.chatbot.chat.service.ChatPromptFactory;
 import com.vn.traffic.chatbot.chat.service.ChatService;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.common.error.GlobalExceptionHandler;
+import org.springframework.mock.env.MockEnvironment;
 import com.vn.traffic.chatbot.parameter.repo.AiParameterSetRepository;
 import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
@@ -84,7 +85,7 @@ class ChatFlowIntegrationTest {
         validator.afterPropertiesSet();
 
         mockMvc = MockMvcBuilders.standaloneSetup(new PublicChatController(chatService, null))
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(new MockEnvironment()))
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(context.getBean(ObjectMapper.class)))
                 .setValidator(validator)
                 .build();

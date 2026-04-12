@@ -5,12 +5,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.boot.task.ThreadPoolTaskExecutorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 import java.util.Arrays;
 import java.util.concurrent.Executor;
@@ -33,16 +32,21 @@ public class AsyncConfig implements AsyncConfigurer {
 
     @Lazy
     @Autowired
-    private ThreadPoolTaskExecutor ingestionExecutor;
+    private Executor ingestionExecutor;
 
+    /**
+     * Virtual-thread-per-task executor for ingestion jobs.
+     * Each blocking I/O operation (HTTP fetch, OpenAI embed) suspends its virtual thread
+     * instead of occupying a platform thread, allowing far higher concurrency than a
+     * fixed ThreadPoolTaskExecutor at no extra cost.
+     * Concurrency is bounded to 20 to avoid hammering the OpenAI embedding API.
+     */
     @Bean(name = "ingestionExecutor")
-    public ThreadPoolTaskExecutor ingestionExecutor(ThreadPoolTaskExecutorBuilder builder) {
-        return builder
-                .corePoolSize(4)
-                .maxPoolSize(10)
-                .queueCapacity(100)
-                .threadNamePrefix("ingestion-")
-                .build();
+    public Executor ingestionExecutor() {
+        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("ingestion-");
+        executor.setVirtualThreads(true);
+        executor.setConcurrencyLimit(20);
+        return executor;
     }
 
     /**

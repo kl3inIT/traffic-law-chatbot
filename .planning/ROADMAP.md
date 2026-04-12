@@ -147,8 +147,8 @@ Plans:
 
 Plans:
 - [x] 04.1-01-PLAN.md — Track A: LoggingAspect, AsyncConfig upgrade, AppProperties, GlobalExceptionHandler hardening, CRLF prevention
-- [ ] 04.1-02-PLAN.md — Track B: ROADMAP 01.1-04 checkbox fix, batch ingestion endpoint, source trust policy domain (DB + REST + admin UI)
-- [ ] 04.1-03-PLAN.md — Track C: Configurability audit — ClarificationPolicy, AnswerCompositionPolicy, RetrievalPolicy inventory report
+- [x] 04.1-02-PLAN.md — Track B: ROADMAP 01.1-04 checkbox fix, batch ingestion endpoint, source trust policy domain (DB + REST + admin UI)
+- [x] 04.1-03-PLAN.md — Track C: Configurability audit — ClarificationPolicy, AnswerCompositionPolicy, RetrievalPolicy inventory report
 
 **Success criteria:**
 1. The backend emits structured exception logs from service and repository layers without requiring per-method try/catch.

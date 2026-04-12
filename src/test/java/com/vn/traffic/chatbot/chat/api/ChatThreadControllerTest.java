@@ -13,6 +13,7 @@ import com.vn.traffic.chatbot.common.api.ApiPaths;
 import com.vn.traffic.chatbot.common.error.AppException;
 import com.vn.traffic.chatbot.common.error.ErrorCode;
 import com.vn.traffic.chatbot.common.error.GlobalExceptionHandler;
+import org.springframework.mock.env.MockEnvironment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,7 +60,7 @@ class ChatThreadControllerTest {
         validator.afterPropertiesSet();
 
         mockMvc = MockMvcBuilders.standaloneSetup(new PublicChatController(chatService, chatThreadService))
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(new MockEnvironment()))
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
                 .setValidator(validator)
                 .build();

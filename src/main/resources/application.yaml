@@ -45,6 +45,9 @@ spring:
         max-size: 10
         queue-capacity: 100
       thread-name-prefix: ingestion-
+  threads:
+    virtual:
+      enabled: true
 
 app:
   chat:
