@@ -15,4 +15,5 @@
     <include file="db/changelog/009-check-def-schema.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/010-check-run-schema.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/011-ai-parameter-set-model-columns.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/012-chat-log-pipeline-columns.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

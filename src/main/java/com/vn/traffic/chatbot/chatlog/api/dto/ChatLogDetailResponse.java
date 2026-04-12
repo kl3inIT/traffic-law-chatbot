@@ -16,7 +16,10 @@ public record ChatLogDetailResponse(
         Integer responseTime,
         OffsetDateTime createdDate,
         String answer,
-        String sources
+        String sources,
+        String retrievedChunks,
+        String promptText,
+        String rawModelResponse
 ) {
     public static ChatLogDetailResponse fromEntity(ChatLog log) {
         return new ChatLogDetailResponse(
@@ -29,7 +32,10 @@ public record ChatLogDetailResponse(
                 log.getResponseTime(),
                 log.getCreatedDate(),
                 log.getAnswer(),
-                log.getSources()
+                log.getSources(),
+                log.getRetrievedChunks(),
+                log.getPromptText(),
+                log.getRawModelResponse()
         );
     }
 }

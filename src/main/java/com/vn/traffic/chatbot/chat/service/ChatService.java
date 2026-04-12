@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -54,7 +56,9 @@ public class ChatService {
             chunkInspectionService.getRetrievalReadinessCounts();
             ChatAnswerResponse refused = refusalResponse();
             try {
-                chatLogService.save(question, refused, GroundingStatus.REFUSED, null, 0, 0, 0);
+                String chunksJson = serializeChunks(documents);
+                chatLogService.save(question, refused, GroundingStatus.REFUSED, null, 0, 0, 0,
+                        chunksJson, null, null);
             } catch (Exception ex) {
                 log.warn("Failed to persist chat log entry for refusal: {}", ex.getMessage());
             }
@@ -79,13 +83,38 @@ public class ChatService {
         ChatAnswerResponse response = answerComposer.compose(groundingStatus, draft, citations, sources);
 
         try {
+            String chunksJson = serializeChunks(documents);
             chatLogService.save(question, response, groundingStatus, null,
-                    promptTokens, completionTokens, responseTime);
+                    promptTokens, completionTokens, responseTime,
+                    chunksJson, prompt, modelPayload);
         } catch (Exception ex) {
             log.warn("Failed to persist chat log entry: {}", ex.getMessage());
         }
 
         return response;
+    }
+
+    private String serializeChunks(List<Document> documents) {
+        if (documents == null || documents.isEmpty()) return null;
+        try {
+            List<Map<String, Object>> chunks = documents.stream().map(doc -> {
+                Map<String, Object> entry = new java.util.LinkedHashMap<>();
+                entry.put("id", doc.getId());
+                Object score = doc.getMetadata().get("distance");
+                if (score == null) score = doc.getMetadata().get("score");
+                entry.put("score", score);
+                entry.put("content", doc.getText() != null
+                        ? (doc.getText().length() > 300 ? doc.getText().substring(0, 300) + "…" : doc.getText())
+                        : null);
+                entry.put("source", doc.getMetadata().get("source"));
+                entry.put("sourceTitle", doc.getMetadata().get("sourceTitle"));
+                return entry;
+            }).collect(Collectors.toList());
+            return objectMapper.writeValueAsString(chunks);
+        } catch (Exception ex) {
+            log.warn("Failed to serialize retrieved chunks: {}", ex.getMessage());
+            return null;
+        }
     }
 
     public ChatAnswerResponse refusalResponse() {

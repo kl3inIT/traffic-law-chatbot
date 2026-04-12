@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="012-chat-log-pipeline-columns" author="kl3inIT">
+        <comment>Add full AI pipeline trace columns to chat_log: retrieved chunks JSON, prompt text, raw model response</comment>
+
+        <addColumn tableName="chat_log">
+            <column name="retrieved_chunks" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="chat_log">
+            <column name="prompt_text" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="chat_log">
+            <column name="raw_model_response" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

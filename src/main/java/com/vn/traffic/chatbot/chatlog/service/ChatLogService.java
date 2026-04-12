@@ -27,7 +27,8 @@ public class ChatLogService {
     private final ChatLogRepository chatLogRepository;
 
     public void save(String question, ChatAnswerResponse response, GroundingStatus groundingStatus,
-                     String conversationId, int promptTokens, int completionTokens, int responseTime) {
+                     String conversationId, int promptTokens, int completionTokens, int responseTime,
+                     String retrievedChunks, String promptText, String rawModelResponse) {
         ChatLog chatLog = ChatLog.builder()
                 .question(question)
                 .answer(response.answer())
@@ -37,6 +38,9 @@ public class ChatLogService {
                 .promptTokens(promptTokens)
                 .completionTokens(completionTokens)
                 .responseTime(responseTime)
+                .retrievedChunks(retrievedChunks)
+                .promptText(promptText)
+                .rawModelResponse(rawModelResponse)
                 .build();
         chatLogRepository.save(chatLog);
     }
