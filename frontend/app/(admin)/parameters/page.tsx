@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 // ─── YAML helpers ───────────────────────────────────────────────────────────
@@ -219,7 +219,6 @@ export default function ParametersPage() {
   const [isNew, setIsNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AiParameterSetResponse | null>(null);
   const [existingContent, setExistingContent] = useState<string | undefined>(undefined);
-  const [yamlPreviewOpen, setYamlPreviewOpen] = useState(false);
 
   const createMutation = useCreateParameterSet();
   const updateMutation = useUpdateParameterSet();
@@ -231,6 +230,8 @@ export default function ParametersPage() {
     resolver: zodResolver(schema),
     defaultValues: DEFAULT_VALUES,
   });
+
+  const watchedValues = form.watch();
 
   const openNew = () => {
     setSelected(null);
@@ -343,118 +344,136 @@ export default function ParametersPage() {
               onSubmit={form.handleSubmit(onSubmit)}
               className="flex h-full flex-col overflow-hidden"
             >
-              <div className="flex-1 space-y-2 overflow-y-auto p-5">
-                {/* Name */}
-                <FieldRow label="Tên bộ tham số">
-                  <Input {...form.register('name')} placeholder="Ví dụ: Bộ tham số mặc định" />
-                  {form.formState.errors.name && (
-                    <p className="text-destructive text-xs">{form.formState.errors.name.message}</p>
-                  )}
-                </FieldRow>
-
-                {/* Model */}
-                <SectionHeader>Mô hình AI</SectionHeader>
-                <div className="grid grid-cols-3 gap-3">
-                  <FieldRow label="Tên mô hình">
-                    <Input {...form.register('modelName')} placeholder="openai" />
-                  </FieldRow>
-                  <FieldRow label="Temperature" hint="0 – 2">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="2"
-                      {...form.register('modelTemperature')}
-                    />
-                  </FieldRow>
-                  <FieldRow label="Max tokens">
-                    <Input type="number" min="1" {...form.register('modelMaxTokens')} />
-                  </FieldRow>
+              <Tabs defaultValue="form" className="flex min-h-0 flex-1 flex-col">
+                <div className="flex-shrink-0 border-b px-5 pt-3">
+                  <TabsList variant="line">
+                    <TabsTrigger value="form">Cấu hình</TabsTrigger>
+                    <TabsTrigger value="yaml">YAML</TabsTrigger>
+                  </TabsList>
                 </div>
+                <TabsContent value="form" className="min-h-0 overflow-y-auto">
+                  <div className="space-y-2 p-5">
+                    {/* Name */}
+                    <FieldRow label="Tên bộ tham số">
+                      <Input {...form.register('name')} placeholder="Ví dụ: Bộ tham số mặc định" />
+                      {form.formState.errors.name && (
+                        <p className="text-destructive text-xs">
+                          {form.formState.errors.name.message}
+                        </p>
+                      )}
+                    </FieldRow>
 
-                {/* Retrieval */}
-                <SectionHeader>Truy xuất ngữ nghĩa</SectionHeader>
-                <div className="grid grid-cols-3 gap-3">
-                  <FieldRow label="Top K" hint="số tài liệu">
-                    <Input type="number" min="1" {...form.register('retrievalTopK')} />
-                  </FieldRow>
-                  <FieldRow label="Ngưỡng tương đồng" hint="0 – 1">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1"
-                      {...form.register('retrievalSimilarityThreshold')}
-                    />
-                  </FieldRow>
-                  <FieldRow label="Ngưỡng grounding hạn chế" hint="0 – 1">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1"
-                      {...form.register('retrievalGroundingLimitedThreshold')}
-                    />
-                  </FieldRow>
-                </div>
+                    {/* Model */}
+                    <SectionHeader>Mô hình AI</SectionHeader>
+                    <div className="grid grid-cols-3 gap-3">
+                      <FieldRow label="Tên mô hình">
+                        <Input {...form.register('modelName')} placeholder="openai" />
+                      </FieldRow>
+                      <FieldRow label="Temperature" hint="0 – 2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="2"
+                          {...form.register('modelTemperature')}
+                        />
+                      </FieldRow>
+                      <FieldRow label="Max tokens">
+                        <Input type="number" min="1" {...form.register('modelMaxTokens')} />
+                      </FieldRow>
+                    </div>
 
-                {/* System Prompt */}
-                <SectionHeader>System Prompt</SectionHeader>
-                <Textarea
-                  {...form.register('systemPrompt')}
-                  className="min-h-[100px] resize-y text-sm"
-                  placeholder="Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam..."
-                />
-                {form.formState.errors.systemPrompt && (
-                  <p className="text-destructive text-xs">
-                    {form.formState.errors.systemPrompt.message}
-                  </p>
-                )}
+                    {/* Retrieval */}
+                    <SectionHeader>Truy xuất ngữ nghĩa</SectionHeader>
+                    <div className="grid grid-cols-3 gap-3">
+                      <FieldRow label="Top K" hint="số tài liệu">
+                        <Input type="number" min="1" {...form.register('retrievalTopK')} />
+                      </FieldRow>
+                      <FieldRow label="Ngưỡng tương đồng" hint="0 – 1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="1"
+                          {...form.register('retrievalSimilarityThreshold')}
+                        />
+                      </FieldRow>
+                      <FieldRow label="Ngưỡng grounding hạn chế" hint="0 – 1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="1"
+                          {...form.register('retrievalGroundingLimitedThreshold')}
+                        />
+                      </FieldRow>
+                    </div>
 
-                {/* Case Analysis */}
-                <SectionHeader>Phân tích tình huống</SectionHeader>
-                <FieldRow label="Số câu hỏi làm rõ tối đa">
-                  <Input
-                    type="number"
-                    min="0"
-                    max="10"
-                    className="w-32"
-                    {...form.register('caseAnalysisMaxClarifications')}
-                  />
-                </FieldRow>
-
-                {/* Messages */}
-                <SectionHeader>Thông điệp hệ thống</SectionHeader>
-                <div className="space-y-3">
-                  <FieldRow label="Tuyên bố miễn trách nhiệm">
-                    <Input {...form.register('messagesDisclaimer')} />
-                  </FieldRow>
-                  <FieldRow label="Phản hồi từ chối">
+                    {/* System Prompt */}
+                    <SectionHeader>System Prompt</SectionHeader>
                     <Textarea
-                      {...form.register('messagesRefusal')}
-                      className="min-h-[60px] resize-y text-sm"
+                      {...form.register('systemPrompt')}
+                      className="min-h-[100px] resize-y text-sm"
+                      placeholder="Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam..."
                     />
-                  </FieldRow>
-                  <FieldRow label="Thông báo grounding hạn chế">
-                    <Input {...form.register('messagesLimitedNotice')} />
-                  </FieldRow>
-                  <FieldRow label="Bước tiếp theo khi từ chối — 1">
-                    <Input {...form.register('messagesRefusalNextStep1')} />
-                  </FieldRow>
-                  <FieldRow label="Bước tiếp theo khi từ chối — 2">
-                    <Input {...form.register('messagesRefusalNextStep2')} />
-                  </FieldRow>
-                  <FieldRow label="Bước tiếp theo khi từ chối — 3">
-                    <Input {...form.register('messagesRefusalNextStep3')} />
-                  </FieldRow>
-                  <FieldRow label="Giới thiệu câu hỏi làm rõ">
-                    <Input {...form.register('messagesClarificationIntro')} />
-                  </FieldRow>
-                  <FieldRow label="Hướng dẫn câu hỏi làm rõ">
-                    <Input {...form.register('messagesClarificationNextStep')} />
-                  </FieldRow>
-                </div>
-              </div>
+                    {form.formState.errors.systemPrompt && (
+                      <p className="text-destructive text-xs">
+                        {form.formState.errors.systemPrompt.message}
+                      </p>
+                    )}
+
+                    {/* Case Analysis */}
+                    <SectionHeader>Phân tích tình huống</SectionHeader>
+                    <FieldRow label="Số câu hỏi làm rõ tối đa">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="10"
+                        className="w-32"
+                        {...form.register('caseAnalysisMaxClarifications')}
+                      />
+                    </FieldRow>
+
+                    {/* Messages */}
+                    <SectionHeader>Thông điệp hệ thống</SectionHeader>
+                    <div className="space-y-3">
+                      <FieldRow label="Tuyên bố miễn trách nhiệm">
+                        <Input {...form.register('messagesDisclaimer')} />
+                      </FieldRow>
+                      <FieldRow label="Phản hồi từ chối">
+                        <Textarea
+                          {...form.register('messagesRefusal')}
+                          className="min-h-[60px] resize-y text-sm"
+                        />
+                      </FieldRow>
+                      <FieldRow label="Thông báo grounding hạn chế">
+                        <Input {...form.register('messagesLimitedNotice')} />
+                      </FieldRow>
+                      <FieldRow label="Bước tiếp theo khi từ chối — 1">
+                        <Input {...form.register('messagesRefusalNextStep1')} />
+                      </FieldRow>
+                      <FieldRow label="Bước tiếp theo khi từ chối — 2">
+                        <Input {...form.register('messagesRefusalNextStep2')} />
+                      </FieldRow>
+                      <FieldRow label="Bước tiếp theo khi từ chối — 3">
+                        <Input {...form.register('messagesRefusalNextStep3')} />
+                      </FieldRow>
+                      <FieldRow label="Giới thiệu câu hỏi làm rõ">
+                        <Input {...form.register('messagesClarificationIntro')} />
+                      </FieldRow>
+                      <FieldRow label="Hướng dẫn câu hỏi làm rõ">
+                        <Input {...form.register('messagesClarificationNextStep')} />
+                      </FieldRow>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="yaml" className="min-h-0 overflow-auto p-5">
+                  <pre className="bg-muted h-full min-h-[200px] rounded-md p-4 text-xs leading-relaxed break-all whitespace-pre-wrap">
+                    {formToYaml(watchedValues, existingContent)}
+                  </pre>
+                </TabsContent>
+              </Tabs>
 
               {isError && (
                 <div className="flex-shrink-0 px-5 pb-2">
@@ -466,47 +485,26 @@ export default function ParametersPage() {
                 </div>
               )}
 
-              <div className="flex flex-shrink-0 items-center justify-between border-t px-5 py-3">
+              <div className="flex flex-shrink-0 justify-end gap-2 border-t px-5 py-3">
                 <Button
                   type="button"
-                  variant="ghost"
-                  className="text-muted-foreground text-xs"
-                  onClick={() => setYamlPreviewOpen(true)}
+                  variant="outline"
+                  onClick={() => {
+                    setSelected(null);
+                    setIsNew(false);
+                    form.reset(DEFAULT_VALUES);
+                  }}
                 >
-                  Xem YAML
+                  Hủy
                 </Button>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setSelected(null);
-                      setIsNew(false);
-                      form.reset(DEFAULT_VALUES);
-                    }}
-                  >
-                    Hủy
-                  </Button>
-                  <Button type="submit" disabled={isPending}>
-                    {isPending ? 'Đang xử lý...' : isNew ? 'Tạo mới' : 'Lưu thay đổi'}
-                  </Button>
-                </div>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? 'Đang xử lý...' : isNew ? 'Tạo mới' : 'Lưu thay đổi'}
+                </Button>
               </div>
             </form>
           )}
         </div>
       </div>
-
-      <Dialog open={yamlPreviewOpen} onOpenChange={setYamlPreviewOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>YAML được tạo ra</DialogTitle>
-          </DialogHeader>
-          <pre className="bg-muted max-h-[60vh] overflow-auto rounded-md p-4 text-xs leading-relaxed break-all whitespace-pre-wrap">
-            {formToYaml(form.getValues(), existingContent)}
-          </pre>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
