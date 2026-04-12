@@ -75,26 +75,39 @@ public class ChatService {
         logger.accept(String.format("Found %d documents: [%s]", documents.size(), docSummary));
 
         List<CitationResponse> citations = safeCitations(citationMapper.toCitations(documents));
+        logger.accept(String.format("Citations mapped: %d citation(s)", citations.size()));
+
         List<SourceReferenceResponse> sources = citationMapper.toSources(citations);
+        logger.accept(String.format("Sources mapped: %d source reference(s)", sources.size()));
+
         GroundingStatus groundingStatus = determineGroundingStatus(documents.size());
 
         // Step: grounding status
         logger.accept(String.format("Grounding: %s (%d docs)", groundingStatus.name(), documents.size()));
 
-        if (groundingStatus == GroundingStatus.REFUSED || !containsAnyLegalCitation(citations)) {
+        boolean hasLegalCitation = containsAnyLegalCitation(citations);
+        logger.accept(String.format("Legal citation check: %s", hasLegalCitation ? "passed" : "no legal signals found"));
+
+        if (groundingStatus == GroundingStatus.REFUSED || !hasLegalCitation) {
+            logger.accept("Path: refusal — grounding refused or no legal citations");
             chunkInspectionService.getRetrievalReadinessCounts();
             ChatAnswerResponse refused = refusalResponse();
             try {
                 String pipelineLog = String.join("\n", logMessages);
                 chatLogService.save(question, refused, GroundingStatus.REFUSED, null, 0, 0, 0, pipelineLog);
+                logger.accept("Chat log: refusal entry saved");
             } catch (Exception ex) {
                 log.warn("Failed to persist chat log entry for refusal: {}", ex.getMessage());
+                logger.accept("Chat log: save failed — " + ex.getMessage());
             }
             return refused;
         }
 
         long startTime = System.currentTimeMillis();
         String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations);
+        logger.accept(String.format("Prompt built: %d chars", prompt.length()));
+
+        logger.accept("LLM call: started");
         ChatResponse chatResponse = chatClient.prompt()
                 .user(prompt)
                 .call()
@@ -110,18 +123,24 @@ public class ChatService {
         String answerPreview = modelPayload != null && modelPayload.length() > 120
                 ? modelPayload.substring(0, 120) + "…"
                 : modelPayload;
-        logger.accept(String.format("Response in %dms [prompt=%d, completion=%d]: %s",
+        logger.accept(String.format("LLM response in %dms [prompt=%d, completion=%d]: %s",
                 responseTime, promptTokens, completionTokens, answerPreview));
 
         LegalAnswerDraft draft = parseDraft(modelPayload, groundingStatus, citations, sources);
+        logger.accept(String.format("Draft parsed: conclusion=%s",
+                draft.conclusion() != null ? "present" : "absent (fallback)"));
+
         ChatAnswerResponse response = answerComposer.compose(groundingStatus, draft, citations, sources);
+        logger.accept("Answer composed: done");
 
         try {
             String pipelineLog = String.join("\n", logMessages);
             chatLogService.save(question, response, groundingStatus, null,
                     promptTokens, completionTokens, responseTime, pipelineLog);
+            logger.accept("Chat log: entry saved");
         } catch (Exception ex) {
             log.warn("Failed to persist chat log entry: {}", ex.getMessage());
+            logger.accept("Chat log: save failed — " + ex.getMessage());
         }
 
         return response;
