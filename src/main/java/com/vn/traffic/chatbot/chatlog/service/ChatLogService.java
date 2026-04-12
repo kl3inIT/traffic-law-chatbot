@@ -73,7 +73,14 @@ public class ChatLogService {
                 predicates.add(cb.lessThanOrEqualTo(root.get("createdDate"), to));
             }
             if (q != null && !q.isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("question")), "%" + q.toLowerCase() + "%"));
+                String escaped = q.toLowerCase()
+                        .replace("!", "!!")
+                        .replace("%", "!%")
+                        .replace("_", "!_");
+                predicates.add(
+                    cb.like(cb.lower(root.get("question")),
+                            cb.literal("%" + escaped + "%"), '!')
+                );
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
