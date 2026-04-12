@@ -71,5 +71,11 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 - Standardized refusal guidance with disclaimer plus actionable next steps suitable for Vietnamese legal-support flows.
 - Latest task commits: `f9927b3` and `aa2fa94`.
 
+## Quick Tasks Completed
+
+| ID | Description | Commits | Date |
+|----|-------------|---------|------|
+| 260412-olx | Pipeline logging (jmix pattern) + Parameters UI YAML preview | bf4a959, 3f146de | 2026-04-12 |
+
 ---
-*Last updated: 2026-04-11 after inserting Phase 4.1 — backend hardening, ETL maturation, use-case architecture*
+*Last updated: 2026-04-12 — quick task 260412-olx: pipeline logging rework + parameters YAML preview panel*
