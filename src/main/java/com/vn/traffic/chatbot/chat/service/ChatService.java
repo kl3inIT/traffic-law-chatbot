@@ -6,11 +6,13 @@ import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
+import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -19,7 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -35,6 +36,8 @@ public class ChatService {
     private final ChatPromptFactory chatPromptFactory;
     private final ChunkInspectionService chunkInspectionService;
     private final AnswerCompositionPolicy answerCompositionPolicy;
+    private final ChatLogService chatLogService;
+
     @Value("${app.chat.retrieval.top-k:5}")
     private int retrievalTopK;
     @Value("${app.chat.grounding.limited-threshold:2}")
@@ -49,17 +52,40 @@ public class ChatService {
 
         if (groundingStatus == GroundingStatus.REFUSED || !containsAnyLegalCitation(citations)) {
             chunkInspectionService.getRetrievalReadinessCounts();
-            return refusalResponse();
+            ChatAnswerResponse refused = refusalResponse();
+            try {
+                chatLogService.save(question, refused, GroundingStatus.REFUSED, null, 0, 0, 0);
+            } catch (Exception ex) {
+                log.warn("Failed to persist chat log entry for refusal: {}", ex.getMessage());
+            }
+            return refused;
         }
 
+        long startTime = System.currentTimeMillis();
         String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations);
-        String modelPayload = chatClient.prompt()
+        ChatResponse chatResponse = chatClient.prompt()
                 .user(prompt)
                 .call()
-                .content();
+                .chatResponse();
+
+        String modelPayload = chatResponse.getResult().getOutput().getText();
+
+        var usage = chatResponse.getMetadata().getUsage();
+        int promptTokens = usage != null ? (int) usage.getPromptTokens() : 0;
+        int completionTokens = usage != null ? (int) usage.getCompletionTokens() : 0;
+        int responseTime = (int) (System.currentTimeMillis() - startTime);
 
         LegalAnswerDraft draft = parseDraft(modelPayload, groundingStatus, citations, sources);
-        return answerComposer.compose(groundingStatus, draft, citations, sources);
+        ChatAnswerResponse response = answerComposer.compose(groundingStatus, draft, citations, sources);
+
+        try {
+            chatLogService.save(question, response, groundingStatus, null,
+                    promptTokens, completionTokens, responseTime);
+        } catch (Exception ex) {
+            log.warn("Failed to persist chat log entry: {}", ex.getMessage());
+        }
+
+        return response;
     }
 
     public ChatAnswerResponse refusalResponse() {

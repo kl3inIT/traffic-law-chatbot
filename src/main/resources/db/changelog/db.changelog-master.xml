@@ -11,4 +11,8 @@
     <include file="db/changelog/005-ai-parameter-set-schema.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/006-chat-message-structured-response.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/007-source-trust-policy-schema.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/008-chat-log-schema.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/009-check-def-schema.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/010-check-run-schema.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/011-ai-parameter-set-model-columns.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

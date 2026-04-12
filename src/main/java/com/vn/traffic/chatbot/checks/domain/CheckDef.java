@@ -1,4 +1,4 @@
-package com.vn.traffic.chatbot.parameter.domain;
+package com.vn.traffic.chatbot.checks.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,27 +9,30 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "ai_parameter_set")
+@Table(name = "check_def")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AiParameterSet {
+public class CheckDef {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "uuid")
     private UUID id;
 
-    @Column(name = "name", nullable = false, length = 255)
-    private String name;
+    @Column(name = "question", columnDefinition = "TEXT")
+    private String question;
+
+    @Column(name = "reference_answer", columnDefinition = "TEXT")
+    private String referenceAnswer;
+
+    @Column(name = "category", length = 100)
+    private String category;
 
     @Builder.Default
     @Column(name = "active", nullable = false)
-    private boolean active = false;
-
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
-    private String content;
+    private boolean active = true;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -38,10 +41,4 @@ public class AiParameterSet {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
-
-    @Column(name = "chat_model", length = 200)
-    private String chatModel;
-
-    @Column(name = "evaluator_model", length = 200)
-    private String evaluatorModel;
 }

@@ -8,6 +8,7 @@ import com.vn.traffic.chatbot.chat.service.AnswerComposer;
 import com.vn.traffic.chatbot.chat.service.AnswerCompositionPolicy;
 import com.vn.traffic.chatbot.chat.service.ChatPromptFactory;
 import com.vn.traffic.chatbot.chat.service.ChatService;
+import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.common.error.GlobalExceptionHandler;
 import org.springframework.mock.env.MockEnvironment;
@@ -71,6 +72,7 @@ class ChatFlowIntegrationTest {
         context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
         context.registerBean(AiParameterSetRepository.class, () -> paramRepo);
         context.registerBean(ChunkInspectionService.class, () -> chunkInspectionService);
+        context.registerBean(ChatLogService.class, () -> org.mockito.Mockito.mock(ChatLogService.class));
         context.register(ChatClientConfig.class, CitationMapper.class,
                 ActiveParameterSetProvider.class, AnswerCompositionPolicy.class,
                 AnswerComposer.class, ChatPromptFactory.class, RetrievalPolicy.class, ChatService.class);
