@@ -210,9 +210,9 @@ Plans:
 Plans:
 - [x] 06-01-PLAN.md — Full DB wipe + trust policy rebuild + production system prompt (AiParameterSet)
 - [x] 06-02-PLAN.md — Real data ingestion (NĐ 168/2024, Luật GTĐB 2008, NĐ 100/2019) + 3-level validation per source
-- [ ] 06-03-PLAN.md — 22+ check definitions + check run execution + investigation + AUDIT.md findings
-- [ ] 06-04-PLAN.md — 34 chat scenario tests across all D-14 categories + chat_scenario_results.md
-- [ ] 06-05-PLAN.md — P1–P5 feature go/no-go table + milestone close decision
+- [x] 06-03-PLAN.md — 22+ check definitions + check run execution + investigation + AUDIT.md findings
+- [x] 06-04-PLAN.md — 34 chat scenario tests across all D-14 categories + chat_scenario_results.md
+- [x] 06-05-PLAN.md — P1–P5 feature go/no-go table + milestone close decision
 
 **Success criteria:**
 1. All 15 application tables wiped and rebuilt with intentional production-state data only.
