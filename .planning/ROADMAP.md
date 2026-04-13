@@ -205,11 +205,11 @@ Plans:
 **Goal:** Verify all P1–P5 deliverables are production-ready using real Vietnamese legal data and real system behavior — database wiped and rebuilt, three core legal decrees ingested and validated, 22+ check definitions executed with averageScore >= 0.75, 34 chat scenarios tested, and a full feature go/no-go table signed off.
 **Requirements:** PLAT-01, PLAT-02, PLAT-03, PLAT-04, KNOW-01, KNOW-02, KNOW-03, KNOW-04, KNOW-05, KNOW-06, CHAT-01, CHAT-02, CHAT-03, CHAT-04, LEGAL-01, LEGAL-02, LEGAL-03, LEGAL-04, CASE-01, CASE-02, CASE-03, CASE-04, ADMIN-01, ADMIN-02, ADMIN-03, ADMIN-04, ADMIN-05, ADMIN-06
 **Depends on:** Phase 5
-**Plans:** 5 plans
+**Plans:** 2/6 plans executed
 
 Plans:
-- [ ] 06-01-PLAN.md — Full DB wipe + trust policy rebuild + production system prompt (AiParameterSet)
-- [ ] 06-02-PLAN.md — Real data ingestion (NĐ 168/2024, Luật GTĐB 2008, NĐ 100/2019) + 3-level validation per source
+- [x] 06-01-PLAN.md — Full DB wipe + trust policy rebuild + production system prompt (AiParameterSet)
+- [x] 06-02-PLAN.md — Real data ingestion (NĐ 168/2024, Luật GTĐB 2008, NĐ 100/2019) + 3-level validation per source
 - [ ] 06-03-PLAN.md — 22+ check definitions + check run execution + investigation + AUDIT.md findings
 - [ ] 06-04-PLAN.md — 34 chat scenario tests across all D-14 categories + chat_scenario_results.md
 - [ ] 06-05-PLAN.md — P1–P5 feature go/no-go table + milestone close decision
