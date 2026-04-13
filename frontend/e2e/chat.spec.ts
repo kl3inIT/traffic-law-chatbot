@@ -15,7 +15,9 @@ async function sendSingleTurnQuestion(page: import('@playwright/test').Page, que
   });
 
   // Wait for loading skeleton to disappear (AiBubbleLoading uses Skeleton component with animate-pulse)
-  await page.waitForSelector('.animate-pulse', { state: 'detached', timeout: 30000 }).catch(() => {});
+  await page
+    .waitForSelector('.animate-pulse', { state: 'detached', timeout: 30000 })
+    .catch(() => {});
 
   // Return the last assistant bubble (.is-assistant class applied by Message component)
   return page.locator('.is-assistant').last();
@@ -31,19 +33,30 @@ test('T-UI-01: grounded answer renders disclaimer text', async ({ page }) => {
 });
 
 test('T-UI-02: grounded answer renders citation list', async ({ page }) => {
-  const bubble = await sendSingleTurnQuestion(page, 'Không đội mũ bảo hiểm xe máy bị phạt bao nhiêu?');
+  const bubble = await sendSingleTurnQuestion(
+    page,
+    'Không đội mũ bảo hiểm xe máy bị phạt bao nhiêu?',
+  );
   // CitationList renders section header "Nguồn tham khảo" when citations are present
   await expect(bubble).toContainText('Nguồn tham khảo', { timeout: 15000 });
 });
 
 test('T-UI-03: grounded answer renders legal basis section', async ({ page }) => {
-  const bubble = await sendSingleTurnQuestion(page, 'Uống rượu lái xe máy bị phạt thế nào theo Nghị định 168?');
+  const bubble = await sendSingleTurnQuestion(
+    page,
+    'Uống rượu lái xe máy bị phạt thế nào theo Nghị định 168?',
+  );
   // Section component renders "Căn cứ pháp lý" as the section title for legalBasis array
   await expect(bubble).toContainText('Căn cứ pháp lý', { timeout: 15000 });
 });
 
-test('T-UI-04: grounded answer does not fabricate content — disclaimer always present', async ({ page }) => {
-  const bubble = await sendSingleTurnQuestion(page, 'Cần mang theo giấy tờ gì khi tham gia giao thông?');
+test('T-UI-04: grounded answer does not fabricate content — disclaimer always present', async ({
+  page,
+}) => {
+  const bubble = await sendSingleTurnQuestion(
+    page,
+    'Xe máy cần mang theo giấy tờ gì khi tham gia giao thông?',
+  );
   // Both legal basis and disclaimer must be present for grounded response
   await expect(bubble).toContainText('Căn cứ pháp lý', { timeout: 15000 });
   await expect(bubble).toContainText('tham khảo', { timeout: 15000 });
@@ -51,7 +64,9 @@ test('T-UI-04: grounded answer does not fabricate content — disclaimer always 
 
 // ─── CLARIFICATION NEEDED TESTS ───────────────────────────────────────────────
 
-test('T-UI-05: clarification needed — amber box renders when vehicleType missing', async ({ page }) => {
+test('T-UI-05: clarification needed — amber box renders when vehicleType missing', async ({
+  page,
+}) => {
   const bubble = await sendSingleTurnQuestion(page, 'Vượt đèn đỏ bị phạt bao nhiêu?');
   // isClarification branch renders amber box with "Cần làm rõ thêm" header
   // Condition: response.responseMode === 'CLARIFICATION_NEEDED'
@@ -67,7 +82,9 @@ test('T-UI-06: clarification needed — pending fact prompt is visible', async (
 
 // ─── REFUSED RESPONSE TESTS ───────────────────────────────────────────────────
 
-test('T-UI-07: refused response — off-topic question renders refusal without legal content', async ({ page }) => {
+test('T-UI-07: refused response — off-topic question renders refusal without legal content', async ({
+  page,
+}) => {
   const bubble = await sendSingleTurnQuestion(page, 'Luật hôn nhân gia đình quy định gì?');
   // For REFUSED/off-topic: no legalBasis populated, so Section "Căn cứ pháp lý" must NOT appear
   await expect(bubble).not.toContainText('Căn cứ pháp lý', { timeout: 15000 });
@@ -75,10 +92,15 @@ test('T-UI-07: refused response — off-topic question renders refusal without l
   await expect(bubble).not.toContainText('Nguồn tham khảo');
 });
 
-test('T-UI-08: hallucination probe — non-existent article returns refusal, not invented content', async ({ page }) => {
-  const bubble = await sendSingleTurnQuestion(page, 'Theo Điều 99b Nghị định 168/2024, mức phạt là bao nhiêu?');
-  // Must NOT contain "99b" as a cited article — that would be hallucination
-  await expect(bubble).not.toContainText('Điều 99b');
+test('T-UI-08: hallucination probe — non-existent article returns refusal, not invented content', async ({
+  page,
+}) => {
+  const bubble = await sendSingleTurnQuestion(
+    page,
+    'Theo Điều 99b Nghị định 168/2024, mức phạt là bao nhiêu?',
+  );
+  // System must refuse to fabricate — response must say it cannot confirm the article exists
+  await expect(bubble).toContainText('không thể xác định', { timeout: 15000 });
 });
 
 // ─── MULTI-TURN THREAD TESTS ──────────────────────────────────────────────────
@@ -96,14 +118,20 @@ test('T-UI-09: multi-turn thread — new thread button starts a new chat', async
 
   // After send, redirect to /threads/{id}
   await page.waitForURL(/\/threads\//, { timeout: 30000 }).catch(() => {});
-  await page.waitForSelector('.animate-pulse', { state: 'detached', timeout: 30000 }).catch(() => {});
+  await page
+    .waitForSelector('.animate-pulse', { state: 'detached', timeout: 30000 })
+    .catch(() => {});
 
   // Thread list in sidebar should show this thread as a button
-  const threadButtons = page.locator('button').filter({ hasText: /Xe máy|mũ bảo hiểm|Cuộc hội thoại/ });
+  const threadButtons = page
+    .locator('button')
+    .filter({ hasText: /Xe máy|mũ bảo hiểm|Cuộc hội thoại/ });
   await expect(threadButtons.first()).toBeVisible({ timeout: 10000 });
 });
 
-test('T-UI-10: multi-turn thread — second message receives context-aware response', async ({ page }) => {
+test('T-UI-10: multi-turn thread — second message receives context-aware response', async ({
+  page,
+}) => {
   await page.goto('/');
   const textarea = page.getByPlaceholder('Nhập câu hỏi về luật giao thông...');
 
@@ -113,7 +141,9 @@ test('T-UI-10: multi-turn thread — second message receives context-aware respo
 
   // Wait for redirect to /threads/{id}
   await page.waitForURL(/\/threads\//, { timeout: 30000 }).catch(() => {});
-  await page.waitForSelector('.animate-pulse', { state: 'detached', timeout: 30000 }).catch(() => {});
+  await page
+    .waitForSelector('.animate-pulse', { state: 'detached', timeout: 30000 })
+    .catch(() => {});
 
   // First assistant bubble must be visible
   const firstBubble = page.locator('.is-assistant').first();
@@ -125,7 +155,9 @@ test('T-UI-10: multi-turn thread — second message receives context-aware respo
   await textarea2.press('Enter');
 
   // Wait for second response
-  await page.waitForSelector('.animate-pulse', { state: 'detached', timeout: 30000 }).catch(() => {});
+  await page
+    .waitForSelector('.animate-pulse', { state: 'detached', timeout: 30000 })
+    .catch(() => {});
 
   // Two assistant bubbles should exist (thread continued with context)
   const bubbles = page.locator('.is-assistant');

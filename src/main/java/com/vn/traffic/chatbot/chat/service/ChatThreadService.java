@@ -21,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +35,7 @@ public class ChatThreadService {
     private final ChatService chatService;
     private final ChatThreadMapper chatThreadMapper;
     private final FactMemoryService factMemoryService;
-    private final ClarificationPolicy clarificationPolicy;
+    private final LlmClarificationService llmClarificationService;
 
     @Transactional
     public ChatAnswerResponse createThread(String question) {
@@ -41,19 +43,15 @@ public class ChatThreadService {
         ChatMessage userMessage = appendUserMessage(thread, question);
         factMemoryService.rememberExplicitFacts(thread, userMessage);
         List<ThreadFact> activeFacts = factMemoryService.getActiveFacts(thread);
-        ClarificationPolicy.ClarificationDecision clarificationDecision = clarificationPolicy.evaluate(question, activeFacts, 0);
-        if (clarificationDecision.clarificationNeeded()) {
+        Map<String, String> factMap = toFactMap(activeFacts);
+        ClarificationPolicy.ClarificationDecision decision = llmClarificationService.decide(question, factMap, 0);
+        if (decision.clarificationNeeded()) {
             return chatThreadMapper.attachThreadContext(
-                    clarificationResponse(thread, clarificationDecision.pendingFacts()),
+                    clarificationResponse(thread, decision.pendingFacts()),
                     thread.getId(),
                     ResponseMode.CLARIFICATION_NEEDED,
                     activeFacts
             );
-        }
-        if (clarificationDecision.shouldRefuse()) {
-            ChatAnswerResponse refusal = chatService.refusalResponse();
-            appendAssistantMessage(thread, refusal);
-            return chatThreadMapper.attachThreadContext(refusal, thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         ChatAnswerResponse answer = chatService.answer(factMemoryService.buildThreadAwareQuestion(question, activeFacts));
         appendAssistantMessage(thread, answer);
@@ -67,23 +65,17 @@ public class ChatThreadService {
         ChatMessage userMessage = appendUserMessage(thread, question);
         factMemoryService.rememberExplicitFacts(thread, userMessage);
         List<ThreadFact> activeFacts = threadFactRepository.findByThreadIdAndStatusOrderByCreatedAtAsc(
-                threadId,
-                ThreadFactStatus.ACTIVE
-        );
+                threadId, ThreadFactStatus.ACTIVE);
         int clarificationCount = countClarificationMessages(threadId);
-        ClarificationPolicy.ClarificationDecision clarificationDecision = clarificationPolicy.evaluate(question, activeFacts, clarificationCount);
-        if (clarificationDecision.clarificationNeeded()) {
+        Map<String, String> factMap = toFactMap(activeFacts);
+        ClarificationPolicy.ClarificationDecision decision = llmClarificationService.decide(question, factMap, clarificationCount);
+        if (decision.clarificationNeeded()) {
             return chatThreadMapper.attachThreadContext(
-                    clarificationResponse(thread, clarificationDecision.pendingFacts()),
+                    clarificationResponse(thread, decision.pendingFacts()),
                     thread.getId(),
                     ResponseMode.CLARIFICATION_NEEDED,
                     activeFacts
             );
-        }
-        if (clarificationDecision.shouldRefuse()) {
-            ChatAnswerResponse refusal = chatService.refusalResponse();
-            appendAssistantMessage(thread, refusal);
-            return chatThreadMapper.attachThreadContext(refusal, thread.getId(), ResponseMode.REFUSED, activeFacts);
         }
         String retrievalQuestion = buildRetrievalQuestion(threadId, question, activeFacts);
         ChatAnswerResponse answer = chatService.answer(retrievalQuestion);
@@ -95,32 +87,6 @@ public class ChatThreadService {
     public ChatThread getThread(UUID threadId) {
         return chatThreadRepository.findById(threadId)
                 .orElseThrow(() -> new AppException(ErrorCode.CHAT_THREAD_NOT_FOUND, "Chat thread not found: " + threadId));
-    }
-
-    private ChatMessage appendUserMessage(ChatThread thread, String question) {
-        return chatMessageRepository.save(ChatMessage.builder()
-                .thread(thread)
-                .role(ChatMessageRole.USER)
-                .messageType(ChatMessageType.QUESTION)
-                .content(question)
-                .build());
-    }
-
-    private ChatMessage appendAssistantMessage(ChatThread thread, ChatAnswerResponse response) {
-        return chatMessageRepository.save(ChatMessage.builder()
-                .thread(thread)
-                .role(ChatMessageRole.ASSISTANT)
-                .messageType(ChatMessageType.ANSWER)
-                .content(response.answer() != null ? response.answer() : "")
-                .structuredResponse(response)
-                .build());
-    }
-
-    private int countClarificationMessages(UUID threadId) {
-        return (int) chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId).stream()
-                .filter(message -> message.getRole() == ChatMessageRole.ASSISTANT)
-                .filter(message -> message.getMessageType() == ChatMessageType.CLARIFICATION)
-                .count();
     }
 
     @Transactional(readOnly = true)
@@ -148,6 +114,37 @@ public class ChatThreadService {
                             thread.getId(), thread.getCreatedAt(), thread.getUpdatedAt(), truncated);
                 })
                 .toList();
+    }
+
+    private Map<String, String> toFactMap(List<ThreadFact> facts) {
+        return facts.stream().collect(
+                Collectors.toMap(ThreadFact::getFactKey, ThreadFact::getFactValue, (left, right) -> right));
+    }
+
+    private ChatMessage appendUserMessage(ChatThread thread, String question) {
+        return chatMessageRepository.save(ChatMessage.builder()
+                .thread(thread)
+                .role(ChatMessageRole.USER)
+                .messageType(ChatMessageType.QUESTION)
+                .content(question)
+                .build());
+    }
+
+    private ChatMessage appendAssistantMessage(ChatThread thread, ChatAnswerResponse response) {
+        return chatMessageRepository.save(ChatMessage.builder()
+                .thread(thread)
+                .role(ChatMessageRole.ASSISTANT)
+                .messageType(ChatMessageType.ANSWER)
+                .content(response.answer() != null ? response.answer() : "")
+                .structuredResponse(response)
+                .build());
+    }
+
+    private int countClarificationMessages(UUID threadId) {
+        return (int) chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId).stream()
+                .filter(m -> m.getRole() == ChatMessageRole.ASSISTANT)
+                .filter(m -> m.getMessageType() == ChatMessageType.CLARIFICATION)
+                .count();
     }
 
     private String buildRetrievalQuestion(UUID threadId, String currentQuestion, List<ThreadFact> activeFacts) {
