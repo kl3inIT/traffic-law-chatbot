@@ -59,6 +59,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 
 ### Roadmap Evolution
 
+- Phase 06 added: Audit, Real-Data Validation, and Stabilization — hard release gate before milestone completion
 - Phase 01.1 inserted after Phase 1: Refactor ingestion parser architecture to a hybrid Spring AI approach while preserving SSRF safety, provenance, source_version/job boundaries, and fixing final_url tracking (URGENT)
 - Phase 01.1 is now complete, including Spring AI-first parser alignment, resolver-based parser selection, token chunking, and chunking provenance persistence.
 - Phase 4.1 inserted after Phase 4: Backend hardening (AOP logging, async exception handler, typed AppProperties, exception handler gaps, CRLF log safety), ETL maturation (complete 01.1-04 Spring AI ETL promotion + batch ingestion design), and use-case architecture exploration (YAML vs DB, approval flow, runtime retrieval strategy). Design decisions on ETL and use-cases left open for discussion before planning.

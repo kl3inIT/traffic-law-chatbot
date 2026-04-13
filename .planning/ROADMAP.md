@@ -200,5 +200,15 @@ Plans:
 4. **Unified app after backend capabilities stabilize** — the Next.js shell should sit on top of working REST capabilities.
 5. **Quality ops last, but not optional** — logs and answer checks complete the Jmix-like operational loop.
 
+### Phase 6: Audit, Real-Data Validation, and Stabilization
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 5
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 6 to break down)
+
 ---
 *Last updated: 2026-04-12 after planning Phase 5 — quality operations and evaluation*
