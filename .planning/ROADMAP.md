@@ -202,13 +202,25 @@ Plans:
 
 ### Phase 6: Audit, Real-Data Validation, and Stabilization
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Verify all P1–P5 deliverables are production-ready using real Vietnamese legal data and real system behavior — database wiped and rebuilt, three core legal decrees ingested and validated, 22+ check definitions executed with averageScore >= 0.75, 34 chat scenarios tested, and a full feature go/no-go table signed off.
+**Requirements:** PLAT-01, PLAT-02, PLAT-03, PLAT-04, KNOW-01, KNOW-02, KNOW-03, KNOW-04, KNOW-05, KNOW-06, CHAT-01, CHAT-02, CHAT-03, CHAT-04, LEGAL-01, LEGAL-02, LEGAL-03, LEGAL-04, CASE-01, CASE-02, CASE-03, CASE-04, ADMIN-01, ADMIN-02, ADMIN-03, ADMIN-04, ADMIN-05, ADMIN-06
 **Depends on:** Phase 5
-**Plans:** 0 plans
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 6 to break down)
+- [ ] 06-01-PLAN.md — Full DB wipe + trust policy rebuild + production system prompt (AiParameterSet)
+- [ ] 06-02-PLAN.md — Real data ingestion (NĐ 168/2024, Luật GTĐB 2008, NĐ 100/2019) + 3-level validation per source
+- [ ] 06-03-PLAN.md — 22+ check definitions + check run execution + investigation + AUDIT.md findings
+- [ ] 06-04-PLAN.md — 34 chat scenario tests across all D-14 categories + chat_scenario_results.md
+- [ ] 06-05-PLAN.md — P1–P5 feature go/no-go table + milestone close decision
+
+**Success criteria:**
+1. All 15 application tables wiped and rebuilt with intentional production-state data only.
+2. Three core Vietnamese legal decrees ingested, validated (3-level protocol), and retrievable.
+3. 22+ check definitions executed with averageScore >= 0.75 and no individual score below 0.6 (or all below-threshold results documented in AUDIT.md).
+4. 34 chat scenarios tested with no unaddressed BLOCKING findings.
+5. AUDIT.md go/no-go table shows PASS for all blocking feature areas across P1–P5.
+6. Milestone is formally closed via the AUDIT.md milestone close decision.
 
 ---
-*Last updated: 2026-04-12 after planning Phase 5 — quality operations and evaluation*
+*Last updated: 2026-04-13 after planning Phase 6 — audit, real-data validation, and stabilization*
