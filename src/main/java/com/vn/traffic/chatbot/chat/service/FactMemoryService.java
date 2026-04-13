@@ -44,7 +44,7 @@ public class FactMemoryService {
             "\\s+([\\p{L}\\s]{2,40})");
     private static final Pattern VIOLATION_KEYWORD_PATTERN = Pattern.compile(
             "(?i)(gương|đèn|còi|biển số|xi nhanh|đăng kiểm|bảo hiểm|đăng ký|cà vẹt|bằng lái|mũ bảo hiểm)");
-    private static final Pattern ALCOHOL_PATTERN = Pattern.compile("(?i)(?:nồng độ cồn|cồn|rượu bia)[^.!?\\n]{0,60}?(không|có|dương tính|âm tính|vượt mức)");
+    private static final Pattern ALCOHOL_PATTERN = Pattern.compile("(?i)(?:nồng độ cồn|uống rượu|uống bia|uống cồn|bia rượu|rượu bia|dùng bia|dùng rượu|có cồn|bia|rượu|cồn)(?:[^.!?\\n]{0,60}?(không|có|dương tính|âm tính|vượt mức))?");
     private static final Pattern LICENSE_PATTERN = Pattern.compile("(?i)(không có bằng lái|không có giấy phép lái xe|có bằng lái|có giấy phép lái xe)");
     private static final Pattern INJURY_PATTERN = Pattern.compile("(?i)(không ai bị thương|có người bị thương|gây tai nạn|va chạm)");
     private static final Pattern DOCUMENT_PATTERN = Pattern.compile("(?i)(không mang đăng ký xe|không mang cà vẹt|có đăng ký xe|mang đủ giấy tờ)");

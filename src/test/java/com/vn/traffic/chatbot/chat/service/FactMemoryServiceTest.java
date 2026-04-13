@@ -101,6 +101,21 @@ class FactMemoryServiceTest {
     }
 
     @Test
+    void standaloneAlcoholTermExtractedAsAlcoholStatus() {
+        // S-07/S-22 regression: "uống bia" and "uống rượu" must match ALCOHOL_PATTERN
+        // without requiring a compound modifier phrase.
+        List<FactMemoryService.ExtractedFact> factsUongBia = factMemoryService.extractExplicitFacts(
+                "Tôi uống bia và lái xe máy, bị dừng lại.");
+        assertThat(factsUongBia).extracting(FactMemoryService.ExtractedFact::factKey)
+                .contains("alcoholStatus");
+
+        List<FactMemoryService.ExtractedFact> factsUongRuou = factMemoryService.extractExplicitFacts(
+                "Tôi uống rượu và lái xe.");
+        assertThat(factsUongRuou).extracting(FactMemoryService.ExtractedFact::factKey)
+                .contains("alcoholStatus");
+    }
+
+    @Test
     void buildThreadAwareQuestionUsesActiveFactsInsteadOfReparsingHistory() {
         String enriched = factMemoryService.buildThreadAwareQuestion(
                 "Nếu gây tai nạn thì sao?",
