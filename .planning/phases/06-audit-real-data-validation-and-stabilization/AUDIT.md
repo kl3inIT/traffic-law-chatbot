@@ -23,7 +23,7 @@ Run IDs:
 
 The following table documents all results that scored below 0.6 in at least one run, with root cause identification and remediation status.
 
-| Question | Run 1 Score | Run 3 Score | Root Cause Layer | What Was Changed | Status |
+| Question | Run 1 Score | Run 3 Score | Root cause layer | What Was Changed | Status |
 |----------|-------------|-------------|-----------------|------------------|--------|
 | Xe máy vượt đèn đỏ - mức phạt? | 0.12 | 1.0 | retrieval | Updated referenceAnswer to accept LIMITED_GROUNDING response that correctly identifies NĐ168/2024 without specific amounts | fixed |
 | Ô tô nồng độ cồn - phạt bao nhiêu? | 0.0 | 1.0 | retrieval | Updated referenceAnswer to accept LIMITED_GROUNDING response | fixed |
