@@ -32,7 +32,7 @@ public class PublicChatController {
 
     @PostMapping
     public ResponseEntity<ChatAnswerResponse> answer(@Valid @RequestBody ChatQuestionRequest request) {
-        return ResponseEntity.ok(chatService.answer(request.question()));
+        return ResponseEntity.ok(chatService.answer(request.question(), request.modelId()));
     }
 
     @GetMapping("/threads")

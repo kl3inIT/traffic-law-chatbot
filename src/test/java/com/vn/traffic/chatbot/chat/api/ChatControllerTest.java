@@ -95,11 +95,11 @@ class ChatControllerTest {
                 List.of(new CitationResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "Người điều khiển xe máy vượt đèn đỏ...")),
                 List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))
         );
-        when(chatService.answer("Xe máy vượt đèn đỏ bị phạt thế nào?")).thenReturn(response);
+        when(chatService.answer("Xe máy vượt đèn đỏ bị phạt thế nào?", null)).thenReturn(response);
 
         mockMvc.perform(post(ApiPaths.CHAT)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ChatQuestionRequest("Xe máy vượt đèn đỏ bị phạt thế nào?"))))
+                        .content(objectMapper.writeValueAsString(new ChatQuestionRequest("Xe máy vượt đèn đỏ bị phạt thế nào?", null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.groundingStatus").value("GROUNDED"))
                 .andExpect(jsonPath("$.answer").value("Xe máy vượt đèn đỏ có thể bị xử phạt tiền theo quy định hiện hành."))
@@ -107,7 +107,7 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.citations[0].sourceId").value("source-1"))
                 .andExpect(jsonPath("$.sources[0].sourceVersionId").value("version-1"));
 
-        verify(chatService, times(1)).answer("Xe máy vượt đèn đỏ bị phạt thế nào?");
+        verify(chatService, times(1)).answer("Xe máy vượt đèn đỏ bị phạt thế nào?", null);
         verifyNoMoreInteractions(chatService);
     }
 
@@ -137,17 +137,17 @@ class ChatControllerTest {
                 List.of(),
                 List.of()
         );
-        when(chatService.answer("Không đủ căn cứ")).thenReturn(response);
+        when(chatService.answer("Không đủ căn cứ", null)).thenReturn(response);
 
         mockMvc.perform(post(ApiPaths.CHAT)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ChatQuestionRequest("Không đủ căn cứ"))))
+                        .content(objectMapper.writeValueAsString(new ChatQuestionRequest("Không đủ căn cứ", null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.groundingStatus").value("REFUSED"))
                 .andExpect(jsonPath("$.disclaimer").value(AnswerCompositionPolicy.DEFAULT_DISCLAIMER))
                 .andExpect(jsonPath("$.nextSteps[0]").value(AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NARROW_SCOPE));
 
-        verify(chatService, times(1)).answer("Không đủ căn cứ");
+        verify(chatService, times(1)).answer("Không đủ căn cứ", null);
         verifyNoMoreInteractions(chatService);
     }
 
@@ -170,7 +170,7 @@ class ChatControllerTest {
 
         MvcResult result = mockMvc.perform(post(ApiPaths.CHAT)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ChatQuestionRequest(oversizedQuestion))))
+                        .content(objectMapper.writeValueAsString(new ChatQuestionRequest(oversizedQuestion, null))))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 

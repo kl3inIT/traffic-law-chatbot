@@ -81,7 +81,7 @@ class CheckRunnerTest {
 
         when(checkRunRepository.findById(runId)).thenReturn(Optional.of(run));
         when(checkDefRepository.findByActiveTrue()).thenReturn(List.of(def1, def2));
-        when(chatService.answer(anyString())).thenReturn(chatResponse);
+        when(chatService.answer(anyString(), org.mockito.ArgumentMatchers.isNull())).thenReturn(chatResponse);
         when(evaluator.evaluate(anyString(), anyString())).thenReturn(0.75);
         when(checkResultRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
         when(checkRunRepository.save(any(CheckRun.class))).thenReturn(run);

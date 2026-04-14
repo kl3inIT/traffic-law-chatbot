@@ -74,10 +74,11 @@ class ChatScenarioAnalysisIntegrationTest {
         ChatThread thread = ChatThread.builder().id(threadId).createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
         ChatMessage firstUser = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.USER).messageType(ChatMessageType.QUESTION).content("Tôi vượt đèn đỏ thì bị phạt sao?").build();
         ChatMessage secondUser = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.USER).messageType(ChatMessageType.QUESTION).content("Tôi đi xe máy.").build();
+        ChatMessage clarificationMsg = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.ASSISTANT).messageType(ChatMessageType.CLARIFICATION).content("Loại phương tiện?").build();
 
         when(chatThreadRepository.save(any(ChatThread.class))).thenReturn(thread);
         when(chatThreadRepository.findById(threadId)).thenReturn(Optional.of(thread));
-        when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(firstUser, secondUser, secondUser);
+        when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(firstUser, clarificationMsg, secondUser, secondUser);
         when(threadFactRepository.findFirstByThreadIdAndFactKeyAndStatusOrderByCreatedAtDesc(any(), any(), any())).thenReturn(Optional.empty());
         when(threadFactRepository.save(any(ThreadFact.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(threadFactRepository.findByThreadIdAndStatusOrderByCreatedAtAsc(threadId, ThreadFactStatus.ACTIVE))
@@ -86,8 +87,26 @@ class ChatScenarioAnalysisIntegrationTest {
                         ThreadFact.builder().factKey("vehicleType").factValue("xe máy").status(ThreadFactStatus.ACTIVE).build(),
                         ThreadFact.builder().factKey("violationType").factValue("vượt đèn đỏ").status(ThreadFactStatus.ACTIVE).build()
                 ));
-        when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId)).thenReturn(List.of(firstUser));
-        when(chatService.answer(org.mockito.ArgumentMatchers.contains("vehicleType: xe máy"))).thenReturn(finalAnswer());
+        // postMessage calls findByThreadIdOrderByCreatedAtAsc twice: countClarificationMessages + buildRetrievalQuestion
+        // Both calls must include the clarification assistant message so clarificationCount=1
+        when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId))
+                .thenReturn(List.of(firstUser, clarificationMsg))
+                .thenReturn(List.of(firstUser, clarificationMsg));
+        when(chatService.answer(org.mockito.ArgumentMatchers.contains("vehicleType: xe máy"), org.mockito.ArgumentMatchers.isNull())).thenReturn(finalAnswer());
+
+        // First call (clarificationCount=0): needs clarification; second call (clarificationCount=1): final analysis
+        when(llmClarificationService.decide(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyMap(),
+                org.mockito.ArgumentMatchers.eq(0)))
+                .thenReturn(new ClarificationPolicy.ClarificationDecision(
+                        true, false, 1,
+                        List.of(new com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse("vehicleType", "Loại phương tiện?", ""))));
+        when(llmClarificationService.decide(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyMap(),
+                org.mockito.ArgumentMatchers.eq(1)))
+                .thenReturn(new ClarificationPolicy.ClarificationDecision(false, false, 1, List.of()));
 
         ChatAnswerResponse clarification = chatThreadService.createThread("Tôi vượt đèn đỏ thì bị phạt sao?");
         ChatAnswerResponse finalAnalysis = chatThreadService.postMessage(threadId, "Tôi đi xe máy.");
@@ -111,10 +130,11 @@ class ChatScenarioAnalysisIntegrationTest {
         ChatThread thread = ChatThread.builder().id(threadId).createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
         ChatMessage firstUser = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.USER).messageType(ChatMessageType.QUESTION).content("Tôi vượt đèn đỏ thì bị phạt sao?").build();
         ChatMessage secondUser = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.USER).messageType(ChatMessageType.QUESTION).content("Tôi đi xe máy.").build();
+        ChatMessage clarificationMsg = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.ASSISTANT).messageType(ChatMessageType.CLARIFICATION).content("Loại phương tiện?").build();
 
         when(chatThreadRepository.save(any(ChatThread.class))).thenReturn(thread);
         when(chatThreadRepository.findById(threadId)).thenReturn(Optional.of(thread));
-        when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(firstUser, secondUser, secondUser);
+        when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(firstUser, clarificationMsg, secondUser, secondUser);
         when(threadFactRepository.findFirstByThreadIdAndFactKeyAndStatusOrderByCreatedAtDesc(any(), any(), any())).thenReturn(Optional.empty());
         when(threadFactRepository.save(any(ThreadFact.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(threadFactRepository.findByThreadIdAndStatusOrderByCreatedAtAsc(threadId, ThreadFactStatus.ACTIVE))
@@ -123,8 +143,25 @@ class ChatScenarioAnalysisIntegrationTest {
                         ThreadFact.builder().factKey("vehicleType").factValue("xe máy").status(ThreadFactStatus.ACTIVE).build(),
                         ThreadFact.builder().factKey("violationType").factValue("vượt đèn đỏ").status(ThreadFactStatus.ACTIVE).build()
                 ));
-        when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId)).thenReturn(List.of(firstUser));
-        when(chatService.answer(org.mockito.ArgumentMatchers.contains("Tôi vượt đèn đỏ"))).thenReturn(limitedGroundingAnswer());
+        // postMessage calls findByThreadIdOrderByCreatedAtAsc twice: countClarificationMessages + buildRetrievalQuestion
+        when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId))
+                .thenReturn(List.of(firstUser, clarificationMsg))
+                .thenReturn(List.of(firstUser, clarificationMsg));
+        when(chatService.answer(org.mockito.ArgumentMatchers.contains("Tôi vượt đèn đỏ"), org.mockito.ArgumentMatchers.isNull())).thenReturn(limitedGroundingAnswer());
+
+        // First call needs clarification; second call proceeds to final analysis
+        when(llmClarificationService.decide(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyMap(),
+                org.mockito.ArgumentMatchers.eq(0)))
+                .thenReturn(new ClarificationPolicy.ClarificationDecision(
+                        true, false, 1,
+                        List.of(new com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse("vehicleType", "Loại phương tiện?", ""))));
+        when(llmClarificationService.decide(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyMap(),
+                org.mockito.ArgumentMatchers.eq(1)))
+                .thenReturn(new ClarificationPolicy.ClarificationDecision(false, false, 1, List.of()));
 
         ChatAnswerResponse clarification = chatThreadService.createThread("Tôi vượt đèn đỏ thì bị phạt sao?");
         ChatAnswerResponse finalAnalysis = chatThreadService.postMessage(threadId, "Tôi đi xe máy.");

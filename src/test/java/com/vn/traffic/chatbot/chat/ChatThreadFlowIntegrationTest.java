@@ -55,6 +55,17 @@ class ChatThreadFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Default stub: clarification needed (test methods override per scenario)
+        org.mockito.Mockito.lenient()
+                .when(llmClarificationService.decide(
+                        org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.anyMap(),
+                        org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(new ClarificationPolicy.ClarificationDecision(
+                        true, false, 1,
+                        java.util.List.of(new com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse(
+                                "vehicleType", "Loại phương tiện?", ""))));
+
         FactMemoryService factMemoryService = new FactMemoryService(threadFactRepository);
         chatThreadService = new ChatThreadService(
                 chatThreadRepository,
@@ -104,7 +115,13 @@ class ChatThreadFlowIntegrationTest {
         when(threadFactRepository.save(any(ThreadFact.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(threadFactRepository.findByThreadIdAndStatusOrderByCreatedAtAsc(threadId, ThreadFactStatus.ACTIVE)).thenReturn(activeFacts);
         when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId)).thenReturn(List.of(savedUser));
-        when(chatService.answer(org.mockito.ArgumentMatchers.contains("vehicleType: xe máy"))).thenReturn(answer(threadId));
+        when(chatService.answer(org.mockito.ArgumentMatchers.contains("vehicleType: xe máy"), org.mockito.ArgumentMatchers.isNull())).thenReturn(answer(threadId));
+        // Override default setUp stub: message contains both facts so no clarification needed
+        when(llmClarificationService.decide(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyMap(),
+                org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(new ClarificationPolicy.ClarificationDecision(false, false, 0, java.util.List.of()));
 
         ChatAnswerResponse response = chatThreadService.postMessage(threadId, "Tôi đi xe máy vượt đèn đỏ.");
 

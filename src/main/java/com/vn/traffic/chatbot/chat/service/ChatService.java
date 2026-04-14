@@ -2,6 +2,7 @@ package com.vn.traffic.chatbot.chat.service;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vn.traffic.chatbot.ai.config.AiModelProperties;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -30,7 +32,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChatService {
 
-    private final ChatClient chatClient;
+    private final Map<String, ChatClient> chatClientMap;
+    private final AiModelProperties aiModelProperties;
     private final VectorStore vectorStore;
     private final ObjectMapper objectMapper;
     private final RetrievalPolicy retrievalPolicy;
@@ -46,7 +49,13 @@ public class ChatService {
     @Value("${app.chat.grounding.limited-threshold:2}")
     private int limitedGroundingThreshold;
 
-    public ChatAnswerResponse answer(String question) {
+    /**
+     * Answers a user question using the specified model (or the default if null/unrecognized).
+     *
+     * @param question the user's question
+     * @param modelId  optional model ID from the request body; null triggers fallback to default
+     */
+    public ChatAnswerResponse answer(String question, String modelId) {
         List<String> logMessages = new ArrayList<>();
         Consumer<String> logger = msg -> {
             log.info(msg);
@@ -103,12 +112,13 @@ public class ChatService {
             return refused;
         }
 
+        ChatClient client = resolveClient(modelId);
         long startTime = System.currentTimeMillis();
         String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations);
         logger.accept(String.format("Prompt built: %d chars", prompt.length()));
 
         logger.accept("LLM call: started");
-        ChatResponse chatResponse = chatClient.prompt()
+        ChatResponse chatResponse = client.prompt()
                 .user(prompt)
                 .call()
                 .chatResponse();
@@ -148,6 +158,28 @@ public class ChatService {
 
     public ChatAnswerResponse refusalResponse() {
         return answerComposer.compose(GroundingStatus.REFUSED, emptyDraft(), List.of(), List.of());
+    }
+
+    /**
+     * Resolves the ChatClient for the given modelId.
+     * Fallback chain: requestedModelId → app.ai.chat-model config → first available.
+     * Never throws — unrecognized modelId triggers a warning and falls back gracefully.
+     */
+    private ChatClient resolveClient(String requestedModelId) {
+        if (requestedModelId != null && chatClientMap.containsKey(requestedModelId)) {
+            return chatClientMap.get(requestedModelId);
+        }
+        if (requestedModelId != null && !requestedModelId.isBlank()) {
+            log.warn("Unrecognized modelId '{}', falling back to default '{}'",
+                    requestedModelId, aiModelProperties.chatModel());
+        }
+        ChatClient fallback = chatClientMap.get(aiModelProperties.chatModel());
+        if (fallback == null) {
+            log.warn("Default model '{}' not in chatClientMap — using first available",
+                    aiModelProperties.chatModel());
+            return chatClientMap.values().iterator().next();
+        }
+        return fallback;
     }
 
     private GroundingStatus determineGroundingStatus(int documentCount) {

@@ -100,7 +100,8 @@ public class CheckRunner {
                 .referenceAnswer(def.getReferenceAnswer())
                 .build();
         try {
-            ChatAnswerResponse response = chatService.answer(def.getQuestion());
+            // Use default model (null) for check runs — evaluator model is configured separately
+            ChatAnswerResponse response = chatService.answer(def.getQuestion(), null);
             String actualAnswer = response.answer();
             double score = evaluator.evaluate(def.getReferenceAnswer(), actualAnswer);
             result.setActualAnswer(actualAnswer);

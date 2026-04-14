@@ -53,7 +53,7 @@ public class ChatThreadService {
                     activeFacts
             );
         }
-        ChatAnswerResponse answer = chatService.answer(factMemoryService.buildThreadAwareQuestion(question, activeFacts));
+        ChatAnswerResponse answer = chatService.answer(factMemoryService.buildThreadAwareQuestion(question, activeFacts), null);
         appendAssistantMessage(thread, answer);
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }
@@ -78,7 +78,7 @@ public class ChatThreadService {
             );
         }
         String retrievalQuestion = buildRetrievalQuestion(threadId, question, activeFacts);
-        ChatAnswerResponse answer = chatService.answer(retrievalQuestion);
+        ChatAnswerResponse answer = chatService.answer(retrievalQuestion, null);
         appendAssistantMessage(thread, answer);
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), activeFacts, answer.sources());
     }

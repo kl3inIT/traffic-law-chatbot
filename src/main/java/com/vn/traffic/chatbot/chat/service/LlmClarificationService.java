@@ -2,6 +2,7 @@ package com.vn.traffic.chatbot.chat.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vn.traffic.chatbot.ai.config.AiModelProperties;
 import com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse;
 import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +49,8 @@ public class LlmClarificationService {
             {"needsClarification": true/false, "question": "câu hỏi làm rõ bằng tiếng Việt, hoặc null nếu không cần"}
             """;
 
-    private final ChatClient chatClient;
+    private final Map<String, ChatClient> chatClientMap;
+    private final AiModelProperties aiModelProperties;
     private final ActiveParameterSetProvider paramProvider;
     private final ObjectMapper objectMapper;
 
@@ -72,7 +74,8 @@ public class LlmClarificationService {
                             .collect(Collectors.joining("; "));
 
             String prompt = String.format(PROMPT_TEMPLATE, factsText, question);
-            String raw = chatClient.prompt().user(prompt).call().content();
+            ChatClient client = resolveChatClient();
+            String raw = client.prompt().user(prompt).call().content();
             log.debug("LLM clarification raw response: {}", raw);
 
             LlmResult result = parseResult(raw);
@@ -91,6 +94,20 @@ public class LlmClarificationService {
             log.warn("LLM clarification check failed — falling through to answer: {}", ex.getMessage());
             return ClarificationPolicy.ClarificationDecision.finalAnalysis();
         }
+    }
+
+    /**
+     * Resolves the ChatClient for clarification using the default chat model.
+     * Consistent with ChatService fallback chain (D-08).
+     */
+    private ChatClient resolveChatClient() {
+        ChatClient client = chatClientMap.get(aiModelProperties.chatModel());
+        if (client == null) {
+            log.warn("Default chat model '{}' not in chatClientMap — using first available",
+                    aiModelProperties.chatModel());
+            return chatClientMap.values().iterator().next();
+        }
+        return client;
     }
 
     private LlmResult parseResult(String raw) {
