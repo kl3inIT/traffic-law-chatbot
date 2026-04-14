@@ -12,11 +12,20 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePostMessage, useThreadMessages } from '@/hooks/use-chat';
 import type { LocalMessage } from '@/hooks/use-chat';
+import { useChatModel } from '@/app/(chat)/layout';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function ThreadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const postMessage = usePostMessage(id);
   const { data: history, isLoading: historyLoading } = useThreadMessages(id);
+  const { selectedModelId, setSelectedModelId, allowedModels, isLoadingModels } = useChatModel();
 
   // Messages sent in this session — starts empty on every navigation (fresh mount)
   const [sessionMessages, setSessionMessages] = useState<LocalMessage[]>([]);
@@ -31,7 +40,7 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
     setSessionMessages((prev) => [...prev, userMsg]);
 
     try {
-      const response = await postMessage.mutateAsync(question);
+      const response = await postMessage.mutateAsync({ question, modelId: selectedModelId });
       const aiMsg: LocalMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -47,6 +56,25 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <div className="flex h-screen flex-1 flex-col">
+      {/* Model selector header */}
+      <div className="flex flex-shrink-0 items-center justify-end border-b px-4 py-2 gap-2">
+        <span className="text-muted-foreground text-xs">Mô hình:</span>
+        {!isLoadingModels && (
+          <Select value={selectedModelId ?? ''} onValueChange={(val) => setSelectedModelId(val ?? '')}>
+            <SelectTrigger size="sm" className="w-48">
+              <SelectValue placeholder="-- Mặc định --" />
+            </SelectTrigger>
+            <SelectContent>
+              {allowedModels.map((m) => (
+                <SelectItem key={m.modelId} value={m.modelId}>
+                  {m.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
       <Conversation className="flex-1">
         <ConversationContent className="mx-auto w-full max-w-3xl">
           {/* History loading skeletons */}

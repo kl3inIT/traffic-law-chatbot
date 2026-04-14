@@ -25,7 +25,8 @@ export function useThreadMessages(threadId: string) {
 export function useCreateThread() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (question: string) => createThread(question),
+    mutationFn: ({ question, modelId }: { question: string; modelId?: string }) =>
+      createThread(question, modelId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.threads });
     },
@@ -35,7 +36,8 @@ export function useCreateThread() {
 export function usePostMessage(threadId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (question: string) => postMessage(threadId, question),
+    mutationFn: ({ question, modelId }: { question: string; modelId?: string }) =>
+      postMessage(threadId, question, modelId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.threads });
     },
