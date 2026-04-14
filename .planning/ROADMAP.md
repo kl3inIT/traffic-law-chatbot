@@ -227,11 +227,11 @@ Plans:
 **Goal:** Integrate 9router (localhost:20128, OpenAI-compatible) as the sole AI gateway, replace the hardcoded AllowedModel enum with a YAML-driven model catalog (gpt-5.4, claude-sonnet-4-6, claude-haiku-4-5-20251001), build Map<String, ChatClient> at startup, wire modelId from chat request body into ChatService, wire evaluatorModel from active AiParameterSet into LlmSemanticEvaluator, expose GET /api/admin/allowed-models, and add model selection dropdowns to the chat UI header and admin Parameters page.
 **Requirements:** TBD
 **Depends on:** Phase 6
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 06.1-01-PLAN.md — Backend: AiModelProperties, ChatClientConfig factory, ChatService/LlmClarificationService/LlmSemanticEvaluator wiring, AllowedModelsController, ChatQuestionRequest update
-- [ ] 06.1-02-PLAN.md — Frontend: chat header model dropdown (layout context), admin Parameters model dropdowns, API client modelId wiring
+- [x] 06.1-01-PLAN.md — Backend: AiModelProperties, ChatClientConfig factory, ChatService/LlmClarificationService/LlmSemanticEvaluator wiring, AllowedModelsController, ChatQuestionRequest update
+- [x] 06.1-02-PLAN.md — Frontend: chat header model dropdown (layout context), admin Parameters model dropdowns, API client modelId wiring
 
 ---
 *Last updated: 2026-04-14 — Phase 06.1 planned: 2 plans across 2 waves*
