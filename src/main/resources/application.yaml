@@ -32,7 +32,6 @@ spring:
         index-type: HNSW
         table-name: kb_vector_store
     openai:
-      base-url: ${OPENAI_BASE_URL:http://localhost:20128}
       api-key: ${OPENAI_API_KEY:none}
   servlet:
     encoding:
@@ -52,10 +51,11 @@ spring:
 
 app:
   ai:
-    chat-model: ${CHAT_MODEL:claude-sonnet-4-6}
-    evaluator-model: ${EVALUATOR_MODEL:claude-haiku-4-5-20251001}
+    base-url: ${OPENAI_BASE_URL:http://localhost:20128}
+    chat-model: ${CHAT_MODEL:cx/gpt-5.4}
+    evaluator-model: ${EVALUATOR_MODEL:cx/gpt-5.4}
     models:
-      - id: gpt-5.4
+      - id: cx/gpt-5.4
         display-name: "GPT-5.4"
       - id: claude-sonnet-4-6
         display-name: "Claude Sonnet 4.6"

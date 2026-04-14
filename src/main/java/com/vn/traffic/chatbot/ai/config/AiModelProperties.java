@@ -16,6 +16,7 @@ import java.util.List;
  */
 @ConfigurationProperties(prefix = "app.ai")
 public record AiModelProperties(
+        String baseUrl,
         String chatModel,
         String evaluatorModel,
         List<ModelEntry> models

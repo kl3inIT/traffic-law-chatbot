@@ -8,6 +8,7 @@ import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.retry.RetryTemplate;
@@ -18,14 +19,18 @@ import java.util.Map;
 
 /**
  * Builds a {@code Map<String, ChatClient>} at startup, one entry per model in
- * {@code app.ai.models}. All clients share the same {@link OpenAiApi} bean, which
- * points to 9router at {@code spring.ai.openai.base-url}.
+ * {@code app.ai.models}. Each client uses a dedicated {@link OpenAiApi} instance
+ * pointing to 9router at {@code app.ai.base-url} — intentionally separate from the
+ * Spring AI auto-configured {@code OpenAiApi} bean used by the embedding model.
  *
  * <p>Pattern follows pacphi/spring-ai-openrouter-example.
  */
 @Slf4j
 @Configuration
 public class ChatClientConfig {
+
+    @Value("${spring.ai.openai.api-key:none}")
+    private String apiKey;
 
     @Autowired(required = false)
     private ObservationRegistry observationRegistry;
@@ -34,8 +39,16 @@ public class ChatClientConfig {
     private RetryTemplate retryTemplate;
 
     @Bean
-    public Map<String, ChatClient> chatClientMap(OpenAiApi openAiApi,
-                                                  AiModelProperties modelProperties) {
+    public Map<String, ChatClient> chatClientMap(AiModelProperties modelProperties) {
+        String baseUrl = modelProperties.baseUrl() != null
+                ? modelProperties.baseUrl()
+                : "http://localhost:20128";
+        OpenAiApi nineRouterApi = OpenAiApi.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .build();
+        log.info("ChatClientConfig: using 9router base-url={}", baseUrl);
+
         Map<String, ChatClient> map = new LinkedHashMap<>();
         for (AiModelProperties.ModelEntry entry : modelProperties.models()) {
             OpenAiChatOptions options = OpenAiChatOptions.builder()
@@ -43,7 +56,7 @@ public class ChatClientConfig {
                     .build();
 
             OpenAiChatModel.Builder modelBuilder = OpenAiChatModel.builder()
-                    .openAiApi(openAiApi)
+                    .openAiApi(nineRouterApi)
                     .defaultOptions(options);
 
             if (retryTemplate != null) {

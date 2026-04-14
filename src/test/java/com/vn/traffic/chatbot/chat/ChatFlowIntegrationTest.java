@@ -68,6 +68,7 @@ class ChatFlowIntegrationTest {
         chatClient = ChatClient.builder(chatModel).build();
 
         AiModelProperties aiModelProperties = new AiModelProperties(
+                "http://localhost:20128",
                 "claude-sonnet-4-6",
                 "claude-haiku-4-5-20251001",
                 List.of(
