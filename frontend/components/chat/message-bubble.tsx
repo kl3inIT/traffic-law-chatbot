@@ -74,7 +74,6 @@ function CitationList({ citations }: { citations: CitationResponse[] }) {
 export function AiBubble({ response }: { response: ChatAnswerResponse }) {
   const isScenario =
     response.responseMode === 'SCENARIO_ANALYSIS' || response.responseMode === 'FINAL_ANALYSIS';
-  const isClarification = response.responseMode === 'CLARIFICATION_NEEDED';
 
   // Use structured fields if available, else fall back to answer blob
   const hasStructured =
@@ -98,25 +97,6 @@ export function AiBubble({ response }: { response: ChatAnswerResponse }) {
         {/* ── Scenario analysis ── */}
         {isScenario && response.scenarioAnalysis ? (
           <ScenarioAccordion analysis={response.scenarioAnalysis} citations={response.citations} />
-        ) : isClarification ? (
-          /* ── Clarification needed ── */
-          <div className="space-y-2">
-            {response.answer && (
-              <p className="text-sm">{response.answer.replace(/^\[CLARIFICATION\]\s*/i, '')}</p>
-            )}
-            {response.pendingFacts.length > 0 && (
-              <div className="space-y-1 rounded-md border bg-amber-50 p-3 dark:bg-amber-950/20">
-                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                  Cần làm rõ thêm
-                </p>
-                {response.pendingFacts.map((fact, i) => (
-                  <p key={fact.code ?? i} className="text-sm">
-                    {i + 1}. {fact.prompt}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
         ) : hasStructured ? (
           /* ── Structured standard response ── */
           <div className="space-y-3">

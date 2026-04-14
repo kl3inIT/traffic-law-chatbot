@@ -59,12 +59,6 @@ interface ParameterYaml {
     refusalNextStep1?: string;
     refusalNextStep2?: string;
     refusalNextStep3?: string;
-    clarificationIntro?: string;
-    clarificationNextStep?: string;
-  };
-  caseAnalysis?: {
-    maxClarifications?: number;
-    requiredFacts?: unknown;
   };
   [key: string]: unknown;
 }
@@ -88,9 +82,6 @@ function yamlToForm(content: string): Partial<FormValues> {
       messagesRefusalNextStep1: parsed?.messages?.refusalNextStep1 ?? '',
       messagesRefusalNextStep2: parsed?.messages?.refusalNextStep2 ?? '',
       messagesRefusalNextStep3: parsed?.messages?.refusalNextStep3 ?? '',
-      messagesClarificationIntro: parsed?.messages?.clarificationIntro ?? '',
-      messagesClarificationNextStep: parsed?.messages?.clarificationNextStep ?? '',
-      caseAnalysisMaxClarifications: String(parsed?.caseAnalysis?.maxClarifications ?? '2'),
     };
   } catch {
     return {};
@@ -98,17 +89,6 @@ function yamlToForm(content: string): Partial<FormValues> {
 }
 
 function formToYaml(values: FormValues, existingContent?: string): string {
-  // Preserve caseAnalysis.requiredFacts from existing YAML (it's complex structured data)
-  let existingRequiredFacts: unknown = undefined;
-  try {
-    if (existingContent) {
-      const existing = parseYaml(existingContent) as ParameterYaml;
-      existingRequiredFacts = existing?.caseAnalysis?.requiredFacts;
-    }
-  } catch {
-    // ignore
-  }
-
   const obj: ParameterYaml = {
     model: {
       name: values.modelName,
@@ -121,10 +101,6 @@ function formToYaml(values: FormValues, existingContent?: string): string {
       groundingLimitedThreshold: parseFloat(values.retrievalGroundingLimitedThreshold),
     },
     systemPrompt: values.systemPrompt,
-    caseAnalysis: {
-      maxClarifications: parseInt(values.caseAnalysisMaxClarifications, 10),
-      ...(existingRequiredFacts !== undefined ? { requiredFacts: existingRequiredFacts } : {}),
-    },
     messages: {
       disclaimer: values.messagesDisclaimer,
       refusal: values.messagesRefusal,
@@ -132,8 +108,6 @@ function formToYaml(values: FormValues, existingContent?: string): string {
       refusalNextStep1: values.messagesRefusalNextStep1,
       refusalNextStep2: values.messagesRefusalNextStep2,
       refusalNextStep3: values.messagesRefusalNextStep3,
-      clarificationIntro: values.messagesClarificationIntro,
-      clarificationNextStep: values.messagesClarificationNextStep,
     },
   };
 
@@ -159,9 +133,6 @@ const schema = z.object({
   messagesRefusalNextStep1: z.string(),
   messagesRefusalNextStep2: z.string(),
   messagesRefusalNextStep3: z.string(),
-  messagesClarificationIntro: z.string(),
-  messagesClarificationNextStep: z.string(),
-  caseAnalysisMaxClarifications: z.string().min(1),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -187,10 +158,6 @@ const DEFAULT_VALUES: FormValues = {
   messagesRefusalNextStep1: 'Nêu rõ hành vi vi phạm, loại phương tiện, thời gian hoặc địa điểm.',
   messagesRefusalNextStep2: 'Nếu bạn đang hỏi về giấy tờ hoặc thủ tục, hãy ghi rõ tên giấy tờ.',
   messagesRefusalNextStep3: 'Ưu tiên đối chiếu thêm với văn bản hoặc cổng thông tin chính thức.',
-  messagesClarificationIntro: 'Tôi cần làm rõ thêm một số tình tiết trước khi kết luận.',
-  messagesClarificationNextStep:
-    'Vui lòng trả lời trực tiếp các câu hỏi làm rõ để tôi phân tích đúng căn cứ.',
-  caseAnalysisMaxClarifications: '2',
 };
 
 // ─── Section helpers ─────────────────────────────────────────────────────────
@@ -414,7 +381,7 @@ export default function ParametersPage() {
                         <Input type="number" min="1" {...form.register('modelMaxTokens')} />
                       </FieldRow>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="mt-2 grid grid-cols-2 gap-3">
                       <FieldRow label="Chat model">
                         <Select
                           value={form.watch('chatModel') ?? ''}
@@ -492,18 +459,6 @@ export default function ParametersPage() {
                       </p>
                     )}
 
-                    {/* Case Analysis */}
-                    <SectionHeader>Phân tích tình huống</SectionHeader>
-                    <FieldRow label="Số câu hỏi làm rõ tối đa">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="10"
-                        className="w-32"
-                        {...form.register('caseAnalysisMaxClarifications')}
-                      />
-                    </FieldRow>
-
                     {/* Messages */}
                     <SectionHeader>Thông điệp hệ thống</SectionHeader>
                     <div className="space-y-3">
@@ -527,12 +482,6 @@ export default function ParametersPage() {
                       </FieldRow>
                       <FieldRow label="Bước tiếp theo khi từ chối — 3">
                         <Input {...form.register('messagesRefusalNextStep3')} />
-                      </FieldRow>
-                      <FieldRow label="Giới thiệu câu hỏi làm rõ">
-                        <Input {...form.register('messagesClarificationIntro')} />
-                      </FieldRow>
-                      <FieldRow label="Hướng dẫn câu hỏi làm rõ">
-                        <Input {...form.register('messagesClarificationNextStep')} />
                       </FieldRow>
                     </div>
                   </div>

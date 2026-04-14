@@ -62,27 +62,6 @@ test('T-UI-04: grounded answer does not fabricate content — disclaimer always 
   await expect(bubble).toContainText('tham khảo', { timeout: 15000 });
 });
 
-// ─── CLARIFICATION NEEDED TESTS ───────────────────────────────────────────────
-
-test('T-UI-05: clarification needed — amber box renders when vehicleType missing', async ({
-  page,
-}) => {
-  const bubble = await sendSingleTurnQuestion(
-    page,
-    'Tôi bị vi phạm giao thông, bị phạt bao nhiêu?',
-  );
-  // isClarification branch renders amber box with "Cần làm rõ thêm" header
-  // Condition: response.responseMode === 'CLARIFICATION_NEEDED'
-  await expect(bubble).toContainText('Cần làm rõ thêm', { timeout: 15000 });
-});
-
-test('T-UI-06: clarification needed — pending fact prompt is visible', async ({ page }) => {
-  const bubble = await sendSingleTurnQuestion(page, 'Bị phạt bao nhiêu nếu không có đăng ký xe?');
-  // pendingFacts[].prompt text — LLM asks about registration status for this question
-  // "đăng ký xe" appears in the clarification question from the LLM
-  await expect(bubble).toContainText('đăng ký xe', { timeout: 15000 });
-});
-
 // ─── REFUSED RESPONSE TESTS ───────────────────────────────────────────────────
 
 test('T-UI-07: refused response — off-topic question renders refusal without legal content', async ({
