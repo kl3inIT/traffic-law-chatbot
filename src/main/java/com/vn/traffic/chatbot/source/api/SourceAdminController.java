@@ -2,6 +2,7 @@ package com.vn.traffic.chatbot.source.api;
 
 import com.vn.traffic.chatbot.common.api.ApiPaths;
 import com.vn.traffic.chatbot.common.api.PageResponse;
+import com.vn.traffic.chatbot.common.api.ResponseGeneral;
 import com.vn.traffic.chatbot.ingestion.api.dto.IngestionJobResponse;
 import com.vn.traffic.chatbot.ingestion.domain.KbIngestionJob;
 import com.vn.traffic.chatbot.ingestion.repo.KbIngestionJobRepository;
@@ -30,66 +31,66 @@ public class SourceAdminController {
     private final KbIngestionJobRepository ingestionJobRepository;
 
     @PostMapping
-    public ResponseEntity<SourceSummaryResponse> createSource(
+    public ResponseEntity<ResponseGeneral<SourceSummaryResponse>> createSource(
             @RequestBody @Valid CreateSourceRequest request) {
         log.info("Creating source: {}", request.title());
         var source = sourceService.createSource(request);
-        return ResponseEntity.status(201).body(toSummary(source));
+        return ResponseEntity.status(201).body(ResponseGeneral.ofCreated("Source created", toSummary(source)));
     }
 
     @GetMapping
-    public ResponseEntity<PageResponse<SourceSummaryResponse>> listSources(
+    public ResponseEntity<ResponseGeneral<PageResponse<SourceSummaryResponse>>> listSources(
             @RequestParam(required = false) SourceStatus status,
             Pageable pageable) {
         var page = sourceService.list(pageable);
-        return ResponseEntity.ok(PageResponse.from(page.map(this::toSummary)));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Sources", PageResponse.from(page.map(this::toSummary))));
     }
 
     @GetMapping("/{sourceId}")
-    public ResponseEntity<SourceDetailResponse> getSource(@PathVariable UUID sourceId) {
+    public ResponseEntity<ResponseGeneral<SourceDetailResponse>> getSource(@PathVariable UUID sourceId) {
         var source = sourceService.getById(sourceId);
         java.util.List<com.vn.traffic.chatbot.source.domain.KbSourceVersion> versions =
                 java.util.Collections.emptyList();
-        return ResponseEntity.ok(toDetail(source, versions));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Source detail", toDetail(source, versions)));
     }
 
     @PostMapping("/{sourceId}/approve")
-    public ResponseEntity<SourceSummaryResponse> approve(
+    public ResponseEntity<ResponseGeneral<SourceSummaryResponse>> approve(
             @PathVariable UUID sourceId,
             @RequestBody ApprovalRequest request) {
         var source = sourceService.approve(sourceId, request);
-        return ResponseEntity.ok(toSummary(source));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Source approved", toSummary(source)));
     }
 
     @PostMapping("/{sourceId}/reject")
-    public ResponseEntity<SourceSummaryResponse> reject(
+    public ResponseEntity<ResponseGeneral<SourceSummaryResponse>> reject(
             @PathVariable UUID sourceId,
             @RequestBody ApprovalRequest request) {
         var source = sourceService.reject(sourceId, request);
-        return ResponseEntity.ok(toSummary(source));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Source rejected", toSummary(source)));
     }
 
     @PostMapping("/{sourceId}/activate")
-    public ResponseEntity<SourceSummaryResponse> activate(
+    public ResponseEntity<ResponseGeneral<SourceSummaryResponse>> activate(
             @PathVariable UUID sourceId,
             @RequestParam(required = false) String actedBy) {
         var source = sourceService.activate(sourceId, actedBy);
-        return ResponseEntity.ok(toSummary(source));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Source activated", toSummary(source)));
     }
 
     @PostMapping("/{sourceId}/deactivate")
-    public ResponseEntity<SourceSummaryResponse> deactivate(
+    public ResponseEntity<ResponseGeneral<SourceSummaryResponse>> deactivate(
             @PathVariable UUID sourceId,
             @RequestParam(required = false) String actedBy) {
         var source = sourceService.deactivate(sourceId, actedBy);
-        return ResponseEntity.ok(toSummary(source));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Source deactivated", toSummary(source)));
     }
 
     @PostMapping("/{sourceId}/reingest")
-    public ResponseEntity<SourceSummaryResponse> reingest(@PathVariable UUID sourceId) {
+    public ResponseEntity<ResponseGeneral<SourceSummaryResponse>> reingest(@PathVariable UUID sourceId) {
         log.info("Reingesting source: {}", sourceId);
         var source = sourceService.reingest(sourceId);
-        return ResponseEntity.ok(toSummary(source));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Source reingestion started", toSummary(source)));
     }
 
     /**
@@ -98,10 +99,10 @@ public class SourceAdminController {
      */
     @Transactional(readOnly = true)
     @GetMapping("/{sourceId}/ingestion-jobs")
-    public ResponseEntity<List<IngestionJobResponse>> listIngestionJobs(@PathVariable UUID sourceId) {
+    public ResponseEntity<ResponseGeneral<List<IngestionJobResponse>>> listIngestionJobs(@PathVariable UUID sourceId) {
         List<KbIngestionJob> jobs = ingestionJobRepository.findBySourceIdOrderByQueuedAtDesc(sourceId);
         List<IngestionJobResponse> response = jobs.stream().map(this::toJobResponse).toList();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Source ingestion jobs", response));
     }
 
     private IngestionJobResponse toJobResponse(KbIngestionJob job) {

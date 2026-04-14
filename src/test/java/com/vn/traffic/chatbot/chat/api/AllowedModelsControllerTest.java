@@ -57,24 +57,24 @@ class AllowedModelsControllerTest {
     void getAllowedModelsReturnsArrayWithThreeEntries() throws Exception {
         mockMvc.perform(get(ApiPaths.ALLOWED_MODELS))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3));
+                .andExpect(jsonPath("$.data.length()").value(3));
     }
 
     @Test
     void firstEntryHasCorrectModelIdAndDisplayName() throws Exception {
         mockMvc.perform(get(ApiPaths.ALLOWED_MODELS))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].modelId").value("gpt-5.4"))
-                .andExpect(jsonPath("$[0].displayName").value("GPT-5.4"));
+                .andExpect(jsonPath("$.data[0].modelId").value("gpt-5.4"))
+                .andExpect(jsonPath("$.data[0].displayName").value("GPT-5.4"));
     }
 
     @Test
     void allEntriesHaveModelIdAndDisplayNameFields() throws Exception {
         mockMvc.perform(get(ApiPaths.ALLOWED_MODELS))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[1].modelId").value("claude-sonnet-4-6"))
-                .andExpect(jsonPath("$[1].displayName").value("Claude Sonnet 4.6"))
-                .andExpect(jsonPath("$[2].modelId").value("claude-haiku-4-5-20251001"))
-                .andExpect(jsonPath("$[2].displayName").value("Claude Haiku 4.5"));
+                .andExpect(jsonPath("$.data[1].modelId").value("claude-sonnet-4-6"))
+                .andExpect(jsonPath("$.data[1].displayName").value("Claude Sonnet 4.6"))
+                .andExpect(jsonPath("$.data[2].modelId").value("claude-haiku-4-5-20251001"))
+                .andExpect(jsonPath("$.data[2].displayName").value("Claude Haiku 4.5"));
     }
 }

@@ -5,6 +5,7 @@ import com.vn.traffic.chatbot.chatlog.api.dto.ChatLogDetailResponse;
 import com.vn.traffic.chatbot.chatlog.api.dto.ChatLogResponse;
 import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
 import com.vn.traffic.chatbot.common.api.ApiPaths;
+import com.vn.traffic.chatbot.common.api.ResponseGeneral;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,20 +28,21 @@ public class ChatLogAdminController {
     private final ChatLogService chatLogService;
 
     @GetMapping(ApiPaths.CHAT_LOGS)
-    public Page<ChatLogResponse> list(
+    public ResponseGeneral<Page<ChatLogResponse>> list(
             @RequestParam(required = false) GroundingStatus groundingStatus,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
             @RequestParam(required = false) String q,
             @PageableDefault(sort = "createdDate", direction = Sort.Direction.DESC) Pageable pageable) {
-        return chatLogService.findFiltered(groundingStatus, from, to, q, pageable)
+        Page<ChatLogResponse> page = chatLogService.findFiltered(groundingStatus, from, to, q, pageable)
                 .map(ChatLogResponse::fromEntity);
+        return ResponseGeneral.ofSuccess("Chat logs", page);
     }
 
     @GetMapping(ApiPaths.CHAT_LOG_BY_ID)
-    public ResponseEntity<ChatLogDetailResponse> getById(@PathVariable UUID logId) {
+    public ResponseEntity<ResponseGeneral<ChatLogDetailResponse>> getById(@PathVariable UUID logId) {
         return chatLogService.findById(logId)
-                .map(log -> ResponseEntity.ok(ChatLogDetailResponse.fromEntity(log)))
+                .map(log -> ResponseEntity.ok(ResponseGeneral.ofSuccess("Chat log detail", ChatLogDetailResponse.fromEntity(log))))
                 .orElse(ResponseEntity.notFound().build());
     }
 }

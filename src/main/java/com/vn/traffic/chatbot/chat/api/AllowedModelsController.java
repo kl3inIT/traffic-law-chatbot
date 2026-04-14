@@ -3,6 +3,7 @@ package com.vn.traffic.chatbot.chat.api;
 import com.vn.traffic.chatbot.ai.config.AiModelProperties;
 import com.vn.traffic.chatbot.chat.api.dto.AllowedModelResponse;
 import com.vn.traffic.chatbot.common.api.ApiPaths;
+import com.vn.traffic.chatbot.common.api.ResponseGeneral;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,10 +25,10 @@ public class AllowedModelsController {
     private final AiModelProperties modelProperties;
 
     @GetMapping(ApiPaths.ALLOWED_MODELS)
-    public ResponseEntity<List<AllowedModelResponse>> list() {
+    public ResponseEntity<ResponseGeneral<List<AllowedModelResponse>>> list() {
         List<AllowedModelResponse> models = modelProperties.models().stream()
                 .map(m -> new AllowedModelResponse(m.id(), m.displayName()))
                 .toList();
-        return ResponseEntity.ok(models);
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Allowed models", models));
     }
 }

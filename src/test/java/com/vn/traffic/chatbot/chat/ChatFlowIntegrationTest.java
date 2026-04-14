@@ -172,16 +172,16 @@ class ChatFlowIntegrationTest {
                                 {"question":"Xe máy vượt đèn đỏ bị phạt thế nào?"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.groundingStatus").value("GROUNDED"))
-                .andExpect(jsonPath("$.disclaimer").isNotEmpty())
-                .andExpect(jsonPath("$.citations[0].inlineLabel").value("Nguồn 1"))
-                .andExpect(jsonPath("$.citations[0].sourceId").value("source-1"))
-                .andExpect(jsonPath("$.citations[0].sourceVersionId").value("version-1"))
-                .andExpect(jsonPath("$.legalBasis[0]").value("Điều 7 [Nguồn 1]"))
-                .andExpect(jsonPath("$.penalties[0]").value("Phạt tiền từ 4.000.000 đồng đến 6.000.000 đồng [Nguồn 1]"))
-                .andExpect(jsonPath("$.procedureSteps[0]").value("Làm việc với cơ quan có thẩm quyền khi được yêu cầu"))
-                .andExpect(jsonPath("$.sources[0].sourceId").exists())
-                .andExpect(jsonPath("$.sources[0].sourceVersionId").exists());
+                .andExpect(jsonPath("$.data.groundingStatus").value("GROUNDED"))
+                .andExpect(jsonPath("$.data.disclaimer").isNotEmpty())
+                .andExpect(jsonPath("$.data.citations[0].inlineLabel").value("Nguồn 1"))
+                .andExpect(jsonPath("$.data.citations[0].sourceId").value("source-1"))
+                .andExpect(jsonPath("$.data.citations[0].sourceVersionId").value("version-1"))
+                .andExpect(jsonPath("$.data.legalBasis[0]").value("Điều 7 [Nguồn 1]"))
+                .andExpect(jsonPath("$.data.penalties[0]").value("Phạt tiền từ 4.000.000 đồng đến 6.000.000 đồng [Nguồn 1]"))
+                .andExpect(jsonPath("$.data.procedureSteps[0]").value("Làm việc với cơ quan có thẩm quyền khi được yêu cầu"))
+                .andExpect(jsonPath("$.data.sources[0].sourceId").exists())
+                .andExpect(jsonPath("$.data.sources[0].sourceVersionId").exists());
     }
 
     @Test
@@ -196,12 +196,12 @@ class ChatFlowIntegrationTest {
                                 {"question":"Tình huống chưa có nguồn phù hợp"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.groundingStatus").value("REFUSED"))
-                .andExpect(jsonPath("$.disclaimer").isNotEmpty())
-                .andExpect(jsonPath("$.citations").isArray())
-                .andExpect(jsonPath("$.citations").isEmpty())
-                .andExpect(jsonPath("$.sources").isArray())
-                .andExpect(jsonPath("$.sources").isEmpty());
+                .andExpect(jsonPath("$.data.groundingStatus").value("REFUSED"))
+                .andExpect(jsonPath("$.data.disclaimer").isNotEmpty())
+                .andExpect(jsonPath("$.data.citations").isArray())
+                .andExpect(jsonPath("$.data.citations").isEmpty())
+                .andExpect(jsonPath("$.data.sources").isArray())
+                .andExpect(jsonPath("$.data.sources").isEmpty());
     }
 
     @Test
@@ -240,12 +240,12 @@ class ChatFlowIntegrationTest {
                                 {"question":"Cho tôi căn cứ pháp lý về lỗi vượt đèn đỏ xe máy."}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.groundingStatus").value("GROUNDED"))
-                .andExpect(jsonPath("$.disclaimer").isNotEmpty())
-                .andExpect(jsonPath("$.uncertaintyNotice").isNotEmpty())
-                .andExpect(jsonPath("$.legalBasis[0]").exists())
-                .andExpect(jsonPath("$.nextSteps[0]").isNotEmpty())
-                .andExpect(jsonPath("$.citations[0].inlineLabel").value("Nguồn 1"))
-                .andExpect(jsonPath("$.sources[0].sourceId").value("source-1"));
+                .andExpect(jsonPath("$.data.groundingStatus").value("GROUNDED"))
+                .andExpect(jsonPath("$.data.disclaimer").isNotEmpty())
+                .andExpect(jsonPath("$.data.uncertaintyNotice").isNotEmpty())
+                .andExpect(jsonPath("$.data.legalBasis[0]").exists())
+                .andExpect(jsonPath("$.data.nextSteps[0]").isNotEmpty())
+                .andExpect(jsonPath("$.data.citations[0].inlineLabel").value("Nguồn 1"))
+                .andExpect(jsonPath("$.data.sources[0].sourceId").value("source-1"));
     }
 }

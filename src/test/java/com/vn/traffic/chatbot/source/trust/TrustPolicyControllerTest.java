@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.vn.traffic.chatbot.common.api.ResponseGeneral;
 import org.springframework.http.ResponseEntity;
 
 import java.time.OffsetDateTime;
@@ -59,12 +60,12 @@ class TrustPolicyControllerTest {
         when(trustPolicyService.create(any())).thenReturn(created);
 
         // Act
-        ResponseEntity<TrustPolicyResponse> response = controller.create(request);
+        ResponseEntity<ResponseGeneral<TrustPolicyResponse>> response = controller.create(request);
 
         // Assert
         assertThat(response.getStatusCode().value()).isEqualTo(201);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().trustTier()).isEqualTo(TrustTier.PRIMARY);
+        assertThat(response.getBody().getData().trustTier()).isEqualTo(TrustTier.PRIMARY);
     }
 
     @Test
@@ -77,10 +78,10 @@ class TrustPolicyControllerTest {
         when(trustPolicyService.findAll()).thenReturn(List.of(policy));
 
         // Act
-        ResponseEntity<List<TrustPolicyResponse>> response = controller.list();
+        ResponseEntity<ResponseGeneral<List<TrustPolicyResponse>>> response = controller.list();
 
         // Assert
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().getData()).hasSize(1);
     }
 }

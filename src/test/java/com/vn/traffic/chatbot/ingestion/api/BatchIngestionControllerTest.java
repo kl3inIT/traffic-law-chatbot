@@ -58,7 +58,9 @@ class BatchIngestionControllerTest {
 
         // Assert
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        BatchImportResponse body = response.getBody();
+        var envelope = response.getBody();
+        assertThat(envelope).isNotNull();
+        BatchImportResponse body = envelope.getData();
         assertThat(body).isNotNull();
         assertThat(body.results()).hasSize(1);
         assertThat(body.results().get(0).status()).isEqualTo("ACCEPTED");
@@ -85,7 +87,9 @@ class BatchIngestionControllerTest {
 
         // Assert
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        BatchImportResponse body = response.getBody();
+        var envelope = response.getBody();
+        assertThat(envelope).isNotNull();
+        BatchImportResponse body = envelope.getData();
         assertThat(body).isNotNull();
         assertThat(body.results()).hasSize(1);
         BatchImportItemResult result = body.results().get(0);

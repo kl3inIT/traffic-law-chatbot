@@ -43,10 +43,10 @@ class ChunkAdminControllerTest {
 
         mockMvc.perform(get(ApiPaths.CHUNK_READINESS))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.approvedChunks").value(1))
-                .andExpect(jsonPath("$.trustedChunks").value(1))
-                .andExpect(jsonPath("$.activeChunks").value(1))
-                .andExpect(jsonPath("$.eligibleChunks").value(1));
+                .andExpect(jsonPath("$.data.approvedChunks").value(1))
+                .andExpect(jsonPath("$.data.trustedChunks").value(1))
+                .andExpect(jsonPath("$.data.activeChunks").value(1))
+                .andExpect(jsonPath("$.data.eligibleChunks").value(1));
 
         verify(chunkInspectionService).getRetrievalReadinessCounts();
         verify(chunkInspectionService, never()).getChunk(UUID.fromString("00000000-0000-0000-0000-000000000000"));

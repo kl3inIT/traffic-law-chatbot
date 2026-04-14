@@ -1,6 +1,7 @@
 package com.vn.traffic.chatbot.parameter.api;
 
 import com.vn.traffic.chatbot.common.api.ApiPaths;
+import com.vn.traffic.chatbot.common.api.ResponseGeneral;
 import com.vn.traffic.chatbot.parameter.api.dto.AiParameterSetResponse;
 import com.vn.traffic.chatbot.parameter.api.dto.CreateAiParameterSetRequest;
 import com.vn.traffic.chatbot.parameter.api.dto.UpdateAiParameterSetRequest;
@@ -24,31 +25,31 @@ public class AiParameterSetController {
     private final AiParameterSetService service;
 
     @GetMapping
-    public ResponseEntity<List<AiParameterSetResponse>> list() {
+    public ResponseEntity<ResponseGeneral<List<AiParameterSetResponse>>> list() {
         List<AiParameterSetResponse> result = service.findAll().stream()
                 .map(this::toResponse)
                 .toList();
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Parameter sets", result));
     }
 
     @GetMapping("/{parameterSetId}")
-    public ResponseEntity<AiParameterSetResponse> getById(@PathVariable UUID parameterSetId) {
-        return ResponseEntity.ok(toResponse(service.findById(parameterSetId)));
+    public ResponseEntity<ResponseGeneral<AiParameterSetResponse>> getById(@PathVariable UUID parameterSetId) {
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Parameter set detail", toResponse(service.findById(parameterSetId))));
     }
 
     @PostMapping
-    public ResponseEntity<AiParameterSetResponse> create(@Valid @RequestBody CreateAiParameterSetRequest request) {
+    public ResponseEntity<ResponseGeneral<AiParameterSetResponse>> create(@Valid @RequestBody CreateAiParameterSetRequest request) {
         log.info("Creating AI parameter set: {}", request.name());
         AiParameterSet created = service.create(request.name(), request.content(), request.chatModel(), request.evaluatorModel());
-        return ResponseEntity.status(201).body(toResponse(created));
+        return ResponseEntity.status(201).body(ResponseGeneral.ofCreated("Parameter set created", toResponse(created)));
     }
 
     @PutMapping("/{parameterSetId}")
-    public ResponseEntity<AiParameterSetResponse> update(
+    public ResponseEntity<ResponseGeneral<AiParameterSetResponse>> update(
             @PathVariable UUID parameterSetId,
             @Valid @RequestBody UpdateAiParameterSetRequest request) {
         AiParameterSet updated = service.update(parameterSetId, request.name(), request.content(), request.chatModel(), request.evaluatorModel());
-        return ResponseEntity.ok(toResponse(updated));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Parameter set updated", toResponse(updated)));
     }
 
     @DeleteMapping("/{parameterSetId}")
@@ -58,16 +59,16 @@ public class AiParameterSetController {
     }
 
     @PostMapping("/{parameterSetId}/activate")
-    public ResponseEntity<AiParameterSetResponse> activate(@PathVariable UUID parameterSetId) {
+    public ResponseEntity<ResponseGeneral<AiParameterSetResponse>> activate(@PathVariable UUID parameterSetId) {
         AiParameterSet activated = service.activate(parameterSetId);
-        return ResponseEntity.ok(toResponse(activated));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Parameter set activated", toResponse(activated)));
     }
 
     @PostMapping("/{parameterSetId}/copy")
-    public ResponseEntity<AiParameterSetResponse> copy(@PathVariable UUID parameterSetId) {
+    public ResponseEntity<ResponseGeneral<AiParameterSetResponse>> copy(@PathVariable UUID parameterSetId) {
         log.info("Copying AI parameter set: {}", parameterSetId);
         AiParameterSet copied = service.copy(parameterSetId);
-        return ResponseEntity.status(201).body(toResponse(copied));
+        return ResponseEntity.status(201).body(ResponseGeneral.ofCreated("Parameter set copied", toResponse(copied)));
     }
 
     private AiParameterSetResponse toResponse(AiParameterSet entity) {

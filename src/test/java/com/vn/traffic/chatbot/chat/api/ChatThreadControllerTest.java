@@ -76,11 +76,11 @@ class ChatThreadControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateChatThreadRequest("Tôi vượt đèn đỏ bằng xe máy thì sao?"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.threadId").value(threadId.toString()))
-                .andExpect(jsonPath("$.responseMode").value("STANDARD"))
-                .andExpect(jsonPath("$.groundingStatus").value("GROUNDED"))
-                .andExpect(jsonPath("$.citations[0].sourceId").value("source-1"))
-                .andExpect(jsonPath("$.sources[0].sourceVersionId").value("version-1"));
+                .andExpect(jsonPath("$.data.threadId").value(threadId.toString()))
+                .andExpect(jsonPath("$.data.responseMode").value("STANDARD"))
+                .andExpect(jsonPath("$.data.groundingStatus").value("GROUNDED"))
+                .andExpect(jsonPath("$.data.citations[0].sourceId").value("source-1"))
+                .andExpect(jsonPath("$.data.sources[0].sourceVersionId").value("version-1"));
 
         verify(chatThreadService).createThread("Tôi vượt đèn đỏ bằng xe máy thì sao?");
     }
@@ -96,7 +96,7 @@ class ChatThreadControllerTest {
                         .characterEncoding(StandardCharsets.UTF_8)
                         .content(("{\"question\":\"" + question + "\"}").getBytes(StandardCharsets.UTF_8)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.threadId").value(threadId.toString()));
+                .andExpect(jsonPath("$.data.threadId").value(threadId.toString()));
 
         verify(chatThreadService, times(1)).createThread(question);
     }
@@ -124,7 +124,7 @@ class ChatThreadControllerTest {
                         .characterEncoding(StandardCharsets.UTF_8)
                         .content(("{\"question\":\"" + question + "\"}").getBytes(StandardCharsets.UTF_8)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.threadId").value(threadId.toString()));
+                .andExpect(jsonPath("$.data.threadId").value(threadId.toString()));
 
         verify(chatThreadService, times(1)).postMessage(threadId, question);
     }
@@ -167,8 +167,8 @@ class ChatThreadControllerTest {
 
         mockMvc.perform(get(ApiPaths.CHAT_THREADS))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].threadId").value(threadId.toString()))
-                .andExpect(jsonPath("$[0].firstMessage").value("Tôi vượt đèn đỏ bằng xe máy thì sao?"));
+                .andExpect(jsonPath("$.data[0].threadId").value(threadId.toString()))
+                .andExpect(jsonPath("$.data[0].firstMessage").value("Tôi vượt đèn đỏ bằng xe máy thì sao?"));
 
         verify(chatThreadService).listThreads();
     }
