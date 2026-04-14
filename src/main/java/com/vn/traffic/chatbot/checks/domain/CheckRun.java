@@ -1,7 +1,9 @@
 package com.vn.traffic.chatbot.checks.domain;
 
+import com.vn.traffic.chatbot.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
@@ -10,15 +12,11 @@ import java.util.UUID;
 @Entity
 @Table(name = "check_run")
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CheckRun {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class CheckRun extends BaseEntity {
 
     @Column(name = "average_score")
     private Double averageScore;

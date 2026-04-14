@@ -1,11 +1,12 @@
 package com.vn.traffic.chatbot.checks.domain;
 
+import com.vn.traffic.chatbot.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(
@@ -16,15 +17,11 @@ import java.util.UUID;
     }
 )
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CheckResult {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class CheckResult extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "check_def_id")

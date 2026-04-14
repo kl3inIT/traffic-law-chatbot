@@ -1,39 +1,18 @@
 package com.vn.traffic.chatbot.chat.domain;
 
-import jakarta.persistence.Column;
+import com.vn.traffic.chatbot.common.domain.BaseAuditableEntity;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.OffsetDateTime;
-import java.util.UUID;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "chat_thread")
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
-public class ChatThread {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "uuid")
-    private UUID id;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
+public class ChatThread extends BaseAuditableEntity {
 }

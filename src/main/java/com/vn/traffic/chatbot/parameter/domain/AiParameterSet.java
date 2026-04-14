@@ -1,25 +1,18 @@
 package com.vn.traffic.chatbot.parameter.domain;
 
+import com.vn.traffic.chatbot.common.domain.BaseAuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.OffsetDateTime;
-import java.util.UUID;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "ai_parameter_set")
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AiParameterSet {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class AiParameterSet extends BaseAuditableEntity {
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
@@ -30,14 +23,6 @@ public class AiParameterSet {
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
 
     @Column(name = "chat_model", length = 200)
     private String chatModel;

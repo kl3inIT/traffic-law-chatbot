@@ -1,7 +1,9 @@
 package com.vn.traffic.chatbot.ingestion.domain;
 
+import com.vn.traffic.chatbot.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
@@ -10,15 +12,11 @@ import java.util.UUID;
 @Entity
 @Table(name = "kb_source_fetch_snapshot")
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class KbSourceFetchSnapshot {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class KbSourceFetchSnapshot extends BaseEntity {
 
     @Column(name = "source_version_id", columnDefinition = "uuid", nullable = false)
     private UUID sourceVersionId;

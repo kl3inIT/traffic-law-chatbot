@@ -1,25 +1,18 @@
 package com.vn.traffic.chatbot.checks.domain;
 
+import com.vn.traffic.chatbot.common.domain.BaseAuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.OffsetDateTime;
-import java.util.UUID;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "check_def")
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CheckDef {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class CheckDef extends BaseAuditableEntity {
 
     @Column(name = "question", columnDefinition = "TEXT")
     private String question;
@@ -33,12 +26,4 @@ public class CheckDef {
     @Builder.Default
     @Column(name = "active", nullable = false)
     private boolean active = true;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
 }

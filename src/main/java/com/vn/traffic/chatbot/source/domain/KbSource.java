@@ -1,25 +1,20 @@
 package com.vn.traffic.chatbot.source.domain;
 
+import com.vn.traffic.chatbot.common.domain.BaseAuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.experimental.SuperBuilder;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "kb_source")
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class KbSource {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class KbSource extends BaseAuditableEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false, length = 50)
@@ -64,18 +59,4 @@ public class KbSource {
 
     @Column(name = "active_version_id", columnDefinition = "uuid")
     private UUID activeVersionId;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @Column(name = "created_by", length = 255)
-    private String createdBy;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
-
-    @Column(name = "updated_by", length = 255)
-    private String updatedBy;
 }
