@@ -19,9 +19,8 @@ import com.vn.traffic.chatbot.chat.service.ChatThreadService;
 import com.vn.traffic.chatbot.chat.service.ClarificationPolicy;
 import com.vn.traffic.chatbot.chat.service.FactMemoryService;
 import com.vn.traffic.chatbot.chat.service.GroundingStatus;
+import com.vn.traffic.chatbot.chat.service.LlmClarificationService;
 import com.vn.traffic.chatbot.chat.service.ScenarioAnswerComposer;
-import com.vn.traffic.chatbot.parameter.repo.AiParameterSetRepository;
-import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,14 +43,20 @@ class ChatScenarioAnalysisIntegrationTest {
     @Mock private ChatMessageRepository chatMessageRepository;
     @Mock private ThreadFactRepository threadFactRepository;
     @Mock private ChatService chatService;
+    @Mock private LlmClarificationService llmClarificationService;
 
     private ChatThreadService chatThreadService;
 
     @BeforeEach
     void setUp() {
-        AiParameterSetRepository paramRepo = org.mockito.Mockito.mock(AiParameterSetRepository.class);
-        org.mockito.Mockito.lenient().when(paramRepo.findByActiveTrue()).thenReturn(Optional.empty());
-        ActiveParameterSetProvider paramProvider = new ActiveParameterSetProvider(paramRepo);
+        // Default: LLM clarification always returns no-clarification-needed decision
+        org.mockito.Mockito.lenient()
+                .when(llmClarificationService.decide(
+                        org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.anyMap(),
+                        org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(new ClarificationPolicy.ClarificationDecision(false, false, 0, java.util.List.of()));
+
         chatThreadService = new ChatThreadService(
                 chatThreadRepository,
                 chatMessageRepository,
@@ -59,7 +64,7 @@ class ChatScenarioAnalysisIntegrationTest {
                 chatService,
                 new ChatThreadMapper(new ScenarioAnswerComposer()),
                 new FactMemoryService(threadFactRepository),
-                new ClarificationPolicy(paramProvider)
+                llmClarificationService
         );
     }
 
