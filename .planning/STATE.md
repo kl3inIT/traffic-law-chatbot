@@ -59,6 +59,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 
 ### Roadmap Evolution
 
+- Phase 06.1 inserted after Phase 6: multi-provider-ai-model-selection — 9router integration, AllowedModel expansion, ProviderAwareChatClientFactory, dynamic model routing for chat + evaluator (URGENT)
 - Phase 06 added: Audit, Real-Data Validation, and Stabilization — hard release gate before milestone completion
 - Phase 01.1 inserted after Phase 1: Refactor ingestion parser architecture to a hybrid Spring AI approach while preserving SSRF safety, provenance, source_version/job boundaries, and fixing final_url tracking (URGENT)
 - Phase 01.1 is now complete, including Spring AI-first parser alignment, resolver-based parser selection, token chunking, and chunking provenance persistence.

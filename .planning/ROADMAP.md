@@ -222,5 +222,15 @@ Plans:
 5. AUDIT.md go/no-go table shows PASS for all blocking feature areas across P1–P5.
 6. Milestone is formally closed via the AUDIT.md milestone close decision.
 
+### Phase 06.1: multi-provider-ai-model-selection (INSERTED)
+
+**Goal:** Tích hợp 9router (localhost:20128, OpenAI-compatible) làm AI gateway duy nhất, mở rộng AllowedModel catalog với các model đang có (gpt-5.4, claude-sonnet-4-6, claude-haiku-4-5-20251001), xây ProviderAwareChatClientFactory để đọc active AiParameterSet và build đúng ChatClient theo chatModel/evaluatorModel, wire vào ChatService và LlmSemanticEvaluator. Mở khóa UAT skip từ Phase 5 (allowed-models endpoint).
+**Requirements:** TBD
+**Depends on:** Phase 6
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 06.1 to break down)
+
 ---
-*Last updated: 2026-04-13 after planning Phase 6 — audit, real-data validation, and stabilization*
+*Last updated: 2026-04-14 — Phase 06.1 inserted: multi-provider AI model selection via 9router*
