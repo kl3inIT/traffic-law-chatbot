@@ -238,6 +238,8 @@ export interface AiParameterSetResponse {
 export interface CreateAiParameterSetRequest {
   name: string;
   content: string;
+  chatModel?: string;
+  evaluatorModel?: string;
 }
 
 export interface UpdateAiParameterSetRequest {

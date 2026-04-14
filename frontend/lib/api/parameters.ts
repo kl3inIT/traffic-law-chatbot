@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './client';
-import type { AiParameterSetResponse, CreateAiParameterSetRequest, UpdateAiParameterSetRequest } from '@/types/api';
+import type { AiParameterSetResponse, CreateAiParameterSetRequest, UpdateAiParameterSetRequest, AllowedModel } from '@/types/api';
 
 export function fetchParameterSets(): Promise<AiParameterSetResponse[]> {
   return apiGet('/api/v1/admin/parameter-sets');
@@ -27,4 +27,8 @@ export function activateParameterSet(id: string): Promise<AiParameterSetResponse
 
 export function copyParameterSet(id: string): Promise<AiParameterSetResponse> {
   return apiPost(`/api/v1/admin/parameter-sets/${id}/copy`);
+}
+
+export function fetchAllowedModels(): Promise<AllowedModel[]> {
+  return apiGet('/api/v1/admin/allowed-models');
 }
