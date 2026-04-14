@@ -16,8 +16,16 @@ import {
   useActivateParameterSet,
   useCopyParameterSet,
   useDeleteParameterSet,
+  useAllowedModels,
 } from '@/hooks/use-parameters';
 import type { AiParameterSetResponse } from '@/types/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -139,6 +147,8 @@ const schema = z.object({
   modelName: z.string().min(1, 'Tên mô hình là bắt buộc'),
   modelTemperature: z.string().min(1),
   modelMaxTokens: z.string().min(1),
+  chatModel: z.string().optional(),
+  evaluatorModel: z.string().optional(),
   retrievalTopK: z.string().min(1),
   retrievalSimilarityThreshold: z.string().min(1),
   retrievalGroundingLimitedThreshold: z.string().min(1),
@@ -161,6 +171,8 @@ const DEFAULT_VALUES: FormValues = {
   modelName: 'openai',
   modelTemperature: '0.3',
   modelMaxTokens: '2048',
+  chatModel: '',
+  evaluatorModel: '',
   retrievalTopK: '5',
   retrievalSimilarityThreshold: '0.7',
   retrievalGroundingLimitedThreshold: '0.5',
@@ -215,6 +227,7 @@ function FieldRow({
 
 export default function ParametersPage() {
   const { data: parameterSets, isLoading } = useParameterSets();
+  const { data: allowedModels = [] } = useAllowedModels();
   const [selected, setSelected] = useState<AiParameterSetResponse | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AiParameterSetResponse | null>(null);
@@ -245,17 +258,36 @@ export default function ParametersPage() {
     setIsNew(false);
     setExistingContent(ps.content);
     const parsed = yamlToForm(ps.content);
-    form.reset({ ...DEFAULT_VALUES, ...parsed, name: ps.name });
+    form.reset({
+      ...DEFAULT_VALUES,
+      ...parsed,
+      name: ps.name,
+      chatModel: ps.chatModel ?? '',
+      evaluatorModel: ps.evaluatorModel ?? '',
+    });
   };
 
   const onSubmit = async (values: FormValues) => {
     const content = formToYaml(values, existingContent);
     if (isNew) {
-      await createMutation.mutateAsync({ name: values.name, content });
+      await createMutation.mutateAsync({
+        name: values.name,
+        content,
+        chatModel: values.chatModel || undefined,
+        evaluatorModel: values.evaluatorModel || undefined,
+      });
       setIsNew(false);
       form.reset(DEFAULT_VALUES);
     } else if (selected) {
-      await updateMutation.mutateAsync({ id: selected.id, data: { name: values.name, content } });
+      await updateMutation.mutateAsync({
+        id: selected.id,
+        data: {
+          name: values.name,
+          content,
+          chatModel: values.chatModel || undefined,
+          evaluatorModel: values.evaluatorModel || undefined,
+        },
+      });
       setExistingContent(content);
     }
   };
@@ -380,6 +412,44 @@ export default function ParametersPage() {
                       </FieldRow>
                       <FieldRow label="Max tokens">
                         <Input type="number" min="1" {...form.register('modelMaxTokens')} />
+                      </FieldRow>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <FieldRow label="Chat model">
+                        <Select
+                          value={form.watch('chatModel') ?? ''}
+                          onValueChange={(val) => form.setValue('chatModel', val ?? '')}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="-- Không chỉ định --" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">-- Không chỉ định --</SelectItem>
+                            {allowedModels.map((m) => (
+                              <SelectItem key={m.modelId} value={m.modelId}>
+                                {m.displayName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FieldRow>
+                      <FieldRow label="Evaluator model">
+                        <Select
+                          value={form.watch('evaluatorModel') ?? ''}
+                          onValueChange={(val) => form.setValue('evaluatorModel', val ?? '')}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="-- Không chỉ định --" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">-- Không chỉ định --</SelectItem>
+                            {allowedModels.map((m) => (
+                              <SelectItem key={m.modelId} value={m.modelId}>
+                                {m.displayName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FieldRow>
                     </div>
 
