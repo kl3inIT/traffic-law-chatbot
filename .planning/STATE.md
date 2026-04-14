@@ -2,21 +2,21 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 06
-status: Executing Phase 06
-last_updated: "2026-04-13T06:11:14.862Z"
+current_phase: 06.1
+status: Executing Phase 06.1
+last_updated: "2026-04-14T04:26:23.196Z"
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 8
-  total_plans: 36
-  completed_plans: 36
-  percent: 100
+  total_plans: 38
+  completed_plans: 37
+  percent: 97
 ---
 
 # State: Vietnam Traffic Law Chatbot
 
 **Initialized:** 2026-04-07
-**Current phase:** 06
+**Current phase:** 06.1
 **Project status:** Phase 2 grounded legal Q&A complete
 
 ## Project Reference
@@ -24,7 +24,7 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-04-08)
 
 **Core value:** Users can describe a Vietnam traffic-law situation in natural language and receive grounded, source-backed guidance that explains the relevant rule, likely penalty, required documents, procedure, and recommended next steps.
-**Current focus:** Phase 06 — audit-real-data-validation-and-stabilization
+**Current focus:** Phase 06.1 — multi-provider-ai-model-selection
 
 ## Roadmap Snapshot
 
@@ -81,5 +81,12 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 | 260412-wwk | Fix YAML form UX (structured inputs), Run Check race condition, pipeline log coverage | f51807c, 1876a54, 7d4a457 | 2026-04-12 |
 | 260413-076 | Fix Netty native-access + PageImpl warnings; Switch toggle in checks table | eab7f49, e51eed7 | 2026-04-13 |
 
+### Phase 06.1 Plan 01 Decisions
+
+- Use `Map<String,ChatClient>` factory pattern keyed by model ID (Spring AI M4 builder API)
+- `OpenAiChatModel.builder()` instead of constructor — M4 has no 2-arg constructor
+- Fallback chain: requestedModelId → app.ai.chat-model config → first map entry
+- `LlmSemanticEvaluator` reads evaluatorModel from active `AiParameterSet`, falls back to `AiModelProperties.evaluatorModel`
+
 ---
-*Last updated: 2026-04-13 — quick task 260413-076: backend warnings suppressed, Switch component added*
+*Last updated: 2026-04-14 — 06.1-01 complete: YAML model catalog, ChatClient factory, modelId routing wired through all consumers*
