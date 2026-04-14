@@ -33,6 +33,11 @@ spring:
         table-name: kb_vector_store
     openai:
       api-key: ${OPENAI_API_KEY:none}
+      embedding:
+        base-url: ${EMBEDDING_BASE_URL:https://api.openai.com}
+        api-key: ${EMBEDDING_API_KEY:${OPENAI_API_KEY:none}}
+        options:
+          model: ${EMBEDDING_MODEL:text-embedding-ada-002}
   servlet:
     encoding:
       enabled: true
