@@ -30,6 +30,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -120,7 +122,7 @@ class ChatServiceTest {
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt-body");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt-body");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("prompt-body")).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
@@ -131,7 +133,7 @@ class ChatServiceTest {
 
         assertThat(response).isSameAs(expected);
         verify(retrievalPolicy).buildRequest(question, 5);
-        verify(chatPromptFactory).buildPrompt(question, GroundingStatus.GROUNDED, citations);
+        verify(chatPromptFactory).buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList());
         verify(answerComposer).compose(any(), any(), any(), any());
     }
 
@@ -149,7 +151,7 @@ class ChatServiceTest {
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("prompt")).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
@@ -175,7 +177,7 @@ class ChatServiceTest {
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("prompt")).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
@@ -201,7 +203,7 @@ class ChatServiceTest {
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("prompt")).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
@@ -244,7 +246,7 @@ class ChatServiceTest {
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(question, GroundingStatus.GROUNDED, citations)).thenReturn("prompt-body");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt-body");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("prompt-body")).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
@@ -288,7 +290,7 @@ class ChatServiceTest {
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(question, GroundingStatus.LIMITED_GROUNDING, citations)).thenReturn("limited-prompt");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.LIMITED_GROUNDING), eq(citations), anyList())).thenReturn("limited-prompt");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("limited-prompt")).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
@@ -299,7 +301,7 @@ class ChatServiceTest {
 
         assertThat(response).isSameAs(expected);
         verify(retrievalPolicy).buildRequest(question, 5);
-        verify(chatPromptFactory).buildPrompt(question, GroundingStatus.LIMITED_GROUNDING, citations);
+        verify(chatPromptFactory).buildPrompt(eq(question), eq(GroundingStatus.LIMITED_GROUNDING), eq(citations), anyList());
     }
 
     @Test
@@ -321,7 +323,7 @@ class ChatServiceTest {
         assertThat(response).isSameAs(expected);
         verify(chunkInspectionService).getRetrievalReadinessCounts();
         verify(chatClient, never()).prompt();
-        verify(chatPromptFactory, never()).buildPrompt(any(), any(), any());
+        verify(chatPromptFactory, never()).buildPrompt(any(), any(), any(), anyList());
     }
 
     @Test
@@ -349,7 +351,7 @@ class ChatServiceTest {
         assertThat(response).isSameAs(expected);
         verify(chunkInspectionService).getRetrievalReadinessCounts();
         verify(chatClient, never()).prompt();
-        verify(chatPromptFactory, never()).buildPrompt(any(), any(), any());
+        verify(chatPromptFactory, never()).buildPrompt(any(), any(), any(), anyList());
     }
 
     @Test
@@ -404,8 +406,6 @@ class ChatServiceTest {
                 List.of("Làm việc với cơ quan chức năng"),
                 List.of("Kiểm tra biên bản"),
                 List.of(),
-                List.of(),
-                List.of(),
                 null,
                 citations,
                 sources
@@ -430,8 +430,6 @@ class ChatServiceTest {
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
                 ),
-                List.of(),
-                List.of(),
                 List.of(),
                 null,
                 List.of(),
