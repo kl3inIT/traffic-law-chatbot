@@ -224,13 +224,14 @@ Plans:
 
 ### Phase 06.1: multi-provider-ai-model-selection (INSERTED)
 
-**Goal:** Tích hợp 9router (localhost:20128, OpenAI-compatible) làm AI gateway duy nhất, mở rộng AllowedModel catalog với các model đang có (gpt-5.4, claude-sonnet-4-6, claude-haiku-4-5-20251001), xây ProviderAwareChatClientFactory để đọc active AiParameterSet và build đúng ChatClient theo chatModel/evaluatorModel, wire vào ChatService và LlmSemanticEvaluator. Mở khóa UAT skip từ Phase 5 (allowed-models endpoint).
+**Goal:** Integrate 9router (localhost:20128, OpenAI-compatible) as the sole AI gateway, replace the hardcoded AllowedModel enum with a YAML-driven model catalog (gpt-5.4, claude-sonnet-4-6, claude-haiku-4-5-20251001), build Map<String, ChatClient> at startup, wire modelId from chat request body into ChatService, wire evaluatorModel from active AiParameterSet into LlmSemanticEvaluator, expose GET /api/admin/allowed-models, and add model selection dropdowns to the chat UI header and admin Parameters page.
 **Requirements:** TBD
 **Depends on:** Phase 6
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 06.1 to break down)
+- [ ] 06.1-01-PLAN.md — Backend: AiModelProperties, ChatClientConfig factory, ChatService/LlmClarificationService/LlmSemanticEvaluator wiring, AllowedModelsController, ChatQuestionRequest update
+- [ ] 06.1-02-PLAN.md — Frontend: chat header model dropdown (layout context), admin Parameters model dropdowns, API client modelId wiring
 
 ---
-*Last updated: 2026-04-14 — Phase 06.1 inserted: multi-provider AI model selection via 9router*
+*Last updated: 2026-04-14 — Phase 06.1 planned: 2 plans across 2 waves*
