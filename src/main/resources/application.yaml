@@ -31,6 +31,11 @@ spring:
         distance-type: COSINE_DISTANCE
         index-type: HNSW
         table-name: kb_vector_store
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: never
     openai:
       api-key: ${OPENAI_API_KEY:none}
       embedding:

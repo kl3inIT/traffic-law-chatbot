@@ -31,8 +31,7 @@ public class ChatThreadService {
     public ChatAnswerResponse createThread(String question) {
         ChatThread thread = chatThreadRepository.save(ChatThread.builder().build());
         appendUserMessage(thread, question);
-        List<ChatMessage> history = chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(thread.getId());
-        ChatAnswerResponse answer = chatService.answer(question, null, history);
+        ChatAnswerResponse answer = chatService.answer(question, null, thread.getId().toString());
         appendAssistantMessage(thread, answer);
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), answer.sources());
     }
@@ -42,8 +41,7 @@ public class ChatThreadService {
         ChatThread thread = chatThreadRepository.findById(threadId)
                 .orElseThrow(() -> new AppException(ErrorCode.CHAT_THREAD_NOT_FOUND, "Chat thread not found: " + threadId));
         appendUserMessage(thread, question);
-        List<ChatMessage> history = chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId);
-        ChatAnswerResponse answer = chatService.answer(question, null, history);
+        ChatAnswerResponse answer = chatService.answer(question, null, threadId.toString());
         appendAssistantMessage(thread, answer);
         return chatThreadMapper.attachScenarioContext(answer, thread.getId(), answer.sources());
     }

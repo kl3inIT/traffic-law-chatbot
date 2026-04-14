@@ -13,6 +13,8 @@ import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -45,6 +47,7 @@ public class ChatService {
     private final ChunkInspectionService chunkInspectionService;
     private final AnswerCompositionPolicy answerCompositionPolicy;
     private final ChatLogService chatLogService;
+    private final ChatMemory chatMemory;
 
     @Value("${app.chat.retrieval.top-k:5}")
     private int retrievalTopK;
@@ -55,7 +58,7 @@ public class ChatService {
      * Answers a user question with conversation history for multi-turn context.
      */
     public ChatAnswerResponse answer(String question, String modelId, List<ChatMessage> conversationHistory) {
-        return doAnswer(question, modelId, conversationHistory);
+        return doAnswer(question, modelId, conversationHistory, null);
     }
 
     /**
@@ -66,10 +69,23 @@ public class ChatService {
      * @param modelId  optional model ID from the request body; null triggers fallback to default
      */
     public ChatAnswerResponse answer(String question, String modelId) {
-        return doAnswer(question, modelId, List.of());
+        return doAnswer(question, modelId, List.of(), null);
     }
 
-    private ChatAnswerResponse doAnswer(String question, String modelId, List<ChatMessage> conversationHistory) {
+    /**
+     * Answers a user question with Spring AI ChatMemory-backed conversation context.
+     * The conversationId is used by {@link MessageChatMemoryAdvisor} to load/store
+     * message history automatically.
+     *
+     * @param question       the user's question
+     * @param modelId        optional model ID; null triggers fallback to default
+     * @param conversationId unique conversation identifier (typically thread UUID)
+     */
+    public ChatAnswerResponse answer(String question, String modelId, String conversationId) {
+        return doAnswer(question, modelId, List.of(), conversationId);
+    }
+
+    private ChatAnswerResponse doAnswer(String question, String modelId, List<ChatMessage> conversationHistory, String conversationId) {
         List<String> logMessages = new ArrayList<>();
         Consumer<String> logger = msg -> {
             log.info(msg);
@@ -132,8 +148,14 @@ public class ChatService {
         logger.accept(String.format("Prompt built: %d chars", prompt.length()));
 
         logger.accept("LLM call: started");
-        ChatResponse chatResponse = client.prompt()
-                .user(prompt)
+        ChatClient.ChatClientRequestSpec requestSpec = client.prompt().user(prompt);
+        if (conversationId != null && !conversationId.isBlank()) {
+            requestSpec = requestSpec.advisors(MessageChatMemoryAdvisor.builder(chatMemory)
+                    .conversationId(conversationId)
+                    .build());
+            logger.accept(String.format("ChatMemory advisor attached for conversationId=%s", conversationId));
+        }
+        ChatResponse chatResponse = requestSpec
                 .call()
                 .chatResponse();
 

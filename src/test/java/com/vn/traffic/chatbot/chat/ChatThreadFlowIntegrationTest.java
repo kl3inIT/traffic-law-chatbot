@@ -31,7 +31,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
@@ -63,8 +63,7 @@ class ChatThreadFlowIntegrationTest {
 
         when(chatThreadRepository.save(any(ChatThread.class))).thenReturn(thread);
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(savedUser);
-        when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId)).thenReturn(List.of(savedUser));
-        when(chatService.answer(eq("Xe máy vượt đèn đỏ bị phạt sao?"), isNull(), anyList())).thenReturn(answer(threadId));
+        when(chatService.answer(eq("Xe máy vượt đèn đỏ bị phạt sao?"), isNull(), anyString())).thenReturn(answer(threadId));
 
         ChatAnswerResponse response = chatThreadService.createThread("Xe máy vượt đèn đỏ bị phạt sao?");
 
@@ -80,8 +79,7 @@ class ChatThreadFlowIntegrationTest {
 
         when(chatThreadRepository.findById(threadId)).thenReturn(Optional.of(thread));
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(savedUser);
-        when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId)).thenReturn(List.of(savedUser));
-        when(chatService.answer(eq("Tôi đi xe máy vượt đèn đỏ."), isNull(), anyList())).thenReturn(answer(threadId));
+        when(chatService.answer(eq("Tôi đi xe máy vượt đèn đỏ."), isNull(), anyString())).thenReturn(answer(threadId));
 
         ChatAnswerResponse response = chatThreadService.postMessage(threadId, "Tôi đi xe máy vượt đèn đỏ.");
 

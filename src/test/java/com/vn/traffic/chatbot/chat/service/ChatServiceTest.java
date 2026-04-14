@@ -50,6 +50,7 @@ class ChatServiceTest {
     @Mock private ChunkInspectionService chunkInspectionService;
     @Mock private AnswerCompositionPolicy answerCompositionPolicy;
     @Mock private ChatLogService chatLogService;
+    @Mock private org.springframework.ai.chat.memory.ChatMemory chatMemory;
     @Mock private ChatResponse aiChatResponse;
     @Mock private Generation generation;
     @Mock private ChatResponseMetadata chatResponseMetadata;
@@ -86,7 +87,8 @@ class ChatServiceTest {
                 chatPromptFactory,
                 chunkInspectionService,
                 answerCompositionPolicy,
-                chatLogService
+                chatLogService,
+                chatMemory
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
         ReflectionTestUtils.setField(chatService, "limitedGroundingThreshold", 2);

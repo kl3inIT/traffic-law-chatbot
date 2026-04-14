@@ -28,7 +28,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
@@ -63,12 +62,7 @@ class ChatScenarioAnalysisIntegrationTest {
         when(chatThreadRepository.save(any(ChatThread.class))).thenReturn(thread);
         when(chatThreadRepository.findById(threadId)).thenReturn(Optional.of(thread));
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(firstUser, firstAssistant, secondUser, secondUser);
-        // First call (createThread): history has just the user message
-        // Second call (postMessage): history has all prior messages
-        when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId))
-                .thenReturn(List.of(firstUser))
-                .thenReturn(List.of(firstUser, firstAssistant, secondUser));
-        when(chatService.answer(anyString(), isNull(), anyList()))
+        when(chatService.answer(anyString(), isNull(), anyString()))
                 .thenReturn(initialAnswer())
                 .thenReturn(finalAnswer());
 
@@ -95,8 +89,7 @@ class ChatScenarioAnalysisIntegrationTest {
 
         when(chatThreadRepository.save(any(ChatThread.class))).thenReturn(thread);
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(userMsg);
-        when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId)).thenReturn(List.of(userMsg));
-        when(chatService.answer(anyString(), isNull(), anyList())).thenReturn(limitedGroundingAnswer());
+        when(chatService.answer(anyString(), isNull(), anyString())).thenReturn(limitedGroundingAnswer());
 
         ChatAnswerResponse response = chatThreadService.createThread("Tôi vượt đèn đỏ bằng xe máy");
 

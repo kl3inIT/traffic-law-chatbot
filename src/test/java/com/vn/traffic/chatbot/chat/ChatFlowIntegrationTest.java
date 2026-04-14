@@ -58,6 +58,9 @@ class ChatFlowIntegrationTest {
     @Mock
     private ChatLogService chatLogService;
 
+    @Mock
+    private org.springframework.ai.chat.memory.ChatMemory chatMemory;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private MockMvc mockMvc;
     private ChatClient chatClient;
@@ -102,7 +105,8 @@ class ChatFlowIntegrationTest {
                 chatPromptFactory,
                 chunkInspectionService,
                 compositionPolicy,
-                chatLogService
+                chatLogService,
+                chatMemory
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
         ReflectionTestUtils.setField(chatService, "limitedGroundingThreshold", 2);
