@@ -34,10 +34,11 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY:none}
       embedding:
-        base-url: ${EMBEDDING_BASE_URL:https://api.openai.com}
+        base-url: ${EMBEDDING_BASE_URL:https://platform.beeknoee.com/api/v1}
         api-key: ${EMBEDDING_API_KEY:${OPENAI_API_KEY:none}}
+        embeddings-path: /embeddings
         options:
-          model: ${EMBEDDING_MODEL:text-embedding-ada-002}
+          model: ${EMBEDDING_MODEL:text-embedding-3-small}
   servlet:
     encoding:
       enabled: true
