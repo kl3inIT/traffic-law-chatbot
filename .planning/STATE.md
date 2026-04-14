@@ -80,6 +80,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 | 260412-olx | Pipeline logging (jmix pattern) + Parameters UI YAML preview | bf4a959, 3f146de | 2026-04-12 |
 | 260412-wwk | Fix YAML form UX (structured inputs), Run Check race condition, pipeline log coverage | f51807c, 1876a54, 7d4a457 | 2026-04-12 |
 | 260413-076 | Fix Netty native-access + PageImpl warnings; Switch toggle in checks table | eab7f49, e51eed7 | 2026-04-13 |
+| 260414-kfe | Remove clarification gate system, move clarification into system prompt, simplify thread to pure conversation | 2a76c27, c7a36ee, 426936a | 2026-04-14 |
 
 ### Phase 06.1 Plan 01 Decisions
 
@@ -89,4 +90,4 @@ See: `.planning/PROJECT.md` (updated 2026-04-08)
 - `LlmSemanticEvaluator` reads evaluatorModel from active `AiParameterSet`, falls back to `AiModelProperties.evaluatorModel`
 
 ---
-*Last updated: 2026-04-14 — 06.1-01 complete: YAML model catalog, ChatClient factory, modelId routing wired through all consumers*
+*Last updated: 2026-04-14 — Quick task 260414-kfe: removed clarification gate, simplified thread to conversation with inline clarification via system prompt*
