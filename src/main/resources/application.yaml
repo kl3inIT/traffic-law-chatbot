@@ -72,8 +72,6 @@ app:
       top-k: 5
     grounding:
       limited-threshold: 2
-    case-analysis:
-      max-clarifications: 2
 
 server:
   port: 8089

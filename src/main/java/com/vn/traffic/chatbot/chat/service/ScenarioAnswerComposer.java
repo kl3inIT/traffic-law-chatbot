@@ -1,6 +1,5 @@
 package com.vn.traffic.chatbot.chat.service;
 
-import com.vn.traffic.chatbot.chat.api.dto.RememberedFactResponse;
 import com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.domain.ResponseMode;
@@ -9,7 +8,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 
 @Component
 public class ScenarioAnswerComposer {
@@ -17,17 +15,16 @@ public class ScenarioAnswerComposer {
     public ScenarioComposition compose(
             GroundingStatus groundingStatus,
             LegalAnswerDraft draft,
-            List<RememberedFactResponse> rememberedFacts,
             List<SourceReferenceResponse> sources
     ) {
-        List<String> facts = buildFacts(draft, rememberedFacts);
+        List<String> facts = buildFacts(draft);
         String rule = firstNonBlank(joinLines(draft == null ? null : draft.scenarioRule()), joinLines(draft == null ? null : draft.legalBasis()));
         String outcome = firstNonBlank(joinLines(draft == null ? null : draft.scenarioOutcome()), draft == null ? null : draft.conclusion());
         List<String> actions = buildActions(draft);
         List<SourceReferenceResponse> safeSources = safeList(sources);
 
         boolean canFinalize = groundingStatus == GroundingStatus.GROUNDED
-                || (groundingStatus == GroundingStatus.LIMITED_GROUNDING && !rememberedFacts.isEmpty());
+                || groundingStatus == GroundingStatus.LIMITED_GROUNDING;
         boolean hasStructuredScenario = canFinalize && !facts.isEmpty() && hasText(rule) && hasText(outcome);
         ResponseMode responseMode = groundingStatus == GroundingStatus.REFUSED
                 ? ResponseMode.REFUSED
@@ -42,16 +39,11 @@ public class ScenarioAnswerComposer {
         return new ScenarioComposition(responseMode, scenarioAnalysis);
     }
 
-    private List<String> buildFacts(LegalAnswerDraft draft, List<RememberedFactResponse> rememberedFacts) {
+    private List<String> buildFacts(LegalAnswerDraft draft) {
         LinkedHashSet<String> facts = new LinkedHashSet<>();
         safeList(draft == null ? null : draft.scenarioFacts()).stream()
                 .filter(this::hasText)
                 .map(String::trim)
-                .forEach(facts::add);
-        safeList(rememberedFacts).stream()
-                .filter(Objects::nonNull)
-                .filter(fact -> hasText(fact.key()) && hasText(fact.value()))
-                .map(fact -> fact.key() + ": " + fact.value())
                 .forEach(facts::add);
         return List.copyOf(facts);
     }

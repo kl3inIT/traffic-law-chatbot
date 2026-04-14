@@ -38,16 +38,12 @@ public class AppProperties {
     public static class Chat {
         private Retrieval retrieval = new Retrieval();
         private Grounding grounding = new Grounding();
-        private CaseAnalysis caseAnalysis = new CaseAnalysis();
 
         public Retrieval getRetrieval() { return retrieval; }
         public void setRetrieval(Retrieval retrieval) { this.retrieval = retrieval; }
 
         public Grounding getGrounding() { return grounding; }
         public void setGrounding(Grounding grounding) { this.grounding = grounding; }
-
-        public CaseAnalysis getCaseAnalysis() { return caseAnalysis; }
-        public void setCaseAnalysis(CaseAnalysis caseAnalysis) { this.caseAnalysis = caseAnalysis; }
 
         public static class Retrieval {
             private int topK = 5;
@@ -61,13 +57,6 @@ public class AppProperties {
 
             public int getLimitedThreshold() { return limitedThreshold; }
             public void setLimitedThreshold(int limitedThreshold) { this.limitedThreshold = limitedThreshold; }
-        }
-
-        public static class CaseAnalysis {
-            private int maxClarifications = 2;
-
-            public int getMaxClarifications() { return maxClarifications; }
-            public void setMaxClarifications(int maxClarifications) { this.maxClarifications = maxClarifications; }
         }
     }
 }

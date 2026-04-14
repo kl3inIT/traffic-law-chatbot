@@ -40,13 +40,6 @@ class AppPropertiesTest {
     }
 
     @Test
-    void chatCaseAnalysisMaxClarificationsBindsToDefault() {
-        assertThat(appProperties.getChat().getCaseAnalysis().getMaxClarifications())
-                .as("app.chat.case-analysis.max-clarifications should bind to 2 from application.yaml")
-                .isEqualTo(2);
-    }
-
-    @Test
     void corsAllowedOriginsBindsToDefault() {
         assertThat(appProperties.getCors().getAllowedOrigins())
                 .as("app.cors.allowed-origins should bind from application.properties")

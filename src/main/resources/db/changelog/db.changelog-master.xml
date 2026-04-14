@@ -17,4 +17,5 @@
     <include file="db/changelog/011-ai-parameter-set-model-columns.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/012-chat-log-pipeline-columns.xml" relativeToChangelogFile="false"/>
     <include file="db/changelog/013-chat-log-pipeline-log-column.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/014-drop-thread-fact-table.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

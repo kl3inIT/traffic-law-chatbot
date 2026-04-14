@@ -19,8 +19,6 @@ public record ChatAnswerResponse(
         List<String> requiredDocuments,
         List<String> procedureSteps,
         List<String> nextSteps,
-        List<PendingFactResponse> pendingFacts,
-        List<RememberedFactResponse> rememberedFacts,
         List<String> scenarioFacts,
         ScenarioAnalysisResponse scenarioAnalysis,
         List<CitationResponse> citations,

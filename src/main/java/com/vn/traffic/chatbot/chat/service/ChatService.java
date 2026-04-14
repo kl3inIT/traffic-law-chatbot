@@ -20,6 +20,8 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.vn.traffic.chatbot.chat.domain.ChatMessage;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -50,12 +52,24 @@ public class ChatService {
     private int limitedGroundingThreshold;
 
     /**
+     * Answers a user question with conversation history for multi-turn context.
+     */
+    public ChatAnswerResponse answer(String question, String modelId, List<ChatMessage> conversationHistory) {
+        return doAnswer(question, modelId, conversationHistory);
+    }
+
+    /**
      * Answers a user question using the specified model (or the default if null/unrecognized).
+     * Single-turn convenience overload (no conversation history).
      *
      * @param question the user's question
      * @param modelId  optional model ID from the request body; null triggers fallback to default
      */
     public ChatAnswerResponse answer(String question, String modelId) {
+        return doAnswer(question, modelId, List.of());
+    }
+
+    private ChatAnswerResponse doAnswer(String question, String modelId, List<ChatMessage> conversationHistory) {
         List<String> logMessages = new ArrayList<>();
         Consumer<String> logger = msg -> {
             log.info(msg);
@@ -114,7 +128,7 @@ public class ChatService {
 
         ChatClient client = resolveClient(modelId);
         long startTime = System.currentTimeMillis();
-        String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations);
+        String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations, conversationHistory);
         logger.accept(String.format("Prompt built: %d chars", prompt.length()));
 
         logger.accept("LLM call: started");

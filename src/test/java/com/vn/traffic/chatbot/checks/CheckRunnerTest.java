@@ -76,7 +76,7 @@ class CheckRunnerTest {
 
         ChatAnswerResponse chatResponse = new ChatAnswerResponse(
                 null, null, null, "test answer", null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null
         );
 
         when(checkRunRepository.findById(runId)).thenReturn(Optional.of(run));

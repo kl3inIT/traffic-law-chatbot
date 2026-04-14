@@ -188,8 +188,6 @@ class ChatThreadControllerTest {
                 List.of(),
                 List.of("Đối chiếu biên bản"),
                 List.of(),
-                List.of(),
-                List.of(),
                 null,
                 List.of(new com.vn.traffic.chatbot.chat.api.dto.CitationResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "Trích dẫn")),
                 List.of(new com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))

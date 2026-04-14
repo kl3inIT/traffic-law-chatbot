@@ -8,18 +8,12 @@ import com.vn.traffic.chatbot.chat.domain.ChatMessageRole;
 import com.vn.traffic.chatbot.chat.domain.ChatMessageType;
 import com.vn.traffic.chatbot.chat.domain.ChatThread;
 import com.vn.traffic.chatbot.chat.domain.ResponseMode;
-import com.vn.traffic.chatbot.chat.domain.ThreadFact;
-import com.vn.traffic.chatbot.chat.domain.ThreadFactStatus;
 import com.vn.traffic.chatbot.chat.repo.ChatMessageRepository;
 import com.vn.traffic.chatbot.chat.repo.ChatThreadRepository;
-import com.vn.traffic.chatbot.chat.repo.ThreadFactRepository;
 import com.vn.traffic.chatbot.chat.service.ChatService;
 import com.vn.traffic.chatbot.chat.service.ChatThreadMapper;
 import com.vn.traffic.chatbot.chat.service.ChatThreadService;
-import com.vn.traffic.chatbot.chat.service.ClarificationPolicy;
-import com.vn.traffic.chatbot.chat.service.FactMemoryService;
 import com.vn.traffic.chatbot.chat.service.GroundingStatus;
-import com.vn.traffic.chatbot.chat.service.LlmClarificationService;
 import com.vn.traffic.chatbot.chat.service.ScenarioAnswerComposer;
 import com.vn.traffic.chatbot.common.error.AppException;
 import com.vn.traffic.chatbot.common.error.ErrorCode;
@@ -37,9 +31,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,86 +41,51 @@ class ChatThreadFlowIntegrationTest {
 
     @Mock private ChatThreadRepository chatThreadRepository;
     @Mock private ChatMessageRepository chatMessageRepository;
-    @Mock private ThreadFactRepository threadFactRepository;
     @Mock private ChatService chatService;
-    @Mock private LlmClarificationService llmClarificationService;
 
     private ChatThreadService chatThreadService;
 
     @BeforeEach
     void setUp() {
-        // Default stub: clarification needed (test methods override per scenario)
-        org.mockito.Mockito.lenient()
-                .when(llmClarificationService.decide(
-                        org.mockito.ArgumentMatchers.anyString(),
-                        org.mockito.ArgumentMatchers.anyMap(),
-                        org.mockito.ArgumentMatchers.anyInt()))
-                .thenReturn(new ClarificationPolicy.ClarificationDecision(
-                        true, false, 1,
-                        java.util.List.of(new com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse(
-                                "vehicleType", "Loại phương tiện?", ""))));
-
-        FactMemoryService factMemoryService = new FactMemoryService(threadFactRepository);
         chatThreadService = new ChatThreadService(
                 chatThreadRepository,
                 chatMessageRepository,
-                threadFactRepository,
                 chatService,
-                new ChatThreadMapper(new ScenarioAnswerComposer()),
-                factMemoryService,
-                llmClarificationService
+                new ChatThreadMapper(new ScenarioAnswerComposer())
         );
     }
 
     @Test
-    void materiallyIncompleteFirstTurnReturnsClarificationNeeded() {
+    void createThreadReturnsGroundedAnswer() {
         UUID threadId = UUID.randomUUID();
         ChatThread thread = ChatThread.builder().id(threadId).createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
-        ChatMessage savedUser = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.USER).messageType(ChatMessageType.QUESTION).content("Tôi vượt đèn đỏ thì bị phạt sao?").build();
+        ChatMessage savedUser = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.USER).messageType(ChatMessageType.QUESTION).content("Xe máy vượt đèn đỏ bị phạt sao?").build();
 
         when(chatThreadRepository.save(any(ChatThread.class))).thenReturn(thread);
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(savedUser);
-        when(threadFactRepository.findFirstByThreadIdAndFactKeyAndStatusOrderByCreatedAtDesc(any(), any(), any())).thenReturn(Optional.empty());
-        when(threadFactRepository.save(any(ThreadFact.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(threadFactRepository.findByThreadIdAndStatusOrderByCreatedAtAsc(threadId, ThreadFactStatus.ACTIVE))
-                .thenReturn(List.of(ThreadFact.builder().factKey("violationType").factValue("vượt đèn đỏ").status(ThreadFactStatus.ACTIVE).build()));
+        when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId)).thenReturn(List.of(savedUser));
+        when(chatService.answer(eq("Xe máy vượt đèn đỏ bị phạt sao?"), isNull(), anyList())).thenReturn(answer(threadId));
 
-        ChatAnswerResponse response = chatThreadService.createThread("Tôi vượt đèn đỏ thì bị phạt sao?");
+        ChatAnswerResponse response = chatThreadService.createThread("Xe máy vượt đèn đỏ bị phạt sao?");
 
         assertThat(response.threadId()).isEqualTo(threadId);
-        assertThat(response.responseMode()).isEqualTo(ResponseMode.CLARIFICATION_NEEDED);
-        assertThat(response.pendingFacts()).isNotEmpty();
-        assertThat(response.conclusion()).isNull();
+        assertThat(response.conclusion()).isNotNull();
     }
 
     @Test
-    void answeringPendingFactMovesThreadToScenarioAnalysis() {
+    void postMessageReturnsFinalAnalysisWithScenario() {
         UUID threadId = UUID.randomUUID();
         ChatThread thread = ChatThread.builder().id(threadId).createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
         ChatMessage savedUser = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.USER).messageType(ChatMessageType.QUESTION).content("Tôi đi xe máy vượt đèn đỏ.").build();
-        List<ThreadFact> activeFacts = List.of(
-                ThreadFact.builder().factKey("vehicleType").factValue("xe máy").status(ThreadFactStatus.ACTIVE).build(),
-                ThreadFact.builder().factKey("violationType").factValue("vượt đèn đỏ").status(ThreadFactStatus.ACTIVE).build()
-        );
 
         when(chatThreadRepository.findById(threadId)).thenReturn(Optional.of(thread));
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(savedUser);
-        when(threadFactRepository.findFirstByThreadIdAndFactKeyAndStatusOrderByCreatedAtDesc(any(), any(), any())).thenReturn(Optional.empty());
-        when(threadFactRepository.save(any(ThreadFact.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(threadFactRepository.findByThreadIdAndStatusOrderByCreatedAtAsc(threadId, ThreadFactStatus.ACTIVE)).thenReturn(activeFacts);
         when(chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(threadId)).thenReturn(List.of(savedUser));
-        when(chatService.answer(org.mockito.ArgumentMatchers.contains("vehicleType: xe máy"), org.mockito.ArgumentMatchers.isNull())).thenReturn(answer(threadId));
-        // Override default setUp stub: message contains both facts so no clarification needed
-        when(llmClarificationService.decide(
-                org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyMap(),
-                org.mockito.ArgumentMatchers.anyInt()))
-                .thenReturn(new ClarificationPolicy.ClarificationDecision(false, false, 0, java.util.List.of()));
+        when(chatService.answer(eq("Tôi đi xe máy vượt đèn đỏ."), isNull(), anyList())).thenReturn(answer(threadId));
 
         ChatAnswerResponse response = chatThreadService.postMessage(threadId, "Tôi đi xe máy vượt đèn đỏ.");
 
         assertThat(response.responseMode()).isEqualTo(ResponseMode.FINAL_ANALYSIS);
-        assertThat(response.rememberedFacts()).extracting(r -> r.key()).contains("vehicleType", "violationType");
         assertThat(response.scenarioAnalysis()).isNotNull();
     }
 
@@ -156,8 +115,6 @@ class ChatThreadFlowIntegrationTest {
                 List.of(),
                 List.of(),
                 List.of("Đối chiếu biên bản"),
-                List.of(),
-                List.of(),
                 List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
                 new com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse(
                         List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
