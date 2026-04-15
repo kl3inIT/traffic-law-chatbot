@@ -3,23 +3,27 @@
 
 ## System Overview
 
-`traffic-law-chatbot` is a two-tier system: a Next.js 16 frontend provides the chat and admin interfaces, while a layered Spring Boot 4 backend ingests Vietnamese traffic-law documents into PostgreSQL plus pgvector, enforces approval and activation gates, stores thread and fact memory, and returns retrieval-grounded chat responses using Spring AI with runtime-configurable parameter sets.
+`traffic-law-chatbot` is a full-stack Vietnamese traffic-law assistant built as a browser frontend over a modular Spring Boot backend. Its primary inputs are user questions plus administrator-managed file and URL sources; its primary outputs are citation-backed chat answers, source and index governance state, chat audit logs, and model-evaluated check-run results. Architecturally, the system is a Next.js 16 App Router client backed by a layered Spring Boot 4 monolith that uses PostgreSQL, `kb_vector_store` in pgvector, and asynchronous workers for ingestion and evaluation.
 
 ## Component Diagram
 
 ```mermaid
 graph TD
     Browsers[Browsers] --> Frontend[Next.js frontend]
-    Frontend --> Api[Spring Boot REST controllers]
-    Api --> Chat[Chat and thread services]
-    Api --> Admin[Source, chunk, and parameter admin services]
-    Chat --> Params[Active parameter provider]
+    Frontend --> Api[Spring Boot REST API]
+    Api --> Chat[Chat runtime]
+    Api --> Admin[Admin and governance services]
+    Api --> Jobs[Async ingestion and check jobs]
+    Chat --> Params[Parameter and model config]
     Chat --> Vector[PgVectorStore retrieval]
-    Chat --> LLM[OpenAI chat model via Spring AI]
-    Chat --> Postgres[PostgreSQL: sources, jobs, threads, facts, parameters]
-    Admin --> Pipeline[Async ingestion pipeline]
+    Chat --> LLM[Spring AI chat clients]
+    Chat --> Postgres[PostgreSQL: sources, threads, memory, logs, checks, parameters]
     Admin --> Postgres
-    Pipeline --> Vector
+    Admin --> Vector
+    Admin --> Jobs
+    Jobs --> Vector
+    Jobs --> LLM
+    Jobs --> Postgres
     Params --> Postgres
     Vector -. kb_vector_store .-> Postgres
 ```
@@ -28,78 +32,86 @@ graph TD
 
 ### Frontend Request Flow
 
-1. Route groups under `frontend/app/(chat)` and `frontend/app/(admin)` render end-user chat and operator workflows inside a shared shell defined by `RootLayout`, `Providers`, and `AppSidebar`.
-2. Client components call React Query hooks from `frontend/hooks/*.ts`, which in turn use the axios helpers in `frontend/lib/api/*.ts` to talk to `/api/v1/chat` and `/api/v1/admin/...`.
-3. Successful mutations invalidate cached queries so the sidebar thread list, source tables, index dashboards, and parameter-set screens refresh from the backend without duplicating business logic in the browser.
+1. `frontend/app/layout.tsx` wraps all routes with `Providers`, `SidebarProvider`, `AppSidebar`, and `ErrorBoundary`, while route groups under `frontend/app/(chat)` and `frontend/app/(admin)` split user chat from operator workflows.
+2. Client pages call React Query hooks from `frontend/hooks/*.ts`, and those hooks use the axios helpers in `frontend/lib/api/*.ts` against `/api/v1/chat`, `/api/v1/admin/sources`, `/api/v1/admin/chunks`, `/api/v1/admin/parameter-sets`, `/api/v1/admin/trust-policies`, `/api/v1/admin/chat-logs`, `/api/v1/admin/check-defs`, `/api/v1/admin/check-runs`, and `/api/v1/admin/allowed-models`.
+3. Successful mutations invalidate query keys so the thread list, source tables, chunk dashboards, trust-policy editor, parameter-set screens, chat-log views, and check-run pages refresh from backend state instead of duplicating business logic in the browser.
 
-### Ingestion And Activation Flow
+### Ingestion And Governance Flow
 
-1. The admin UI or any direct client submits a file or URL to `IngestionAdminController`, which delegates to `IngestionService` to validate input, create a `KbSource`, create a `KbSourceVersion`, and enqueue a `KbIngestionJob`.
-2. `IngestionService` schedules `IngestionOrchestrator.runPipeline(...)` after the surrounding transaction commits so the async worker only sees committed source and job records.
-3. `IngestionOrchestrator` fetches remote HTML through `SafeUrlFetcher` or loads an uploaded file, then routes parsing through `UrlPageParser` or `FileIngestionParserResolver` and produces a normalized `ParsedDocument`.
-4. `TokenChunkingService` splits parsed sections into token-aware chunks, and the orchestrator writes them into `kb_vector_store` through Spring AI `VectorStore` with `trusted=false`, `active=false`, and the current approval state embedded in metadata.
-5. `SourceService.approve(...)`, `reject(...)`, `activate(...)`, `deactivate(...)`, and `reingest(...)` update relational source state and use `ChunkMetadataUpdater` to keep vector-store metadata aligned with governance state.
-6. Admin index views call `ChunkInspectionService`, which queries `kb_vector_store` directly with `JdbcTemplate` to expose readiness counts, chunk detail, and index summary metrics.
+1. `IngestionAdminController` accepts uploads, single URL imports, and batch URL imports; `IngestionService` validates input, performs duplicate-URL and SSRF checks, stores upload temp files when needed, and creates `KbSource`, `KbSourceVersion`, and `KbIngestionJob` records.
+2. After the transaction commits, `IngestionOrchestrator.runPipeline(...)` executes asynchronously on `ingestionExecutor`; URL jobs fetch content through `SafeUrlFetcher` and parse with `UrlPageParser`, while file and reingest jobs resolve a parser through `FileIngestionParserResolver`.
+3. `TokenChunkingService` turns the parsed document into `ChunkResult` records, and the orchestrator writes them into `kb_vector_store` through Spring AI `VectorStore` with source metadata plus hardcoded `trusted=false` and `active=false`.
+4. `SourceService.approve(...)`, `reject(...)`, `activate(...)`, `deactivate(...)`, and `reingest(...)` update relational source state and call `ChunkMetadataUpdater` so the vector-store metadata stays aligned with approval and activation gates.
+5. `ChunkInspectionService` reads `kb_vector_store` directly with `JdbcTemplate` for readiness counts, index summary, and per-chunk detail. `SourceTrustPolicyService` manages trust-policy records separately and, by design, does not mutate `ApprovalState`, `TrustedState`, or `SourceStatus` on `KbSource`.
 
 ### Chat Request Flow
 
-1. One-shot questions hit `PublicChatController.answer(...)` directly, while threaded conversations flow through `createThread(...)` and `postMessage(...)`; the frontend chat pages consume those endpoints through `useCreateThread`, `usePostMessage`, and `useThreadMessages`.
-2. `ChatThreadService` persists user and assistant messages, asks `FactMemoryService` to extract structured facts from each user message, and uses `ClarificationPolicy` to decide whether enough case detail exists to continue.
-3. `ClarificationPolicy`, `RetrievalPolicy`, `ChatPromptFactory`, and `AnswerCompositionPolicy` all read runtime values from `ActiveParameterSetProvider`, which loads the active YAML parameter set from PostgreSQL and falls back to hardcoded defaults when needed.
-4. If required facts are still missing, the thread service returns a clarification response; if the clarification budget is exhausted or retrieval has no usable authority, it returns a refusal response.
-5. For answerable requests, `ChatService` builds a `SearchRequest`, queries the vector store with the hardcoded approved/trusted/active filter, maps results into citations and source references, and rejects answers that do not look sufficiently grounded in legal material.
-6. When grounding is sufficient, `ChatClient` invokes the `openAiChatModel`; `AnswerComposer`, `ScenarioAnswerComposer`, and `ChatThreadMapper` convert the model draft into the final API response and optionally attach remembered facts plus scenario analysis.
+1. `PublicChatController` exposes the one-shot `POST /api/v1/chat` endpoint plus threaded `/threads` endpoints. One-shot requests call `ChatService` directly, while threaded requests flow through `ChatThreadService`, which persists `ChatThread` and `ChatMessage` rows before and after each answer.
+2. `ChatService` builds a `SearchRequest` through `RetrievalPolicy`, queries the PgVector store, maps the hits into citations and source references, and refuses the answer when no approved, trusted, active legal material or no legal citation signal is found.
+3. For grounded requests, `ChatPromptFactory` and `AnswerCompositionPolicy` read runtime YAML from `ActiveParameterSetProvider`; `ChatClientConfig` resolves a `ChatClient` from the `app.ai.models` catalog; and `MessageChatMemoryAdvisor` attaches JDBC-backed `ChatMemory` when a conversation ID is present.
+4. The model payload is parsed into `LegalAnswerDraft`, then `AnswerComposer`, `ScenarioAnswerComposer`, and `ChatThreadMapper` build the final `ChatAnswerResponse` with answer sections, citations, source references, and optional scenario analysis.
+5. `ChatLogService` persists the question, answer, grounding status, token usage, latency, and pipeline log so the admin chat-log pages can audit both the user-visible answer and the retrieval/model path behind it.
+
+### Check Run Flow
+
+1. Admin check screens create and edit `CheckDef` records through `CheckDefAdminController`, then trigger evaluation runs through `CheckRunAdminController`.
+2. `CheckRunService` snapshots the current active parameter-set metadata into a `CheckRun` row and schedules `CheckRunner.runAll(...)` after commit on the shared async executor.
+3. `CheckRunner` replays every active definition through `ChatService` and scores the returned answer with `LlmSemanticEvaluator`, which reuses the same `chatClientMap` and falls back to evaluator model settings from the active parameter set or `app.ai.evaluator-model`.
+4. The resulting `CheckResult` rows and aggregate run status are stored in PostgreSQL and exposed back to the admin UI for review.
 
 ## Key Abstractions
 
 | Abstraction | Purpose | Location |
 | --- | --- | --- |
-| `use-chat.ts` | Frontend integration layer for thread creation, message posting, and message-history fetching through React Query. | `frontend/hooks/use-chat.ts` |
-| `PublicChatController` | Exposes the public chat API for one-shot questions, thread creation, thread listing, and follow-up messages. | `src/main/java/com/vn/traffic/chatbot/chat/api/PublicChatController.java` |
-| `ChatThreadService` | Persists thread state, appends chat messages, applies clarification rules, and injects thread context into chat responses. | `src/main/java/com/vn/traffic/chatbot/chat/service/ChatThreadService.java` |
-| `ChatService` | Runs retrieval, grounding checks, prompt construction, model invocation, JSON parsing, and safe answer composition. | `src/main/java/com/vn/traffic/chatbot/chat/service/ChatService.java` |
-| `RetrievalPolicy` | Centralizes the vector-search threshold and the metadata filter that limits retrieval to approved, trusted, active chunks. | `src/main/java/com/vn/traffic/chatbot/retrieval/RetrievalPolicy.java` |
-| `ActiveParameterSetProvider` | Loads the active YAML parameter set from the database and supplies runtime knobs for retrieval, prompting, clarification, and answer messaging. | `src/main/java/com/vn/traffic/chatbot/parameter/service/ActiveParameterSetProvider.java` |
-| `IngestionService` | Creates source/version/job records and is the transactional entry point for upload and URL ingestion. | `src/main/java/com/vn/traffic/chatbot/ingestion/service/IngestionService.java` |
-| `IngestionOrchestrator` | Executes the async pipeline stages `FETCH -> PARSE -> CHUNK -> EMBED -> INDEX -> FINALIZE` for a queued ingestion job. | `src/main/java/com/vn/traffic/chatbot/ingestion/orchestrator/IngestionOrchestrator.java` |
-| `SourceService` | Owns source approval and activation state and propagates those state changes into vector-store metadata. | `src/main/java/com/vn/traffic/chatbot/source/service/SourceService.java` |
-| `ChunkInspectionService` | Reads `kb_vector_store` directly with `JdbcTemplate` to report chunk readiness, chunk details, and index summary metrics. | `src/main/java/com/vn/traffic/chatbot/chunk/service/ChunkInspectionService.java` |
+| `ChatService` | Central chat runtime for retrieval, grounding checks, prompt building, model invocation, draft parsing, answer composition, and chat-log persistence. | `src/main/java/com/vn/traffic/chatbot/chat/service/ChatService.java` |
+| `ChatThreadService` | Persists thread and message state and wraps chat responses with thread-specific scenario context. | `src/main/java/com/vn/traffic/chatbot/chat/service/ChatThreadService.java` |
+| `RetrievalPolicy` | Owns the safety-critical PgVector filter and the active similarity-threshold and top-k policy. | `src/main/java/com/vn/traffic/chatbot/retrieval/RetrievalPolicy.java` |
+| `ActiveParameterSetProvider` | Reads the active YAML parameter set from PostgreSQL and exposes typed runtime values to chat and evaluation policies. | `src/main/java/com/vn/traffic/chatbot/parameter/service/ActiveParameterSetProvider.java` |
+| `ChatClientConfig` | Builds the immutable `Map<String, ChatClient>` from `app.ai.models` and the configured base URL used by the chat runtime. | `src/main/java/com/vn/traffic/chatbot/chat/config/ChatClientConfig.java` |
+| `IngestionService` | Transactional entry point for upload, URL import, and ingestion job retry or cancel flows. | `src/main/java/com/vn/traffic/chatbot/ingestion/service/IngestionService.java` |
+| `IngestionOrchestrator` | Async pipeline executor that fetches, parses, chunks, embeds, indexes, and finalizes source ingestion jobs. | `src/main/java/com/vn/traffic/chatbot/ingestion/orchestrator/IngestionOrchestrator.java` |
+| `SourceService` | Governs source approval, activation, deactivation, and reingestion while mirroring those transitions into vector metadata. | `src/main/java/com/vn/traffic/chatbot/source/service/SourceService.java` |
+| `ChunkInspectionService` | Reads `kb_vector_store` directly with `JdbcTemplate` to power readiness, summary, and chunk-detail admin views. | `src/main/java/com/vn/traffic/chatbot/chunk/service/ChunkInspectionService.java` |
+| `CheckRunner` | Async evaluator that replays active check definitions through the chat system and stores scored quality-check results. | `src/main/java/com/vn/traffic/chatbot/checks/service/CheckRunner.java` |
 
 ## Directory Structure Rationale
 
-The repository is organized as a two-application codebase: `frontend/` contains the browser UI, while `src/main/java` contains a domain-oriented Spring backend where each top-level package under `com.vn.traffic.chatbot` owns one business slice. That split keeps React and App Router concerns out of the Java service layer while still preserving a single backend deployable.
+The repository is organized as a split frontend plus modular backend: `frontend/` contains the App Router UI and browser-only integration code, while `src/main/java/com/vn/traffic/chatbot` groups backend code by domain slice so chat, ingestion, governance, audit, and evaluation can evolve independently inside one deployable application.
 
 ```text
 frontend/
-  app/                            App Router entrypoints for chat and admin areas
-  components/                     reusable layout, chat, admin, and UI primitives
-  hooks/                          React Query hooks for backend integration
-  lib/api/                        axios clients for REST endpoints
+  app/                            App Router entrypoints for chat and admin route groups
+  components/                     admin, chat, layout, ai-elements, and shared UI building blocks
+  hooks/                          React Query hooks that bind pages to backend resources
+  lib/                            axios clients, query keys, and frontend utilities
+  types/                          shared API response and request types for the UI
 src/
   main/
     java/com/vn/traffic/chatbot/
-      chat/                        public Q&A, thread memory, clarification, and answer composition
-      chunk/                       vector-index inspection and metadata updates
-      common/                      shared API paths, config, pagination, and exception handling
-      ingestion/                   async jobs, URL/file fetch, parsing, chunking, and indexing
-      parameter/                   parameter-set CRUD, default seeding, and runtime provider
-      retrieval/                   shared retrieval filter and search policy
-      source/                      knowledge-source registry, approval workflow, and lifecycle changes
+      chat/                        public Q&A, thread persistence, prompt building, and answer composition
+      chatlog/                     persisted chat audit logs and admin filtering
+      checks/                      quality-check definitions, async runs, and semantic evaluation
+      chunk/                       vector-table inspection and metadata update helpers
+      common/                      shared API envelopes, configuration, errors, logging, and AOP
+      ingestion/                   upload and URL intake, fetch, parser resolution, chunking, and orchestration
+      parameter/                   parameter-set CRUD, activation, seeding, and runtime lookup
+      retrieval/                   centralized retrieval filter and search policy
+      source/                      source registry, approval workflow, trust-policy CRUD, and lifecycle state
     resources/
-      application.yaml            runtime and infrastructure configuration
-      default-parameter-set.yml   seeded YAML parameter-set content
+      application.yaml            runtime application configuration
+      default-parameter-set.yml   seeded YAML for the first active parameter set
       db/changelog/               Liquibase schema history
   test/
     java/                         package-aligned controller, service, parser, and integration tests
 docs/                             generated project documentation
 gradle/                           Gradle wrapper support files
+scripts/import_sources/           repository-local traffic-law source corpus files
 screenshots/                      captured UI flows for manual verification and docs
 ```
 
-- `frontend/` is separate from `src/main/java` so the App Router UI, React Query cache, and shadcn-based components can evolve without leaking presentation concerns into the Spring domain model.
-- `frontend/app/(chat)` and `frontend/app/(admin)` share one shell but keep end-user chat and operator workflows isolated at the route level.
-- `chat/` depends on `retrieval/` and `parameter/` rather than on `source/` or `ingestion/` directly, so answer generation only works with already-indexed, policy-filtered material.
-- `ingestion/` owns the asynchronous file and URL pipeline, while `source/` owns governance transitions that also propagate into vector metadata through `chunk/`.
-- `chunk/` remains its own slice because inspection and metadata update operations hit `kb_vector_store` directly with `JdbcTemplate`, not through JPA entities.
-- `parameter/` is a live runtime subsystem now: it stores admin-managed YAML, seeds a default record on startup, and feeds retrieval, prompt, clarification, and answer-composition policies.
-- `src/main/resources/db/changelog/` mirrors the main persistence concerns: source and job tables, vector-store schema, chat thread and message state, and parameter-set storage.
+- `frontend/` stays separate from `src/main/java` so App Router pages, React Query caching, and client-side UI composition do not leak into the Spring service layer.
+- `chat/`, `chatlog/`, and `checks/` are separate slices because answer generation, runtime audit logs, and offline quality evaluation share data but have different persistence and async lifecycles.
+- `ingestion/`, `source/`, and `chunk/` divide responsibilities cleanly: queueing and parsing live in `ingestion/`, governance transitions live in `source/`, and direct `kb_vector_store` inspection or metadata mutation lives in `chunk/`.
+- `parameter/` and `retrieval/` keep runtime knobs and the safety-critical retrieval gate centralized instead of scattering thresholds, messages, or filter expressions across services.
+- `common/` contains cross-cutting infrastructure such as config binding, async execution, error handling, CORS, response envelopes, and logging so the domain slices remain focused.
+- `src/main/resources/db/changelog/` mirrors the live persistence model: source and ingestion state, vector-store schema, chat threads and JDBC chat memory, chat logs, trust policies, check runs, and AI parameter sets.

@@ -14,7 +14,7 @@ This project uses the GSD workflow artifacts in `.planning/`.
 
 ## Working Rules
 
-- Read `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, and `.planning/ROADMAP.md` before major implementation work.
+- Read `.planning/PROJECT.md`, `.planning/milestones/v1.0-REQUIREMENTS.md`, and `.planning/ROADMAP.md` before major implementation work.
 - Prefer REST-first backend changes.
 - Keep traffic-condition integrations out of v1 unless requirements change.
 - Preserve trusted-source ingestion, vector-store management, parameters, chat logs, and answer checks as first-class capabilities.

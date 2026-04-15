@@ -28,7 +28,7 @@ Development is split between a Spring Boot 4 backend in `src/` and a Next.js 16 
 
    The backend does not have a separate package-install step; the Gradle wrapper resolves dependencies the first time you run a Gradle task. The frontend `prepare` lifecycle script runs `husky` from the repository root so the checked-in pre-commit hook is available locally.
 
-4. Configure local runtime variables. Spring imports a repo-root `.env` through `spring.config.import`, and the frontend reads `frontend/.env.local` for browser-safe overrides.
+4. Configure local runtime variables. Spring imports a repo-root `.env` through `spring.config.import`, and the frontend can read `frontend/.env.local` or a shell export for browser-safe overrides.
 
    ```bash
    DB_URL=jdbc:postgresql://localhost:5432/traffic_law
@@ -41,7 +41,7 @@ Development is split between a Spring Boot 4 backend in `src/` and a Next.js 16 
    NEXT_PUBLIC_API_BASE_URL=http://localhost:8089
    ```
 
-   Local development assumes an existing PostgreSQL instance. `src/main/resources/application.yaml` points to PostgreSQL by default, `spring.docker.compose.enabled` is `false`, and the checked-in `compose.yaml` is only a commented scaffold. See [CONFIGURATION.md](CONFIGURATION.md) for defaults and override behavior. A valid `OPENAI_API_KEY` is required for real model-backed chat responses, even though the application can still bind configuration with an empty value. Set `NEXT_PUBLIC_API_BASE_URL` explicitly because `frontend/lib/api/client.ts` still falls back to `http://localhost:8088` while the backend now defaults to port `8089`.
+   Local development assumes an existing PostgreSQL instance. `src/main/resources/application.yaml` points to PostgreSQL by default, `spring.docker.compose.enabled` is `false`, and the checked-in `compose.yaml` is only a commented scaffold. See [CONFIGURATION.md](CONFIGURATION.md) for defaults and override behavior. A valid `OPENAI_API_KEY` is still required for real model-backed chat responses even though Spring resolves the property to the fallback value `none` when it is unset. If your local chat router or embedding endpoint differs from the checked-in defaults, add `OPENAI_BASE_URL`, `EMBEDDING_BASE_URL`, `EMBEDDING_MODEL`, `CHAT_MODEL`, or `EVALUATOR_MODEL` to the same repo-root `.env`. The frontend client still falls back to `http://localhost:8088`, so keep `NEXT_PUBLIC_API_BASE_URL=http://localhost:8089` in your shell or `frontend/.env.local`; the checked-in `frontend/.env.local` already uses that local default.
 
 5. Start the backend API.
 
@@ -96,7 +96,7 @@ Development is split between a Spring Boot 4 backend in `src/` and a Next.js 16 
 | `cd frontend && pnpm test` | Run the Vitest suite once. |
 | `cd frontend && pnpm test:watch` | Run Vitest in watch mode during UI development. |
 | `cd frontend && pnpm test:ci` | Run the frontend test suite with V8 coverage enabled. |
-| `cd frontend && pnpm e2e` | Run the Playwright smoke tests against `http://localhost:3000`. |
+| `cd frontend && pnpm e2e` | Run the Playwright end-to-end suite in `frontend/e2e` against `http://localhost:3000`. |
 | `cd frontend && pnpm prepare` | Run `husky` from the repository root; `pnpm install` triggers this automatically. |
 
 ## Code Style

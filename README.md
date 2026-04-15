@@ -3,34 +3,22 @@
 
 Full-stack Vietnamese traffic-law assistant for operators who curate legal sources and users who need citation-backed answers.
 
-This repository contains a Spring Boot 4 API in `src/` and a Next.js 16 frontend in `frontend/`. The backend ingests PDF, Word, structured regulation, and website-page sources into a pgvector-backed store, then serves citation-backed chat, threaded case analysis, source-ingestion workflows, chunk inspection, and AI parameter-set management.
+This repository contains a Spring Boot `4.0.5` API in `src/` and a Next.js `16.2.3` frontend in `frontend/`. The backend ingests PDF, Word, structured regulation, and website page sources into a pgvector-backed store, then serves citation-backed chat, threaded scenario analysis, source-ingestion workflows, chunk inspection, trust-policy management, chat-log review, quality checks, and AI parameter-set management.
 
 ## Requirements
 
 - `Java 25`
 - `PostgreSQL` with the `vector`, `hstore`, and `uuid-ossp` extensions available
-- `OPENAI_API_KEY` for model-backed chat responses
+- `OPENAI_API_KEY` for chat and embedding requests
 - `Node.js` and `pnpm` if you want to run the bundled web UI (`frontend/package.json` pins `pnpm@10.32.1`)
 
 ## Installation
 
-The Gradle wrapper downloads `Gradle 9.4.1` automatically.
+No separate backend install step is required. The first Gradle command downloads `Gradle 9.4.1` and resolves backend dependencies automatically.
 
 ```bash
 git clone https://github.com/kl3inIT/traffic-law-chatbot.git
 cd traffic-law-chatbot
-./gradlew build
-cd frontend
-pnpm install
-cd ..
-```
-
-On Windows, use:
-
-```bash
-git clone https://github.com/kl3inIT/traffic-law-chatbot.git
-cd traffic-law-chatbot
-gradlew.bat build
 cd frontend
 pnpm install
 cd ..
@@ -48,6 +36,8 @@ cd ..
    ```
 
    In PowerShell, set the same names with `$env:DB_URL=...`, `$env:DB_USERNAME=...`, `$env:DB_PASSWORD=...`, and `$env:OPENAI_API_KEY=...`.
+
+   If your OpenAI-compatible chat router is not available at the default `http://localhost:20128`, also set `OPENAI_BASE_URL` before starting the backend.
 
 2. Start the backend API on port `8089`.
 
@@ -87,27 +77,37 @@ curl -X POST http://localhost:8089/api/v1/chat \
   -d '{"question":"Xe may vuot den do bi phat the nao?"}'
 ```
 
-Expected result: a JSON response with fields such as `groundingStatus`, `responseMode`, `answer`, `citations`, and `sources`.
+Expected result: the API responds with the standard `status` / `message` / `data` / `timestamp` envelope, and the `data` object contains the chat payload.
 
 ```json
 {
-  "groundingStatus": "GROUNDED",
-  "responseMode": "STANDARD",
-  "answer": "...",
-  "citations": [
-    {
-      "label": "[Nguon 1]"
-    }
-  ],
-  "sources": [
-    {
-      "sourceId": "..."
-    }
-  ]
+  "status": 200,
+  "message": "Chat answer",
+  "data": {
+    "groundingStatus": "GROUNDED",
+    "threadId": null,
+    "responseMode": "STANDARD",
+    "answer": "...",
+    "citations": [
+      {
+        "inlineLabel": "[1]",
+        "sourceTitle": "...",
+        "excerpt": "..."
+      }
+    ],
+    "sources": [
+      {
+        "inlineLabel": "[1]",
+        "sourceId": "5df9f0f0-0000-0000-0000-000000000000",
+        "sourceTitle": "..."
+      }
+    ]
+  },
+  "timestamp": "2026-04-15T00:00:00Z"
 }
 ```
 
-### Start a threaded case analysis
+### Start a threaded scenario analysis
 
 ```bash
 curl -X POST http://localhost:8089/api/v1/chat/threads \
@@ -119,18 +119,35 @@ curl -X POST http://localhost:8089/api/v1/chat/threads/<thread-id>/messages \
   -d '{"question":"Toi di xe may"}'
 ```
 
-Expected result: responses include a stable `threadId`. When the service needs more facts, it returns `responseMode: "CLARIFICATION_NEEDED"` with `pendingFacts`; once enough facts are present, it can return scenario analysis fields alongside the answer.
+Expected result: responses include a stable `data.threadId`. Threaded answers can return `SCENARIO_ANALYSIS`, `FINAL_ANALYSIS`, or `REFUSED` depending on grounding and whether the model produced structured scenario fields.
 
 ```json
 {
-  "threadId": "2f2a8c4a-0000-0000-0000-000000000000",
-  "responseMode": "CLARIFICATION_NEEDED",
-  "pendingFacts": [
-    {
-      "key": "vehicleType",
-      "question": "..."
+  "status": 200,
+  "message": "Message posted",
+  "data": {
+    "threadId": "2f2a8c4a-0000-0000-0000-000000000000",
+    "responseMode": "FINAL_ANALYSIS",
+    "answer": "...",
+    "scenarioAnalysis": {
+      "facts": [
+        "Toi di xe may"
+      ],
+      "rule": "...",
+      "outcome": "...",
+      "actions": [
+        "..."
+      ],
+      "sources": [
+        {
+          "inlineLabel": "[1]",
+          "sourceId": "5df9f0f0-0000-0000-0000-000000000000",
+          "sourceTitle": "..."
+        }
+      ]
     }
-  ]
+  },
+  "timestamp": "2026-04-15T00:00:00Z"
 }
 ```
 
@@ -150,13 +167,18 @@ curl -X POST http://localhost:8089/api/v1/admin/sources/<source-id>/approve \
 curl -X POST "http://localhost:8089/api/v1/admin/sources/<source-id>/activate?actedBy=admin"
 ```
 
-Expected result: the first call returns `202 Accepted` with `sourceId`, `jobId`, and `status: "QUEUED"`. After approval and activation, the ingested chunks become eligible for retrieval.
+Expected result: the first call returns HTTP `202 Accepted` with the standard response envelope. Its `data` payload contains `sourceId`, `jobId`, and `status: "QUEUED"`. After approval and activation, the ingested chunks become eligible for retrieval.
 
 ```json
 {
-  "sourceId": "5df9f0f0-0000-0000-0000-000000000000",
-  "jobId": "63b8a7b7-0000-0000-0000-000000000000",
-  "status": "QUEUED"
+  "status": 201,
+  "message": "URL ingestion accepted",
+  "data": {
+    "sourceId": "5df9f0f0-0000-0000-0000-000000000000",
+    "jobId": "63b8a7b7-0000-0000-0000-000000000000",
+    "status": "QUEUED"
+  },
+  "timestamp": "2026-04-15T00:00:00Z"
 }
 ```
 
