@@ -46,6 +46,7 @@ out/
 .claude/worktrees/
 .clone/
 .claude-vn-chat-request.json
+.planning/tmp/
 
 # Playwright
 .playwright-cli/
