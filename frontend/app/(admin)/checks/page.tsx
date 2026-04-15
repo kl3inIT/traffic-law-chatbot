@@ -325,12 +325,15 @@ export default function ChecksPage() {
       <div className="flex flex-shrink-0 items-center justify-between">
         <h1 className="text-xl font-semibold">Định nghĩa kiểm tra</h1>
         <div className="flex items-center gap-2">
-          <Select value={chatModelId} onValueChange={(v) => setChatModelId(v ?? '')}>
+          <Select
+            value={chatModelId || '__default__'}
+            onValueChange={(v) => setChatModelId(v === '__default__' ? '' : v)}
+          >
             <SelectTrigger className="w-44">
               <SelectValue placeholder="Chat model" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Mặc định</SelectItem>
+              <SelectItem value="__default__">Mặc định</SelectItem>
               {allowedModels.map((m) => (
                 <SelectItem key={m.modelId} value={m.modelId}>
                   {m.displayName}
@@ -338,12 +341,15 @@ export default function ChecksPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={evaluatorModelId} onValueChange={(v) => setEvaluatorModelId(v ?? '')}>
+          <Select
+            value={evaluatorModelId || '__default__'}
+            onValueChange={(v) => setEvaluatorModelId(v === '__default__' ? '' : v)}
+          >
             <SelectTrigger className="w-44">
               <SelectValue placeholder="Evaluator model" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Mặc định</SelectItem>
+              <SelectItem value="__default__">Mặc định</SelectItem>
               {allowedModels.map((m) => (
                 <SelectItem key={m.modelId} value={m.modelId}>
                   {m.displayName}

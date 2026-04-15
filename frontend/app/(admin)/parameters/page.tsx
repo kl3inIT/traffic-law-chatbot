@@ -339,14 +339,16 @@ export default function ParametersPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <FieldRow label="Mô hình chat mặc định" hint="dùng cho trả lời câu hỏi">
                         <Select
-                          value={form.watch('chatModel') ?? ''}
-                          onValueChange={(val) => form.setValue('chatModel', val ?? '')}
+                          value={form.watch('chatModel') || '__default__'}
+                          onValueChange={(val) =>
+                            form.setValue('chatModel', val === '__default__' ? '' : val)
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="-- Không chỉ định --" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">-- Không chỉ định --</SelectItem>
+                            <SelectItem value="__default__">-- Không chỉ định --</SelectItem>
                             {allowedModels.map((m) => (
                               <SelectItem key={m.modelId} value={m.modelId}>
                                 {m.displayName}
@@ -360,14 +362,16 @@ export default function ParametersPage() {
                         hint="dùng cho kiểm tra chất lượng"
                       >
                         <Select
-                          value={form.watch('evaluatorModel') ?? ''}
-                          onValueChange={(val) => form.setValue('evaluatorModel', val ?? '')}
+                          value={form.watch('evaluatorModel') || '__default__'}
+                          onValueChange={(val) =>
+                            form.setValue('evaluatorModel', val === '__default__' ? '' : val)
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="-- Không chỉ định --" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">-- Không chỉ định --</SelectItem>
+                            <SelectItem value="__default__">-- Không chỉ định --</SelectItem>
                             {allowedModels.map((m) => (
                               <SelectItem key={m.modelId} value={m.modelId}>
                                 {m.displayName}
