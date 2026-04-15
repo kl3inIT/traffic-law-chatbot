@@ -2,9 +2,9 @@
 
 ## What This Is
 
-A REST-first AI chatbot system for answering questions about traffic in Vietnam, focused primarily on traffic laws and regulations in v1. It helps users understand rules, fines, penalties, procedures, required documents, and legal guidance, including analysis of real-life scenarios, while also providing an admin interface for managing the knowledge base and AI behavior.
+A REST-first AI chatbot system for answering questions about Vietnam traffic laws and regulations. It helps users understand rules, fines, penalties, procedures, required documents, and legal guidance — including multi-turn analysis of real-life scenarios — while providing an admin interface for managing the knowledge base, AI parameters, chat logs, and answer quality checks.
 
-The backend should preserve the core RAG, ingestion, chat, parameter management, chat logging, and answer-check capabilities of the existing Jmix AI backend, but re-implemented in a Spring REST architecture aligned with the migrated shoes shopping online system. The frontend should be built in Next.js with a practical existing AI UI library and a sidebar-style app that includes both chat and admin screens.
+The backend is a Java 25 Spring REST application with PostgreSQL + pgvector persistence, Spring AI ETL ingestion, and multi-provider LLM routing via 9router. The frontend is a Next.js sidebar-style app combining chat and admin screens.
 
 ## Core Value
 
@@ -14,74 +14,87 @@ Users can describe a Vietnam traffic-law situation in natural language and recei
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ CHAT-01: Source-backed Vietnamese traffic-law Q&A — v1.0
+- ✓ CHAT-02: Multi-turn conversation threads — v1.0
+- ✓ CHAT-03: Cited source references in answers — v1.0
+- ✓ CHAT-04: Informational guidance disclaimer — v1.0
+- ✓ LEGAL-01: Legal basis tied to retrieved sources — v1.0
+- ✓ LEGAL-02: Fine/penalty/consequence information — v1.0
+- ✓ LEGAL-03: Required documents and procedures — v1.0
+- ✓ LEGAL-04: Recommended next steps — v1.0
+- ✓ CASE-01: Real-life scenario analysis grounded in sources — v1.0
+- ✓ CASE-02: Missing fact detection — v1.0
+- ✓ CASE-03: Clarifying follow-up questions — v1.0
+- ✓ CASE-04: Consistent scenario response structure — v1.0
+- ✓ KNOW-01: PDF legal document ingestion — v1.0
+- ✓ KNOW-02: Word legal document ingestion — v1.0
+- ✓ KNOW-03: Structured regulation document ingestion — v1.0
+- ✓ KNOW-04: Website content ingestion from trusted sources — v1.0
+- ✓ KNOW-05: Provenance metadata retention — v1.0
+- ✓ KNOW-06: Active/trusted-only retrieval gating — v1.0
+- ✓ ADMIN-01: Source management admin interface — v1.0
+- ✓ ADMIN-02: Vector-store/knowledge inspection — v1.0
+- ✓ ADMIN-03: AI parameter set CRUD — v1.0
+- ✓ ADMIN-04: Chat log review — v1.0
+- ✓ ADMIN-05: Answer check definitions and runs — v1.0
+- ✓ ADMIN-06: Sidebar-style combined chat+admin app — v1.0
+- ✓ PLAT-01: REST API backend — v1.0
+- ✓ PLAT-02: Next.js frontend — v1.0
+- ✓ PLAT-03: Persistent data layer with vector embeddings — v1.0
+- ✓ PLAT-04: Java 25 backend — v1.0
 
 ### Active
 
-- [ ] Public users can ask Vietnam traffic-law questions in Vietnamese and receive source-backed answers.
-- [ ] Public users can describe real-life traffic cases and receive structured legal guidance grounded in retrieved sources.
-- [ ] Admins can ingest and manage trusted knowledge sources for the vector store, including PDF, Word, structured regulation documents, and website content.
-- [ ] Admins can manage AI parameters, inspect chat logs, run answer checks, and monitor retrieval quality through an admin interface inspired by the Jmix AI backend.
-- [ ] The system preserves the main RAG/admin architecture intent from jmix-ai-backend while exposing capabilities through REST APIs and a Next.js frontend.
+(No active requirements — next milestone TBD)
 
 ### Out of Scope
 
-- Live traffic-condition integrations — deferred for now because the current phase should focus on traffic laws and regulations.
-- User-role separation and permission modeling — deferred because the current stage does not require distinct public/admin role separation.
-- Manual curated Q&A fallback workflows — excluded from v1 because the admin scope is limited to ingestion, vector store management, parameter management, chat logs, and answer checks.
+- Live traffic-condition integrations — deferred; v1 focused on laws and regulations
+- User-role separation and permission modeling — deferred; current stage does not require distinct public/admin role separation
+- Manual curated Q&A fallback workflows — excluded from v1; admin scope limited to ingestion, vector store, parameters, chat logs, and answer checks
+- Regulation version/effective date distinction — v2 scope
+- Document upload for document-assisted analysis — v2 scope
+- Alternate scenario comparison — v2 scope
+- Non-traffic legal domains — v2 scope
 
 ## Context
 
-This project is intended to answer questions about traffic in Vietnam, with traffic laws and regulations as the primary focus in v1 and traffic-condition information kept out of current scope. The chatbot should support realistic user scenarios, not just simple FAQ-style retrieval.
+Shipped v1.0 MVP on 2026-04-15. 291 commits over 9 days.
 
-The user wants the backend to take the core ideas from `jmix-ai-backend` and keep the architecture aligned with that system's RAG, chat, ingestion, parameter, logging, and answer-checking concepts, but replace the Jmix UI-driven approach with a REST-first Spring architecture. The user also wants the implementation to align with patterns already used in the migrated shoes shopping backend, especially its controller/service/API structure.
+**Tech stack:** Java 25 Spring Boot, PostgreSQL + pgvector, Spring AI ETL, 9router (OpenAI-compatible gateway), Next.js 16, shadcn/ui, React Query, base-ui.
 
-Reference systems reviewed during initialization:
-- `D:/Study materials spring 2026/EXE101/ai/jmix-ai-backend` — source of the core RAG/admin concepts and feature set.
-- `D:/Study materials spring 2026/SBA301/project/shoes-shopping-online-system-be` — source of the preferred REST/controller-service structure after migrating away from Jmix.
+**Codebase:** 12,837 LOC Java (backend) + 11,455 LOC TypeScript (frontend). 15 database tables via Liquibase migrations. 185+ automated tests.
 
-The frontend should be Vietnamese-first and use a practical, maintainable existing AI component approach, with shadcn-based chat UI or Vercel AI SDK-style UI being acceptable options. The admin experience should resemble a Jmix AI backend/admin panel and live in the same sidebar-style application as the chat UI for now.
+**Knowledge base:** 3 core Vietnamese legal decrees ingested and validated (ND 168/2024, Luat GTDB 2008, ND 100/2019). Trust policy enforcement with PRIMARY/SECONDARY/MANUAL_REVIEW tiers.
 
-Knowledge ingestion in v1 must support trusted sources across PDF/Word legal documents, structured policy/regulation documents, and website content, prioritizing official and trustworthy materials.
+**AI routing:** Multi-provider model catalog (GPT-5.4, Claude Sonnet 4.6, Claude Haiku 4.5) via YAML config, Map<String,ChatClient> factory with fallback chain.
 
 ## Constraints
 
-- **Architecture**: REST-first Spring backend — must keep the main ideas from `jmix-ai-backend` but expose them through REST APIs instead of Jmix UI-driven flows.
-- **Alignment**: Follow migrated backend patterns — should stay structurally aligned with the shoes shopping backend's controller/service/API conventions where practical.
-- **Runtime**: Java 25 — backend should target Java 25.
-- **Frontend**: Next.js with existing AI UI library — should prefer stable, easy-to-implement, maintainable UI components rather than custom-heavy chat UI.
-- **Language**: Vietnamese-first — prompts, UX, and answer quality should prioritize Vietnamese usage in v1.
-- **Data sources**: Trusted legal content only — ingestion should prioritize official and trustworthy legal/regulatory materials.
-- **Ingestion architecture**: Spring AI ETL/readers should be the default ingestion pipeline, while repo-owned code remains the policy/control layer for SSRF-safe fetch, provenance, orchestration, metadata compatibility, and auditability.
-- **Naming**: Prefer domain-oriented class/component names based on responsibility; avoid implementation-specific `SpringAi...` prefixes in new or renamed ingestion components.
-- **Scope**: Traffic law first — traffic-condition features should not drive v1 architecture or delivery scope.
+- **Architecture**: REST-first Spring backend
+- **Runtime**: Java 25
+- **Frontend**: Next.js with shadcn/ui
+- **Language**: Vietnamese-first prompts and UX
+- **Data sources**: Trusted legal content only with provenance tracking
+- **Ingestion**: Spring AI ETL/readers as primary pipeline with SSRF-safe fetch
+- **Scope**: Traffic law first
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Focus v1 on traffic laws and regulations, not traffic conditions | The user explicitly wants current work centered on legal/regulatory assistance | — Pending |
-| Support chat plus case analysis in v1 | The chatbot must handle real-life scenarios, not just direct Q&A | — Pending |
-| Preserve Jmix AI backend capabilities but implement them as REST services | The user wants to keep the main idea of the existing AI backend while replacing Jmix-driven interaction patterns | — Pending |
-| Use Next.js for frontend and reuse an existing AI UI approach | The user prefers a practical, maintainable UI stack instead of building chat UX from scratch | — Pending |
-| Build admin scope around ingestion, vector store management, parameter management, chat logs, and answer checks | The user wants the admin area to match the core Jmix AI backend/admin feature set for v1 | — Pending |
+| Focus v1 on traffic laws, not conditions | User explicitly scoped current work to legal/regulatory | ✓ Good — clean scope |
+| Chat plus case analysis in v1 | Real-life scenarios are core to the product promise | ✓ Good — delivered multi-turn |
+| REST services instead of Jmix UI | Preserves backend concepts while enabling modern frontend | ✓ Good — clean separation |
+| Next.js + shadcn/ui for frontend | Practical, maintainable UI stack | ✓ Good — shipped quickly |
+| Spring AI ETL as primary ingestion | Leverage framework readers while layering trust/provenance | ✓ Good — reduced custom code |
+| Inline clarification via system prompt | Simpler than explicit clarification gate; removed in quick task 260414-kfe | ✓ Good — reduced complexity |
+| 9router as sole AI gateway | Single OpenAI-compatible endpoint for all providers | ✓ Good — clean model routing |
+| YAML-driven model catalog | Replace hardcoded AllowedModel enum with config-driven catalog | ✓ Good — extensible without code changes |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
-**After each phase transition** (via `/gsd-transition`):
-1. Requirements invalidated? → Move to Out of Scope with reason
-2. Requirements validated? → Move to Validated with phase reference
-3. New requirements emerged? → Add to Active
-4. Decisions to log? → Add to Key Decisions
-5. "What This Is" still accurate? → Update if drifted
-
-**After each milestone** (via `/gsd-complete-milestone`):
-1. Full review of all sections
-2. Core Value check — still the right priority?
-3. Audit Out of Scope — reasons still valid?
-4. Update Context with current state
-
 ---
-*Last updated: 2026-04-07 after initialization*
+*Last updated: 2026-04-15 after v1.0 milestone*
