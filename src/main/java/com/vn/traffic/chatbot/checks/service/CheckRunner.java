@@ -32,7 +32,7 @@ public class CheckRunner {
     private final SemanticEvaluator evaluator;
 
     @Async("ingestionExecutor")
-    public void runAll(UUID checkRunId) {
+    public void runAll(UUID checkRunId, String chatModelId, String evaluatorModelId) {
         try {
             CheckRun run = loadRun(checkRunId);
             List<CheckDef> activeDefs = loadActiveDefs();
@@ -44,7 +44,7 @@ public class CheckRunner {
 
             List<CheckResult> results = new ArrayList<>();
             for (CheckDef def : activeDefs) {
-                results.add(runSingle(def, run));
+                results.add(runSingle(def, run, chatModelId, evaluatorModelId));
             }
 
             double avg = results.stream()
@@ -92,7 +92,7 @@ public class CheckRunner {
         checkRunRepository.save(run);
     }
 
-    private CheckResult runSingle(CheckDef def, CheckRun run) {
+    private CheckResult runSingle(CheckDef def, CheckRun run, String chatModelId, String evaluatorModelId) {
         CheckResult result = CheckResult.builder()
                 .checkDef(def)
                 .checkRun(run)
@@ -100,10 +100,9 @@ public class CheckRunner {
                 .referenceAnswer(def.getReferenceAnswer())
                 .build();
         try {
-            // Use default model (null) for check runs — evaluator model is configured separately
-            ChatAnswerResponse response = chatService.answer(def.getQuestion(), null);
+            ChatAnswerResponse response = chatService.answer(def.getQuestion(), chatModelId);
             String actualAnswer = response.answer();
-            double score = evaluator.evaluate(def.getReferenceAnswer(), actualAnswer);
+            double score = evaluator.evaluate(def.getReferenceAnswer(), actualAnswer, evaluatorModelId);
             result.setActualAnswer(actualAnswer);
             result.setScore(score);
         } catch (Exception ex) {

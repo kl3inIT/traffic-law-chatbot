@@ -23,8 +23,10 @@ public class CheckRunAdminController {
     private final CheckRunService checkRunService;
 
     @PostMapping(ApiPaths.CHECK_RUNS_TRIGGER)
-    public ResponseEntity<ResponseGeneral<Map<String, UUID>>> trigger() {
-        CheckRun run = checkRunService.trigger();
+    public ResponseEntity<ResponseGeneral<Map<String, UUID>>> trigger(
+            @RequestParam(required = false) String chatModelId,
+            @RequestParam(required = false) String evaluatorModelId) {
+        CheckRun run = checkRunService.trigger(chatModelId, evaluatorModelId);
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(ResponseGeneral.ofCreated("Check run triggered", Map.of("runId", run.getId())));
     }

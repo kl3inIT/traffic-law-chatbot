@@ -13,4 +13,11 @@ public interface SemanticEvaluator {
      * @return score in [0.0, 1.0] — 0.0 on failure (never throws)
      */
     double evaluate(String referenceAnswer, String actualAnswer);
+
+    /**
+     * Evaluate using a specific evaluator model (overrides default).
+     */
+    default double evaluate(String referenceAnswer, String actualAnswer, String evaluatorModelId) {
+        return evaluate(referenceAnswer, actualAnswer);
+    }
 }

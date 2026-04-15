@@ -24,7 +24,11 @@ export function useCheckRuns() {
 export function useTriggerCheckRun() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: triggerCheckRun,
+    mutationFn: ({
+      chatModelId,
+      evaluatorModelId,
+    }: { chatModelId?: string; evaluatorModelId?: string } = {}) =>
+      triggerCheckRun(chatModelId, evaluatorModelId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['check-runs'] }),
   });
 }

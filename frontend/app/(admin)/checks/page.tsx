@@ -31,12 +31,20 @@ import {
 } from '@/components/ui/alert-dialog';
 import { DataTable } from '@/components/admin/data-table';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   useCheckDefs,
   useCreateCheckDef,
   useUpdateCheckDef,
   useDeleteCheckDef,
 } from '@/hooks/use-check-defs';
 import { useTriggerCheckRun } from '@/hooks/use-check-runs';
+import { useAllowedModels } from '@/hooks/use-parameters';
 import type { CheckDef } from '@/types/api';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -160,6 +168,10 @@ function useColumns(
 export default function ChecksPage() {
   const router = useRouter();
   const { data: checkDefs, isLoading } = useCheckDefs();
+  const { data: allowedModels = [] } = useAllowedModels();
+
+  const [chatModelId, setChatModelId] = useState('');
+  const [evaluatorModelId, setEvaluatorModelId] = useState('');
 
   const createMutation = useCreateCheckDef();
   const updateMutation = useUpdateCheckDef();
@@ -295,7 +307,10 @@ export default function ChecksPage() {
   // Run check
   const hasActiveDefs = (checkDefs ?? []).some((d) => d.active);
   const handleTrigger = async () => {
-    await triggerMutation.mutateAsync();
+    await triggerMutation.mutateAsync({
+      chatModelId: chatModelId || undefined,
+      evaluatorModelId: evaluatorModelId || undefined,
+    });
     router.push('/checks/runs');
   };
 
@@ -309,7 +324,33 @@ export default function ChecksPage() {
       {/* Header */}
       <div className="flex flex-shrink-0 items-center justify-between">
         <h1 className="text-xl font-semibold">Định nghĩa kiểm tra</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <Select value={chatModelId} onValueChange={(v) => setChatModelId(v ?? '')}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Chat model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Mặc định</SelectItem>
+              {allowedModels.map((m) => (
+                <SelectItem key={m.modelId} value={m.modelId}>
+                  {m.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={evaluatorModelId} onValueChange={(v) => setEvaluatorModelId(v ?? '')}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Evaluator model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Mặc định</SelectItem>
+              {allowedModels.map((m) => (
+                <SelectItem key={m.modelId} value={m.modelId}>
+                  {m.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             disabled={!hasActiveDefs || triggerMutation.isPending}

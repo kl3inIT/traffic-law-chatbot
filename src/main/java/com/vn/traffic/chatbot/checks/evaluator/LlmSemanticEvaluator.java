@@ -49,8 +49,15 @@ public class LlmSemanticEvaluator implements SemanticEvaluator {
 
     @Override
     public double evaluate(String referenceAnswer, String actualAnswer) {
+        return evaluate(referenceAnswer, actualAnswer, null);
+    }
+
+    @Override
+    public double evaluate(String referenceAnswer, String actualAnswer, String evaluatorModelId) {
         try {
-            ChatClient client = resolveEvaluatorClient();
+            ChatClient client = evaluatorModelId != null && !evaluatorModelId.isBlank()
+                    ? resolveClient(evaluatorModelId)
+                    : resolveEvaluatorClient();
             String content = client.prompt()
                     .system(SYSTEM_PROMPT)
                     .user("Câu trả lời tham chiếu:\n" + referenceAnswer
@@ -62,6 +69,15 @@ public class LlmSemanticEvaluator implements SemanticEvaluator {
             log.error("SemanticEvaluator failed: {}", ex.getMessage(), ex);
             return 0.0;
         }
+    }
+
+    private ChatClient resolveClient(String modelId) {
+        ChatClient client = chatClientMap.get(modelId);
+        if (client == null) {
+            log.warn("Requested evaluator model '{}' not in chatClientMap, falling back to default", modelId);
+            return resolveEvaluatorClient();
+        }
+        return client;
     }
 
     public double parseScore(String content) {
