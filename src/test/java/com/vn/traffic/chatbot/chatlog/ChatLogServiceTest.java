@@ -36,7 +36,7 @@ class ChatLogServiceTest {
                 GroundingStatus.GROUNDED, null, null,
                 "Tốc độ tối đa là 50 km/h.", null, null, null,
                 List.of(), List.of(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), null, List.of(), List.of()
+                List.of(), null, List.of(), List.of()
         );
         when(chatLogRepository.save(any(ChatLog.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -63,7 +63,7 @@ class ChatLogServiceTest {
                 GroundingStatus.REFUSED, null, null,
                 null, null, null, null,
                 List.of(), List.of(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), null, List.of(), List.of()
+                List.of(), null, List.of(), List.of()
         );
         when(chatLogRepository.save(any(ChatLog.class))).thenThrow(new RuntimeException("DB error"));
 

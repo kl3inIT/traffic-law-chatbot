@@ -24,8 +24,7 @@ describe('AiBubble', () => {
     requiredDocuments: [],
     procedureSteps: [],
     nextSteps: [],
-    pendingFacts: [],
-    rememberedFacts: [],
+    scenarioFacts: [],
     scenarioAnalysis: null,
     citations: [],
     sources: [],
@@ -57,16 +56,6 @@ describe('AiBubble', () => {
     render(<AiBubble response={scenarioResponse} />);
     expect(screen.getByText('Su kien duoc xac dinh')).toBeInTheDocument();
     expect(screen.getByText('Nguon tai lieu')).toBeInTheDocument();
-  });
-
-  it('renders clarification pending facts', () => {
-    const clarificationResponse: ChatAnswerResponse = {
-      ...baseResponse,
-      responseMode: 'CLARIFICATION_NEEDED',
-      pendingFacts: [{ code: 'vehicleType', prompt: 'Loai phuong tien?', reason: 'Can biet' }],
-    };
-    render(<AiBubble response={clarificationResponse} />);
-    expect(screen.getByText(/Loai phuong tien\?/)).toBeInTheDocument();
   });
 });
 

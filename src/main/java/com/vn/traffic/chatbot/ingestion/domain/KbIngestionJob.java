@@ -1,8 +1,10 @@
 package com.vn.traffic.chatbot.ingestion.domain;
 
+import com.vn.traffic.chatbot.common.domain.BaseEntity;
 import com.vn.traffic.chatbot.source.domain.KbSource;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -13,15 +15,11 @@ import java.util.UUID;
 @Entity
 @Table(name = "kb_ingestion_job")
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class KbIngestionJob {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class KbIngestionJob extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_id", nullable = false)

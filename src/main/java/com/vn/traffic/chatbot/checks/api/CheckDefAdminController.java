@@ -4,6 +4,7 @@ import com.vn.traffic.chatbot.checks.api.dto.CheckDefRequest;
 import com.vn.traffic.chatbot.checks.api.dto.CheckDefResponse;
 import com.vn.traffic.chatbot.checks.service.CheckDefService;
 import com.vn.traffic.chatbot.common.api.ApiPaths;
+import com.vn.traffic.chatbot.common.api.ResponseGeneral;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,19 +20,19 @@ public class CheckDefAdminController {
     private final CheckDefService checkDefService;
 
     @GetMapping(ApiPaths.CHECK_DEFS)
-    public List<CheckDefResponse> list() {
-        return checkDefService.findAll().stream().map(CheckDefResponse::fromEntity).toList();
+    public ResponseGeneral<List<CheckDefResponse>> list() {
+        return ResponseGeneral.ofSuccess("Check definitions", checkDefService.findAll().stream().map(CheckDefResponse::fromEntity).toList());
     }
 
     @PostMapping(ApiPaths.CHECK_DEFS)
     @ResponseStatus(HttpStatus.CREATED)
-    public CheckDefResponse create(@Valid @RequestBody CheckDefRequest request) {
-        return CheckDefResponse.fromEntity(checkDefService.create(request));
+    public ResponseGeneral<CheckDefResponse> create(@Valid @RequestBody CheckDefRequest request) {
+        return ResponseGeneral.ofCreated("Check definition created", CheckDefResponse.fromEntity(checkDefService.create(request)));
     }
 
     @PutMapping(ApiPaths.CHECK_DEF_BY_ID)
-    public CheckDefResponse update(@PathVariable UUID defId, @Valid @RequestBody CheckDefRequest request) {
-        return CheckDefResponse.fromEntity(checkDefService.update(defId, request));
+    public ResponseGeneral<CheckDefResponse> update(@PathVariable UUID defId, @Valid @RequestBody CheckDefRequest request) {
+        return ResponseGeneral.ofSuccess("Check definition updated", CheckDefResponse.fromEntity(checkDefService.update(defId, request)));
     }
 
     @DeleteMapping(ApiPaths.CHECK_DEF_BY_ID)

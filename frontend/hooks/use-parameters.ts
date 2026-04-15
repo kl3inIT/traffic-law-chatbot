@@ -8,6 +8,7 @@ import {
   deleteParameterSet,
   activateParameterSet,
   copyParameterSet,
+  fetchAllowedModels,
 } from '@/lib/api/parameters';
 import { queryKeys } from '@/lib/query-keys';
 import type { CreateAiParameterSetRequest, UpdateAiParameterSetRequest } from '@/types/api';
@@ -57,5 +58,13 @@ export function useCopyParameterSet() {
   return useMutation({
     mutationFn: (id: string) => copyParameterSet(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.parameters }),
+  });
+}
+
+export function useAllowedModels() {
+  return useQuery({
+    queryKey: queryKeys.allowedModels,
+    queryFn: fetchAllowedModels,
+    staleTime: 5 * 60 * 1000, // 5 min — model list only changes on server restart
   });
 }

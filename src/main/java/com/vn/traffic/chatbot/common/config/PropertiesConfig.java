@@ -10,6 +10,6 @@ import org.springframework.context.annotation.Configuration;
  * follows the Spring Boot recommended pattern for library-style configuration.
  */
 @Configuration
-@EnableConfigurationProperties(AppProperties.class)
+@EnableConfigurationProperties({AppProperties.class, AiModelProperties.class})
 public class PropertiesConfig {
 }

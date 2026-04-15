@@ -1,0 +1,588 @@
+{
+  "phase": "06-audit-real-data-validation-and-stabilization",
+  "generated_at": "2026-04-13T00:00:00.000Z",
+  "stats": {
+    "total": 18,
+    "answered": 18,
+    "chat_more": 2,
+    "remaining": 0
+  },
+  "sections": [
+    {
+      "id": "real-data-ingestion",
+      "title": "Real Data Ingestion",
+      "questions": [
+        {
+          "id": "Q-01",
+          "title": "Which legal sources to ingest?",
+          "context": "The ingestion pipeline supports PDF, Word, and URL sources. Sources must go through approval (APPROVED) + trusted (TRUSTED) + active (ACTIVE) states before they appear in retrieval. The primary UAT test already referenced Điều 7 khoản 4 Nghị định 168/2024/NĐ-CP. Trust policy uses domain patterns (thuvienphapluat.vn = PRIMARY, chinhphu.vn = SECONDARY).",
+          "options": [
+            {
+              "id": "a",
+              "label": "Nghị định 168/2024 only",
+              "description": "Focus on the primary traffic-fine decree already referenced in UAT. Single source, high confidence in relevance, good baseline for evaluation."
+            },
+            {
+              "id": "b",
+              "label": "Nghị định 168/2024 + Luật Giao thông đường bộ 2008 + Nghị định 100/2019",
+              "description": "Three core legal pillars: main penalty decree, road traffic law, and the prior penalty decree (still relevant for historical/comparison queries). More coverage but more validation work."
+            },
+            {
+              "id": "c",
+              "label": "All of (b) + circular documents from Bộ Công an/Bộ GTVT",
+              "description": "Broadest coverage matching real user expectations. Higher risk of ingesting ambiguous or outdated content that dilutes retrieval quality."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-02",
+          "title": "What source format to use?",
+          "context": "Ingestion supports PDF upload (POST /api/v1/admin/sources/upload), URL crawl (POST /api/v1/admin/sources/url), and batch URL import (POST /api/v1/admin/ingestion/batch). thuvienphapluat.vn has HTML and PDF versions of legal documents. chinhphu.vn has official gazette PDFs.",
+          "options": [
+            {
+              "id": "a",
+              "label": "PDF files downloaded from official sources",
+              "description": "Highest fidelity — official gazette PDFs preserve formatting. Requires manual download and upload through the admin UI."
+            },
+            {
+              "id": "b",
+              "label": "URLs from thuvienphapluat.vn (HTML crawl)",
+              "description": "Easier to batch-import via URL. Parser tested against HTML. Trust policy auto-classifies thuvienphapluat.vn as PRIMARY. Risk: HTML structure can vary across pages."
+            },
+            {
+              "id": "c",
+              "label": "Mix — PDFs for key decrees, URLs for supplementary content",
+              "description": "Best coverage/quality balance. Adds complexity to the ingestion audit — two parsers to validate."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-03",
+          "title": "How to validate ingestion correctness?",
+          "context": "After ingestion, chunks land in kb_vector_store with metadata fields: approvalState, trusted, active. The ChunkInspectionService tracks eligible-chunk counts. Retrieval requires all three: approved+trusted+active. Currently no automated ingestion correctness check exists beyond integration tests.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Chunk count check only",
+              "description": "Verify that at least N eligible chunks exist after ingestion. Fast and easy, but doesn't verify content quality or provenance accuracy."
+            },
+            {
+              "id": "b",
+              "label": "Chunk count + spot-check content of sample chunks",
+              "description": "Query a few chunks and manually verify the text matches the expected legal content and correct article/clause attribution. Moderate effort, good signal."
+            },
+            {
+              "id": "c",
+              "label": "Chunk count + spot-check + run a targeted retrieval query per source",
+              "description": "After ingestion, fire a retrieval query known to match each source and verify the retrieved chunks include content from that source. Most thorough, directly validates end-to-end retrieval."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        }
+      ]
+    },
+    {
+      "id": "check-run-design",
+      "title": "Check Run Design",
+      "questions": [
+        {
+          "id": "Q-04",
+          "title": "How many check definitions to create?",
+          "context": "CheckDef has fields: question, reference_answer, category. CheckRun triggers async evaluation via LlmSemanticEvaluator, which scores each (question, answer) pair. The run links to an AiParameterSet and produces an average_score. Currently 0 check definitions exist in the system.",
+          "options": [
+            {
+              "id": "a",
+              "label": "5–8 core checks",
+              "description": "Focused set covering must-work scenarios: basic fine query, penalty tier query, required documents, multi-turn scenario, refusal boundary. Fast to run, easy to review. Good for initial baseline."
+            },
+            {
+              "id": "b",
+              "label": "10–15 checks",
+              "description": "Broader coverage: add edge cases (partial info, ambiguous vehicle type, multiple violations), plus at least 1 LIMITED_GROUNDING and 1 REFUSED scenario. Reasonable for a release gate."
+            },
+            {
+              "id": "c",
+              "label": "20+ checks",
+              "description": "Comprehensive test suite across all answer categories. Slower to run and review, but creates a real regression baseline for future phases."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-05",
+          "title": "What check categories to cover?",
+          "context": "CheckDef has a category field. Existing chat flows produce: GROUNDED answers (≥3 chunks), LIMITED_GROUNDING (1–2 chunks), and REFUSED (0 chunks). Multi-turn threads go through CLARIFICATION_NEEDED → FINAL_ANALYSIS. Scenario answers have Facts→Rule→Outcome→Actions structure.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Fine amounts + penalty tiers only",
+              "description": "Most common user question type. Validates the core grounded Q&A path. Doesn't cover multi-turn or refusal behavior."
+            },
+            {
+              "id": "b",
+              "label": "Fine amounts + documents + procedures + refusal boundaries",
+              "description": "Covers the four main answer sections plus the safety boundary. Skips multi-turn but validates the full single-turn answer structure."
+            },
+            {
+              "id": "c",
+              "label": "All of (b) + multi-turn scenario + LIMITED_GROUNDING edge cases",
+              "description": "Full coverage of all implemented response modes. Tests both single-turn grounded answers and the multi-turn case analysis path."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-06",
+          "title": "What score threshold is acceptable?",
+          "context": "LlmSemanticEvaluator produces a score per CheckResult. CheckRun stores an average_score. There are no current thresholds defined — the system records scores but does not enforce pass/fail gates. The evaluatorModel field on AiParameterSet controls which model judges quality.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Average ≥ 0.7 with no individual result < 0.5",
+              "description": "Lenient threshold appropriate for a first real-data run. Accepts moderate variation while blocking obvious failures."
+            },
+            {
+              "id": "b",
+              "label": "Average ≥ 0.75 with no individual result < 0.6",
+              "description": "Moderate threshold. Requires solid performance across the board. Reasonable for a release gate given the legal context."
+            },
+            {
+              "id": "c",
+              "label": "Average ≥ 0.8 — block milestone if not met",
+              "description": "Strict threshold. Appropriate if legal accuracy is the primary quality concern. Any below-0.8 average triggers mandatory root cause investigation."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "b",
+          "chat_more": "",
+          "status": "answered"
+        }
+      ]
+    },
+    {
+      "id": "low-score-investigation",
+      "title": "Low Score Investigation",
+      "questions": [
+        {
+          "id": "Q-07",
+          "title": "At what point do we investigate a low score?",
+          "context": "ChatLog stores the full pipeline trace: retrieved_chunks, prompt_text, raw_model_response, pipeline_log, grounding_status. This makes it possible to trace exactly which chunks were retrieved, what prompt was sent, and what the model returned for any given check result.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Only investigate if average_score < threshold",
+              "description": "Investigate at run level. Individual outliers are acceptable as long as the overall run passes. Less investigative work per run."
+            },
+            {
+              "id": "b",
+              "label": "Investigate any individual result below 0.6 regardless of run average",
+              "description": "Each low-scoring answer gets traced to its root cause. More work per run, but catches specific failure modes that average masking would miss."
+            },
+            {
+              "id": "c",
+              "label": "Investigate all results below threshold + any result that surprises us semantically",
+              "description": "Quantitative floor + qualitative review. The most thorough approach — combines score gate with human judgment on answer quality."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-08",
+          "title": "How deep should root cause investigation go?",
+          "context": "Possible root causes: ingestion (bad parse/chunk), normalization (wrong metadata), indexing (embedding quality), retrieval (topK/threshold config in AiParameterSet), prompt construction (ChatPromptFactory), context assembly, model behavior, evaluation criteria (bad reference_answer in CheckDef). The pipeline trace in ChatLog exposes most of these layers.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Identify the layer (retrieval vs. model vs. prompt) and document — do not fix",
+              "description": "This phase is audit-only. Fixes are deferred to a follow-up. Fast and scoped, but leaves known issues open."
+            },
+            {
+              "id": "b",
+              "label": "Identify + fix config/parameter issues; document code changes as deferred",
+              "description": "Fix what can be fixed via AiParameterSet (topK, threshold, temperature) or CheckDef reference answers. Document anything requiring code changes."
+            },
+            {
+              "id": "c",
+              "label": "Identify + fix everything possible — config, prompt, and code — before milestone closes",
+              "description": "Full remediation within this phase. Most complete but risks scope creep if root causes are deep or systemic."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-09",
+          "title": "What root cause artifact is required?",
+          "context": "Phase 06 is the hard release gate. For it to close, there needs to be evidence that low scores were genuinely investigated, not ignored. Currently no artifact format is defined for audit findings.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Inline notes in VERIFICATION.md",
+              "description": "Simple — capture findings in the phase verification document. No separate file required."
+            },
+            {
+              "id": "b",
+              "label": "Separate AUDIT.md per investigated check result",
+              "description": "Structured per-result report: question, score, pipeline trace summary, root cause layer, remediation taken or deferred."
+            },
+            {
+              "id": "c",
+              "label": "Single AUDIT.md covering all findings + a status table (fixed vs. deferred)",
+              "description": "One consolidated audit document. Easier to review. Status table makes it clear what was fixed and what's known-open before milestone close."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        }
+      ]
+    },
+    {
+      "id": "database-cleanup",
+      "title": "Database Cleanup",
+      "questions": [
+        {
+          "id": "Q-10",
+          "title": "What data qualifies as deletable?",
+          "context": "Tables with potential stale/test data: kb_source, kb_vector_store, chat_log, chat_thread + chat_message + thread_fact, check_def + check_run + check_result. The system has no soft-delete or environment flag — dev/prod share the same schema.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Vector store chunks from non-approved or non-trusted sources only",
+              "description": "Minimal cleanup — remove only chunks that fail the retrieval gate. Leaves sources and chat logs as-is."
+            },
+            {
+              "id": "b",
+              "label": "All dev/test sources + their chunks + test chat logs + placeholder check defs",
+              "description": "Comprehensive cleanup of all data created during development. Leaves only intentional, real-data sources and their derived chunks."
+            },
+            {
+              "id": "c",
+              "label": "Full wipe of all non-seed data, re-ingest from scratch with real sources",
+              "description": "Nuclear option — start clean. Guarantees no legacy contamination. Requires re-ingestion and re-approval of all sources."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-11",
+          "title": "How to identify and confirm deletable rows?",
+          "context": "The database is PostgreSQL with pgvector. Tables accessible via mcp__postgres__execute_sql. kb_source has title, origin_value, created_at, status, trusted_state fields. kb_vector_store metadata (JSONB) includes source references.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Query + review list → manual confirmation before DELETE",
+              "description": "Run SELECT queries to preview what would be deleted, review with user, then execute DELETE. Safest — no accidental data loss."
+            },
+            {
+              "id": "b",
+              "label": "Query + DELETE in one pass with explicit criteria documented",
+              "description": "Write DELETE SQL with clear WHERE criteria (e.g., created_at < date, title LIKE '%test%', status = 'DRAFT'). Document what was deleted in AUDIT.md."
+            },
+            {
+              "id": "c",
+              "label": "Backup → DELETE → verify row counts before and after",
+              "description": "Snapshot counts before, run DELETE, verify expected delta. Most rigorous but requires backup capability."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "d",
+          "chat_more": "delete anyway ",
+          "status": "answered"
+        },
+        {
+          "id": "Q-12",
+          "title": "What data must survive cleanup?",
+          "context": "The default parameter set is seeded by DefaultParameterSetSeeder (Java ApplicationRunner) on startup — it will be re-created if deleted. Source trust policies are also seeded. Chat logs from real user testing sessions should likely be preserved for quality review.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Default parameter set + trust policies only",
+              "description": "Minimum survivors. Everything else is fair game for deletion if it was dev/test data."
+            },
+            {
+              "id": "b",
+              "label": "Default parameter set + trust policies + any check defs we deliberately created",
+              "description": "Keep intentionally authored check definitions. Reasonable if we create real check defs early in the phase."
+            },
+            {
+              "id": "c",
+              "label": "Default parameter set + trust policies + check defs + real-data sources after ingestion",
+              "description": "Keep everything that represents intentional production state. Dev/test artifacts and derived chunks are the only deletable items."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "d",
+          "chat_more": " Keep only real source data, ingestion metadata, and audit artifacts. Rewrite the\n  parameter set, replace the system prompt, delete and rebuild all check defs, and rewrite the trust\n  policy from scratch.",
+          "status": "answered"
+        }
+      ]
+    },
+    {
+      "id": "chat-behavior-testing",
+      "title": "Chat Behavior Testing",
+      "questions": [
+        {
+          "id": "Q-13",
+          "title": "How many manual chat scenarios to test?",
+          "context": "The chat system has two paths: single-turn (POST /api/v1/chat) and multi-turn threads. Single-turn produces GROUNDED/LIMITED_GROUNDING/REFUSED. Multi-turn produces CLARIFICATION_NEEDED → FINAL_ANALYSIS. The codebase has UAT results for Phase 3 (6 passed, 2 fixed), but no systematic Phase 5/post-integration test log exists.",
+          "options": [
+            {
+              "id": "a",
+              "label": "10–15 scenarios (spot coverage)",
+              "description": "Cover the main happy paths and 3–4 edge cases per path (single-turn, multi-turn). Fast to execute, focused on regressions."
+            },
+            {
+              "id": "b",
+              "label": "20–30 scenarios (thorough coverage)",
+              "description": "Systematic coverage: grounded, limited, refused, clarification, final analysis, negation, correction, ambiguous input, off-topic. Matches the 'aggressive testing' intent."
+            },
+            {
+              "id": "c",
+              "label": "30+ scenarios (exhaustive)",
+              "description": "Full scenario matrix including recovery flows, tone consistency, hallucination probes. Represents real QA work — appropriate for a hard release gate."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-14",
+          "title": "Which scenario categories must be covered?",
+          "context": "Known failure modes: negation misparse ('không phải xe máy'), weak retrieval from short follow-up messages, model returning arrays vs strings, markdown-fenced JSON. Grounding: <3 chunks → LIMITED_GROUNDING, 0 chunks → REFUSED. FactMemory collects vehicleType and violationType as required facts.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Happy path only (grounded answer, multi-turn completion)",
+              "description": "Validate the core value proposition. Does not cover edge cases or failure modes."
+            },
+            {
+              "id": "b",
+              "label": "Happy path + refusal + clarification loop + negation correction",
+              "description": "Covers the known failure modes and main response paths. Good baseline for a release gate."
+            },
+            {
+              "id": "c",
+              "label": "All of (b) + off-topic rejection + ambiguous vehicle type + multi-violation + tone/disclaimer consistency",
+              "description": "Full coverage of edge cases, hallucination risk zones, and consistency checks. This is the 'aggressive testing' standard from the phase description."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-15",
+          "title": "What does a passing chat test look like?",
+          "context": "No formal pass/fail criteria exist for manual chat testing. Phase 3 UAT used binary pass/fail/skip per scenario with explicit rationale. Chat responses must include citation, disclaimer, and grounding-appropriate content per AnswerCompositionPolicy.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Qualitative — reviewer judgment per scenario",
+              "description": "No fixed rubric. Each scenario is marked pass/fail based on whether the answer is reasonable, consistent, and not obviously wrong."
+            },
+            {
+              "id": "b",
+              "label": "Checklist per scenario: disclaimer present, citation present, no fabricated article numbers, grounding status correct",
+              "description": "Structured evaluation with fixed criteria. More consistent across scenarios. Can be done by any reviewer."
+            },
+            {
+              "id": "c",
+              "label": "Checklist + severity rating (blocking / major / minor) per failure",
+              "description": "Same as (b) but each failure is classified. Only blocking/major findings gate milestone completion. Minor findings are documented and deferred."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        }
+      ]
+    },
+    {
+      "id": "release-gate",
+      "title": "Release Gate & Milestone Sign-Off",
+      "questions": [
+        {
+          "id": "Q-16",
+          "title": "Which prior phase features need end-to-end audit?",
+          "context": "Features delivered: P1 (ingestion + source registry + vector store), P2 (single-turn grounded Q&A + AnswerCompositionPolicy + citations), P3 (multi-turn threads + FactMemory + ClarificationPolicy + ScenarioAnswerComposer), P4 (Next.js admin UI + chat UI), P4.1 (AppProperties + LoggingAspect + trust policy), P5 (ChatLog + CheckDef/Run system + admin UI for logs/checks).",
+          "options": [
+            {
+              "id": "a",
+              "label": "P2 + P3 only (chat core)",
+              "description": "Focus audit on the user-facing chat capabilities. Admin/infra features assumed stable from their own phases."
+            },
+            {
+              "id": "b",
+              "label": "P2 + P3 + P5 (chat core + quality ops)",
+              "description": "Also audit the check/evaluation system since it's being exercised for the first time with real data in this phase."
+            },
+            {
+              "id": "c",
+              "label": "All phases — full feature inventory audit",
+              "description": "Touch every shipped feature: ingestion, retrieval gate, single-turn Q&A, multi-turn threads, admin UI, check runs. Comprehensive but time-intensive."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-17",
+          "title": "What are the hard blocking criteria for milestone completion?",
+          "context": "This phase is the hard release gate. The milestone cannot close until Phase 06 passes. Without explicit blocking criteria, it's unclear what 'passed' means. Options range from a simple checklist to a formal go/no-go table.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Checklist: real data ingested + check run passed threshold + no chat blockers + DB cleaned",
+              "description": "Four binary gates. Simple and clear. Milestone closes when all four are checked off."
+            },
+            {
+              "id": "b",
+              "label": "Scored gate: check run average ≥ threshold + chat pass rate ≥ 80% + 0 blocking findings",
+              "description": "Quantitative thresholds for automated evaluation + qualitative gate for manual testing. More rigorous."
+            },
+            {
+              "id": "c",
+              "label": "Full go/no-go table: one row per feature, status (pass/fail/skipped), blocking (yes/no)",
+              "description": "Most formal. Each feature gets an explicit pass/fail judgment. Milestone closes only when all blocking rows are 'pass'."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "c",
+          "chat_more": "",
+          "status": "answered"
+        },
+        {
+          "id": "Q-18",
+          "title": "What happens to known-open issues at milestone close?",
+          "context": "In prior phases, minor issues were skipped with explicit rationale (e.g., sidebar double-highlight in 05-04). Phase 06 needs a policy for what happens to findings that are documented but not fixed before the milestone closes.",
+          "options": [
+            {
+              "id": "a",
+              "label": "Document in AUDIT.md and close the milestone — defer to v2",
+              "description": "Known-open issues are recorded but do not block. Milestone closes on schedule. Requires explicit acceptance of the risk."
+            },
+            {
+              "id": "b",
+              "label": "Classify severity: blocking issues must be fixed; major/minor can be deferred",
+              "description": "Only blocking findings prevent milestone close. Major and minor findings go into a documented backlog. Balances rigor with pragmatism."
+            },
+            {
+              "id": "c",
+              "label": "All findings must be fixed or explicitly waived with sign-off before milestone closes",
+              "description": "Strictest policy. Every finding needs a resolution (fix or formal waiver). Highest confidence in release quality."
+            },
+            {
+              "id": "d",
+              "label": "Custom",
+              "description": ""
+            }
+          ],
+          "answer": "b",
+          "chat_more": "",
+          "status": "answered"
+        }
+      ]
+    }
+  ]
+}

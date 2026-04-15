@@ -2,6 +2,7 @@ package com.vn.traffic.chatbot.chat.service;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
@@ -12,6 +13,8 @@ import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -19,9 +22,12 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.vn.traffic.chatbot.chat.domain.ChatMessage;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -30,7 +36,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChatService {
 
-    private final ChatClient chatClient;
+    private final Map<String, ChatClient> chatClientMap;
+    private final AiModelProperties aiModelProperties;
     private final VectorStore vectorStore;
     private final ObjectMapper objectMapper;
     private final RetrievalPolicy retrievalPolicy;
@@ -40,13 +47,43 @@ public class ChatService {
     private final ChunkInspectionService chunkInspectionService;
     private final AnswerCompositionPolicy answerCompositionPolicy;
     private final ChatLogService chatLogService;
+    private final ChatMemory chatMemory;
 
     @Value("${app.chat.retrieval.top-k:5}")
     private int retrievalTopK;
-    @Value("${app.chat.grounding.limited-threshold:2}")
-    private int limitedGroundingThreshold;
 
-    public ChatAnswerResponse answer(String question) {
+    /**
+     * Answers a user question with conversation history for multi-turn context.
+     */
+    public ChatAnswerResponse answer(String question, String modelId, List<ChatMessage> conversationHistory) {
+        return doAnswer(question, modelId, conversationHistory, null);
+    }
+
+    /**
+     * Answers a user question using the specified model (or the default if null/unrecognized).
+     * Single-turn convenience overload (no conversation history).
+     *
+     * @param question the user's question
+     * @param modelId  optional model ID from the request body; null triggers fallback to default
+     */
+    public ChatAnswerResponse answer(String question, String modelId) {
+        return doAnswer(question, modelId, List.of(), null);
+    }
+
+    /**
+     * Answers a user question with Spring AI ChatMemory-backed conversation context.
+     * The conversationId is used by {@link MessageChatMemoryAdvisor} to load/store
+     * message history automatically.
+     *
+     * @param question       the user's question
+     * @param modelId        optional model ID; null triggers fallback to default
+     * @param conversationId unique conversation identifier (typically thread UUID)
+     */
+    public ChatAnswerResponse answer(String question, String modelId, String conversationId) {
+        return doAnswer(question, modelId, List.of(), conversationId);
+    }
+
+    private ChatAnswerResponse doAnswer(String question, String modelId, List<ChatMessage> conversationHistory, String conversationId) {
         List<String> logMessages = new ArrayList<>();
         Consumer<String> logger = msg -> {
             log.info(msg);
@@ -103,13 +140,20 @@ public class ChatService {
             return refused;
         }
 
+        ChatClient client = resolveClient(modelId);
         long startTime = System.currentTimeMillis();
-        String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations);
+        String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations, conversationHistory);
         logger.accept(String.format("Prompt built: %d chars", prompt.length()));
 
         logger.accept("LLM call: started");
-        ChatResponse chatResponse = chatClient.prompt()
-                .user(prompt)
+        ChatClient.ChatClientRequestSpec requestSpec = client.prompt().user(prompt);
+        if (conversationId != null && !conversationId.isBlank()) {
+            requestSpec = requestSpec.advisors(MessageChatMemoryAdvisor.builder(chatMemory)
+                    .conversationId(conversationId)
+                    .build());
+            logger.accept(String.format("ChatMemory advisor attached for conversationId=%s", conversationId));
+        }
+        ChatResponse chatResponse = requestSpec
                 .call()
                 .chatResponse();
 
@@ -150,14 +194,34 @@ public class ChatService {
         return answerComposer.compose(GroundingStatus.REFUSED, emptyDraft(), List.of(), List.of());
     }
 
+    /**
+     * Resolves the ChatClient for the given modelId.
+     * Fallback chain: requestedModelId → app.ai.chat-model config → first available.
+     * Never throws — unrecognized modelId triggers a warning and falls back gracefully.
+     */
+    private ChatClient resolveClient(String requestedModelId) {
+        if (requestedModelId != null && chatClientMap.containsKey(requestedModelId)) {
+            return chatClientMap.get(requestedModelId);
+        }
+        if (requestedModelId != null && !requestedModelId.isBlank()) {
+            log.warn("Unrecognized modelId '{}', falling back to default '{}'",
+                    requestedModelId, aiModelProperties.chatModel());
+        }
+        ChatClient fallback = chatClientMap.get(aiModelProperties.chatModel());
+        if (fallback == null) {
+            log.warn("Default model '{}' not in chatClientMap — using first available",
+                    aiModelProperties.chatModel());
+            if (chatClientMap.isEmpty()) {
+                throw new IllegalStateException(
+                        "No ChatClient available — check app.ai.models configuration");
+            }
+            return chatClientMap.values().iterator().next();
+        }
+        return fallback;
+    }
+
     private GroundingStatus determineGroundingStatus(int documentCount) {
-        if (documentCount <= 0) {
-            return GroundingStatus.REFUSED;
-        }
-        if (documentCount <= limitedGroundingThreshold) {
-            return GroundingStatus.LIMITED_GROUNDING;
-        }
-        return GroundingStatus.GROUNDED;
+        return documentCount <= 0 ? GroundingStatus.REFUSED : GroundingStatus.GROUNDED;
     }
 
     private List<Document> safeDocuments(List<Document> documents) {
@@ -251,9 +315,7 @@ public class ChatService {
             List<CitationResponse> citations,
             List<SourceReferenceResponse> sources
     ) {
-        String conclusion = groundingStatus == GroundingStatus.LIMITED_GROUNDING
-                ? "Chưa thể tổng hợp đầy đủ nội dung trả lời theo định dạng chuẩn từ các nguồn đã truy xuất; chỉ nên tham khảo các căn cứ hiển thị bên dưới."
-                : "Chưa thể tổng hợp đầy đủ nội dung trả lời theo định dạng chuẩn; vui lòng tham khảo các căn cứ hiển thị và diễn đạt lại câu hỏi cụ thể hơn.";
+        String conclusion = "Chưa thể tổng hợp đầy đủ nội dung trả lời theo định dạng chuẩn; vui lòng tham khảo các căn cứ hiển thị và diễn đạt lại câu hỏi cụ thể hơn.";
         String uncertaintyNotice = "Phản hồi từ mô hình không đúng định dạng mong đợi, nên hệ thống chỉ trả về phần thông tin đã truy xuất được một cách an toàn.";
         List<String> legalBasis = citations.isEmpty() && sources.isEmpty()
                 ? List.of()

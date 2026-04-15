@@ -1,12 +1,9 @@
 package com.vn.traffic.chatbot.source.domain;
 
+import com.vn.traffic.chatbot.common.domain.BaseAuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.OffsetDateTime;
-import java.util.UUID;
+import lombok.experimental.SuperBuilder;
 
 /**
  * JPA entity representing a trust policy record in the source_trust_policy table.
@@ -19,15 +16,11 @@ import java.util.UUID;
 @Entity
 @Table(name = "source_trust_policy")
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SourceTrustPolicy {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "uuid")
-    private UUID id;
+public class SourceTrustPolicy extends BaseAuditableEntity {
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
@@ -44,12 +37,4 @@ public class SourceTrustPolicy {
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
 }

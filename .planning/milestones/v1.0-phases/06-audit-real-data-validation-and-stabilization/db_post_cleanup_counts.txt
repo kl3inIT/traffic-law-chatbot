@@ -1,0 +1,28 @@
+Post-cleanup counts — 2026-04-13T03:47:00Z
+
+| Table                      | Row Count |
+|----------------------------|-----------|
+| check_result               | 0         |
+| check_run                  | 0         |
+| check_def                  | 0         |
+| chat_log                   | 0         |
+| thread_fact                | 0         |
+| chat_message               | 0         |
+| chat_thread                | 0         |
+| source_trust_policy        | 0         |
+| ai_parameter_set           | 0         |
+| kb_vector_store            | 0         |
+| kb_source_approval_event   | 0         |
+| kb_source_fetch_snapshot   | 0         |
+| kb_ingestion_job           | 0         |
+| kb_source_version          | 0         |
+| kb_source                  | 0         |
+
+ALL TABLES AT ZERO — cleanup confirmed complete.
+
+Notes:
+- Wave 1 (leaf tables): check_result, check_run, check_def, chat_log, thread_fact, chat_message, chat_thread — all deleted successfully.
+- Wave 2 (standalone domain): source_trust_policy (already empty), ai_parameter_set (5 rows deleted) — completed.
+- Wave 3 (vector store): kb_vector_store (174 chunks deleted) — completed.
+- Wave 4 (source lineage): kb_source.active_version_id NULLed first to break self-FK, then kb_source_version (10 rows), kb_source (10 rows) — completed in FK-safe order.
+- No FK constraint errors encountered. All deletes succeeded on first attempt.

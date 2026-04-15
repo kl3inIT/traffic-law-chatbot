@@ -1,0 +1,83 @@
+﻿{
+    "primary_type":  "generic",
+    "conditional_docs":  [
+
+                         ],
+    "canonical_queue":  [
+                            {
+                                "status":  "pending",
+                                "wave":  1,
+                                "resolved_path":  "README.md",
+                                "type":  "readme",
+                                "has_gsd_marker":  true,
+                                "mode":  "update",
+                                "preservation_mode":  null
+                            },
+                            {
+                                "status":  "pending",
+                                "wave":  1,
+                                "resolved_path":  "docs/ARCHITECTURE.md",
+                                "type":  "architecture",
+                                "has_gsd_marker":  true,
+                                "mode":  "update",
+                                "preservation_mode":  null
+                            },
+                            {
+                                "status":  "pending",
+                                "wave":  1,
+                                "resolved_path":  "docs/CONFIGURATION.md",
+                                "type":  "configuration",
+                                "has_gsd_marker":  true,
+                                "mode":  "update",
+                                "preservation_mode":  null
+                            },
+                            {
+                                "status":  "pending",
+                                "wave":  2,
+                                "resolved_path":  "docs/GETTING-STARTED.md",
+                                "type":  "getting_started",
+                                "has_gsd_marker":  true,
+                                "mode":  "update",
+                                "preservation_mode":  null
+                            },
+                            {
+                                "status":  "pending",
+                                "wave":  2,
+                                "resolved_path":  "docs/DEVELOPMENT.md",
+                                "type":  "development",
+                                "has_gsd_marker":  true,
+                                "mode":  "update",
+                                "preservation_mode":  null
+                            },
+                            {
+                                "status":  "pending",
+                                "wave":  2,
+                                "resolved_path":  "docs/TESTING.md",
+                                "type":  "testing",
+                                "has_gsd_marker":  true,
+                                "mode":  "update",
+                                "preservation_mode":  null
+                            }
+                        ],
+    "review_queue":  [
+                         {
+                             "path":  "AGENT.md",
+                             "status":  "pending_review",
+                             "type":  "hand-written"
+                         },
+                         {
+                             "path":  "CLAUDE.md",
+                             "status":  "pending_review",
+                             "type":  "hand-written"
+                         },
+                         {
+                             "path":  "HELP.md",
+                             "status":  "pending_review",
+                             "type":  "hand-written"
+                         }
+                     ],
+    "gap_queue":  [
+
+                  ],
+    "created_at":  "2026-04-15T17:40:23.4202077+07:00"
+}

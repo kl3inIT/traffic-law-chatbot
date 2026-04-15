@@ -62,9 +62,9 @@ class AiParameterSetControllerTest {
 
         mockMvc.perform(get(ApiPaths.PARAMETER_SETS))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(id.toString()))
-                .andExpect(jsonPath("$[0].name").value("Set A"))
-                .andExpect(jsonPath("$[0].active").value(false));
+                .andExpect(jsonPath("$.data[0].id").value(id.toString()))
+                .andExpect(jsonPath("$.data[0].name").value("Set A"))
+                .andExpect(jsonPath("$.data[0].active").value(false));
 
         verify(service).findAll();
     }
@@ -76,12 +76,12 @@ class AiParameterSetControllerTest {
 
         mockMvc.perform(get(ApiPaths.PARAMETER_SETS + "/" + id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.name").value("Set B"))
-                .andExpect(jsonPath("$.active").value(true))
-                .andExpect(jsonPath("$.content").exists())
-                .andExpect(jsonPath("$.createdAt").exists())
-                .andExpect(jsonPath("$.updatedAt").exists());
+                .andExpect(jsonPath("$.data.id").value(id.toString()))
+                .andExpect(jsonPath("$.data.name").value("Set B"))
+                .andExpect(jsonPath("$.data.active").value(true))
+                .andExpect(jsonPath("$.data.content").exists())
+                .andExpect(jsonPath("$.data.createdAt").exists())
+                .andExpect(jsonPath("$.data.updatedAt").exists());
 
         verify(service).findById(id);
     }
@@ -89,32 +89,32 @@ class AiParameterSetControllerTest {
     @Test
     void createReturns201() throws Exception {
         UUID id = UUID.randomUUID();
-        when(service.create(any(), any(), any(), any())).thenReturn(paramSet(id, "New Set", false));
+        when(service.create(any(), any())).thenReturn(paramSet(id, "New Set", false));
 
         mockMvc.perform(post(ApiPaths.PARAMETER_SETS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new CreateAiParameterSetRequest("New Set", "model:\n  name: openai", null, null))))
+                                new CreateAiParameterSetRequest("New Set", "model:\n  name: openai"))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.name").value("New Set"));
+                .andExpect(jsonPath("$.data.id").value(id.toString()))
+                .andExpect(jsonPath("$.data.name").value("New Set"));
 
-        verify(service).create("New Set", "model:\n  name: openai", null, null);
+        verify(service).create("New Set", "model:\n  name: openai");
     }
 
     @Test
     void updateReturns200() throws Exception {
         UUID id = UUID.randomUUID();
-        when(service.update(eq(id), any(), any(), any(), any())).thenReturn(paramSet(id, "Updated Set", false));
+        when(service.update(eq(id), any(), any())).thenReturn(paramSet(id, "Updated Set", false));
 
         mockMvc.perform(put(ApiPaths.PARAMETER_SETS + "/" + id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpdateAiParameterSetRequest("Updated Set", "model:\n  name: openai", null, null))))
+                                new UpdateAiParameterSetRequest("Updated Set", "model:\n  name: openai"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Updated Set"));
+                .andExpect(jsonPath("$.data.name").value("Updated Set"));
 
-        verify(service).update(eq(id), eq("Updated Set"), any(), any(), any());
+        verify(service).update(eq(id), eq("Updated Set"), any());
     }
 
     @Test
@@ -135,7 +135,7 @@ class AiParameterSetControllerTest {
 
         mockMvc.perform(post(ApiPaths.PARAMETER_SETS + "/" + id + "/activate"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.active").value(true));
+                .andExpect(jsonPath("$.data.active").value(true));
 
         verify(service).activate(id);
     }
@@ -148,8 +148,8 @@ class AiParameterSetControllerTest {
 
         mockMvc.perform(post(ApiPaths.PARAMETER_SETS + "/" + sourceId + "/copy"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Set A (ban sao)"))
-                .andExpect(jsonPath("$.active").value(false));
+                .andExpect(jsonPath("$.data.name").value("Set A (ban sao)"))
+                .andExpect(jsonPath("$.data.active").value(false));
 
         verify(service).copy(sourceId);
     }

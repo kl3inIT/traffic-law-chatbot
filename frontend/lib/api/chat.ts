@@ -13,10 +13,10 @@ export function fetchThreadMessages(threadId: string): Promise<ChatMessageRespon
   return apiGet(`/api/v1/chat/threads/${threadId}/messages`);
 }
 
-export function createThread(question: string): Promise<ChatAnswerResponse> {
-  return apiPost('/api/v1/chat/threads', { question });
+export function createThread(question: string, modelId?: string): Promise<ChatAnswerResponse> {
+  return apiPost('/api/v1/chat/threads', { question, modelId });
 }
 
-export function postMessage(threadId: string, question: string): Promise<ChatAnswerResponse> {
-  return apiPost(`/api/v1/chat/threads/${threadId}/messages`, { question });
+export function postMessage(threadId: string, question: string, modelId?: string): Promise<ChatAnswerResponse> {
+  return apiPost(`/api/v1/chat/threads/${threadId}/messages`, { question, modelId });
 }

@@ -40,16 +40,9 @@ class AppPropertiesTest {
     }
 
     @Test
-    void chatCaseAnalysisMaxClarificationsBindsToDefault() {
-        assertThat(appProperties.getChat().getCaseAnalysis().getMaxClarifications())
-                .as("app.chat.case-analysis.max-clarifications should bind to 2 from application.yaml")
-                .isEqualTo(2);
-    }
-
-    @Test
     void corsAllowedOriginsBindsToDefault() {
         assertThat(appProperties.getCors().getAllowedOrigins())
-                .as("app.cors.allowed-origins should bind to http://localhost:3000 by default")
-                .isEqualTo("http://localhost:3000");
+                .as("app.cors.allowed-origins should bind from application.properties")
+                .isEqualTo("http://localhost:3000,http://127.0.0.1:3000");
     }
 }

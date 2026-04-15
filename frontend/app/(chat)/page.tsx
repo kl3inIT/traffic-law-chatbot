@@ -8,12 +8,21 @@ import { UserBubble, AiBubble, AiBubbleLoading } from '@/components/chat/message
 import { ChatInput } from '@/components/chat/chat-input';
 import { useCreateThread } from '@/hooks/use-chat';
 import type { LocalMessage } from '@/hooks/use-chat';
+import { useChatModel } from '@/app/(chat)/layout';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function ChatPage() {
   const router = useRouter();
   const createThread = useCreateThread();
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { selectedModelId, setSelectedModelId, allowedModels, isLoadingModels } = useChatModel();
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -29,7 +38,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg]);
 
     try {
-      const response = await createThread.mutateAsync(question);
+      const response = await createThread.mutateAsync({ question, modelId: selectedModelId });
       const aiMsg: LocalMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -46,6 +55,25 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-1 flex-col h-screen">
+      {/* Model selector header */}
+      <div className="flex flex-shrink-0 items-center justify-end border-b px-4 py-2 gap-2">
+        <span className="text-muted-foreground text-xs">Mô hình:</span>
+        {!isLoadingModels && (
+          <Select value={selectedModelId ?? ''} onValueChange={(val) => setSelectedModelId(val ?? '')}>
+            <SelectTrigger size="sm" className="w-48">
+              <SelectValue placeholder="-- Mặc định --" />
+            </SelectTrigger>
+            <SelectContent>
+              {allowedModels.map((m) => (
+                <SelectItem key={m.modelId} value={m.modelId}>
+                  {m.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
       <ScrollArea className="flex-1 p-4">
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">

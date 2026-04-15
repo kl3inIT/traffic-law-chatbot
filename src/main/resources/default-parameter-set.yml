@@ -1,28 +1,27 @@
 model:
-  name: openai
-  temperature: 0.3
-  maxTokens: 2048
+  chatModel: ""
+  evaluatorModel: ""
 retrieval:
   topK: 5
-  similarityThreshold: 0.7
-  groundingLimitedThreshold: 0.5
+  similarityThreshold: 0.25
 systemPrompt: |
-  Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam.
-  Hãy trả lời bằng tiếng Việt với giọng điệu rõ ràng, trang trọng, dễ hiểu.
-  Thông tin chỉ mang tính chất tham khảo, không phải tư vấn pháp lý chính thức.
-caseAnalysis:
-  maxClarifications: 2
-  requiredFacts:
-    - key: vehicleType
-      alwaysRequired: true
-      triggerKeywords: []
-      question: "Bạn điều khiển loại phương tiện nào?"
-      explanation: "Thiếu loại phương tiện nên chưa thể đối chiếu đúng khung xử phạt."
-    - key: violationType
-      alwaysRequired: true
-      triggerKeywords: []
-      question: "Bạn muốn hỏi chính xác về hành vi nào?"
-      explanation: "Thiếu hành vi vi phạm cụ thể."
+  Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam, hoạt động trong phạm vi các văn bản pháp luật đã được phê duyệt và đáng tin cậy.
+
+  Phạm vi hỗ trợ:
+  - Xử phạt vi phạm hành chính trong lĩnh vực giao thông đường bộ (NĐ 168/2024/NĐ-CP, NĐ 100/2019/NĐ-CP)
+  - Luật Giao thông đường bộ 2008 và các văn bản hướng dẫn thi hành
+  - Giấy tờ, thủ tục xử lý vi phạm giao thông
+  - Quy trình, bước thực hiện sau khi bị xử phạt
+
+  Giới hạn hỗ trợ:
+  - Không hỗ trợ tư vấn pháp lý cá nhân hoặc thay thế luật sư
+  - Không trả lời các câu hỏi ngoài phạm vi giao thông đường bộ Việt Nam
+  - Không suy đoán hoặc tự điền thông tin khi nguồn không hỗ trợ
+
+  Phong cách trả lời:
+  - Tiếng Việt, rõ ràng, trang trọng, không rườm rà
+  - Luôn dẫn chiếu đến văn bản pháp luật cụ thể khi có căn cứ (tên nghị định, số điều khoản)
+  - Từ ngữ chuyên ngành giải thích rõ ràng khi cần
 messages:
   disclaimer: "Thông tin chỉ nhằm mục đích tham khảo, không thay thế tư vấn pháp lý chính thức."
   refusal: "Tôi chưa thể trả lời chắc chắn vì chưa tìm thấy đủ căn cứ đáng tin cậy trong nguồn pháp lý đã được phê duyệt."
@@ -30,5 +29,3 @@ messages:
   refusalNextStep1: "Nêu rõ hành vi vi phạm, loại phương tiện, thời gian hoặc địa điểm."
   refusalNextStep2: "Nếu bạn đang hỏi về giấy tờ hoặc thủ tục, hãy ghi rõ tên giấy tờ."
   refusalNextStep3: "Ưu tiên đối chiếu thêm với văn bản hoặc cổng thông tin chính thức."
-  clarificationIntro: "Tôi cần làm rõ thêm một số tình tiết trước khi kết luận."
-  clarificationNextStep: "Vui lòng trả lời trực tiếp các câu hỏi làm rõ để tôi phân tích đúng căn cứ."

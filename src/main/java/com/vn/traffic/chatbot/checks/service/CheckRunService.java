@@ -29,7 +29,7 @@ public class CheckRunService {
     private final CheckRunner checkRunner;
 
     @Transactional
-    public CheckRun trigger() {
+    public CheckRun trigger(String chatModelId, String evaluatorModelId) {
         AiParameterSet activeParamSet = aiParameterSetService.getActive().orElse(null);
         CheckRun run = CheckRun.builder()
                 .status(CheckRunStatus.RUNNING)
@@ -37,14 +37,11 @@ public class CheckRunService {
                 .parameterSetName(activeParamSet != null ? activeParamSet.getName() : "Unknown")
                 .build();
         run = checkRunRepository.save(run);
-        // Fire the async runner only after this transaction commits so the CheckRun row
-        // is visible to the new thread. Calling checkRunner.runAll() directly here would
-        // cause "CheckRun not found" because @Async spawns a new thread before commit.
         UUID runId = run.getId();
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                checkRunner.runAll(runId);
+                checkRunner.runAll(runId, chatModelId, evaluatorModelId);
             }
         });
         return run;

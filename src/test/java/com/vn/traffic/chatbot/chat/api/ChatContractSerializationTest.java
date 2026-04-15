@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
-import com.vn.traffic.chatbot.chat.api.dto.PendingFactResponse;
-import com.vn.traffic.chatbot.chat.api.dto.RememberedFactResponse;
 import com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.domain.ResponseMode;
@@ -36,8 +34,6 @@ class ChatContractSerializationTest {
                 List.of("Giấy phép lái xe"),
                 List.of("Chuẩn bị giấy tờ theo yêu cầu"),
                 List.of("Đối chiếu tình huống với cơ quan có thẩm quyền"),
-                List.of(new PendingFactResponse("vehicleType", "Bạn điều khiển loại phương tiện nào?", "Thiếu loại phương tiện")),
-                List.of(new RememberedFactResponse("vehicleType", "xe máy", "ACTIVE")),
                 List.of("Người dùng điều khiển xe máy"),
                 new ScenarioAnalysisResponse(
                         List.of("Người dùng điều khiển xe máy"),
@@ -79,8 +75,6 @@ class ChatContractSerializationTest {
         assertThat(json.has("conclusion")).isTrue();
         assertThat(json.has("disclaimer")).isTrue();
         assertThat(json.has("uncertaintyNotice")).isTrue();
-        assertThat(json.has("pendingFacts")).isTrue();
-        assertThat(json.has("rememberedFacts")).isTrue();
         assertThat(json.has("scenarioAnalysis")).isTrue();
         assertThat(json.has("citations")).isTrue();
         assertThat(json.has("sources")).isTrue();
@@ -110,8 +104,6 @@ class ChatContractSerializationTest {
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_NAME_DOCUMENT,
                         AnswerCompositionPolicy.REFUSAL_NEXT_STEP_VERIFY_SOURCE
                 ),
-                List.of(),
-                List.of(),
                 List.of(),
                 null,
                 List.of(),

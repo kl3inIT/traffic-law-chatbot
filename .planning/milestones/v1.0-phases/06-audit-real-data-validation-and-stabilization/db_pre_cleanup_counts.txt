@@ -1,0 +1,24 @@
+Pre-cleanup counts — 2026-04-13T03:43:32Z
+
+| Table                      | Row Count |
+|----------------------------|-----------|
+| check_result               | 17        |
+| check_run                  | 7         |
+| check_def                  | 6         |
+| chat_log                   | 27        |
+| thread_fact                | 9         |
+| chat_message               | 10        |
+| chat_thread                | 5         |
+| source_trust_policy        | 0         |
+| ai_parameter_set           | 5         |
+| kb_vector_store            | 174       |
+| kb_source_approval_event   | 20        |
+| kb_source_fetch_snapshot   | 10        |
+| kb_ingestion_job           | 10        |
+| kb_source_version          | 10        |
+| kb_source                  | 10        |
+
+Total rows across all non-seed tables: 320
+Note: source_trust_policy was already empty (0 rows) before cleanup.
+Note: ai_parameter_set had 5 rows (dev/test parameter sets to be deleted).
+Note: kb_vector_store had 174 vector chunks (dev/test content to be deleted).

@@ -2,10 +2,14 @@ package com.vn.traffic.chatbot.checks.evaluator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
+import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -13,9 +17,13 @@ import java.util.regex.Pattern;
  * LLM-as-judge semantic evaluator for answer quality assessment.
  * Uses a Vietnamese-first scoring prompt to evaluate answer similarity.
  * Returns 0.0 on any failure — never propagates exceptions.
+ *
+ * <p>Evaluator model fallback chain (D-09, D-13):
+ * {@code activeParamSet.evaluatorModel} → {@code app.ai.evaluator-model} config.
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class LlmSemanticEvaluator implements SemanticEvaluator {
 
     private static final String SYSTEM_PROMPT = """
@@ -33,18 +41,23 @@ public class LlmSemanticEvaluator implements SemanticEvaluator {
     private static final Pattern JSON_PATTERN = Pattern.compile("\\{.*\\}", Pattern.DOTALL);
     private static final double LANGUAGE_MISMATCH_CAP = 0.2;
 
-    private final ChatClient chatClient;
+    private final Map<String, ChatClient> chatClientMap;
+    private final AiModelProperties aiModelProperties;
+    private final ActiveParameterSetProvider paramProvider;
     private final ObjectMapper objectMapper;
-
-    public LlmSemanticEvaluator(ChatClient.Builder chatClientBuilder, ObjectMapper objectMapper) {
-        this.chatClient = chatClientBuilder.build();
-        this.objectMapper = objectMapper;
-    }
 
     @Override
     public double evaluate(String referenceAnswer, String actualAnswer) {
+        return evaluate(referenceAnswer, actualAnswer, null);
+    }
+
+    @Override
+    public double evaluate(String referenceAnswer, String actualAnswer, String evaluatorModelId) {
         try {
-            String content = chatClient.prompt()
+            ChatClient client = evaluatorModelId != null && !evaluatorModelId.isBlank()
+                    ? resolveClient(evaluatorModelId)
+                    : resolveEvaluatorClient();
+            String content = client.prompt()
                     .system(SYSTEM_PROMPT)
                     .user("Câu trả lời tham chiếu:\n" + referenceAnswer
                             + "\n\nCâu trả lời thực tế:\n" + actualAnswer)
@@ -55,6 +68,15 @@ public class LlmSemanticEvaluator implements SemanticEvaluator {
             log.error("SemanticEvaluator failed: {}", ex.getMessage(), ex);
             return 0.0;
         }
+    }
+
+    private ChatClient resolveClient(String modelId) {
+        ChatClient client = chatClientMap.get(modelId);
+        if (client == null) {
+            log.warn("Requested evaluator model '{}' not in chatClientMap, falling back to default", modelId);
+            return resolveEvaluatorClient();
+        }
+        return client;
     }
 
     public double parseScore(String content) {
@@ -75,5 +97,30 @@ public class LlmSemanticEvaluator implements SemanticEvaluator {
             log.warn("SemanticEvaluator: score parse failed: {}", ex.getMessage());
             return 0.0;
         }
+    }
+
+    /**
+     * Resolves the ChatClient for evaluation.
+     * Fallback chain: activeParamSet.evaluatorModel → app.ai.evaluator-model → first available.
+     */
+    private ChatClient resolveEvaluatorClient() {
+        String modelId = paramProvider.getString("model.evaluatorModel", aiModelProperties.evaluatorModel());
+
+        ChatClient client = chatClientMap.get(modelId);
+        if (client == null) {
+            log.warn("Evaluator model '{}' not in chatClientMap, falling back to '{}'",
+                    modelId, aiModelProperties.evaluatorModel());
+            client = chatClientMap.get(aiModelProperties.evaluatorModel());
+        }
+        if (client == null) {
+            log.warn("Fallback evaluator model '{}' also not in chatClientMap — using first available",
+                    aiModelProperties.evaluatorModel());
+            if (chatClientMap.isEmpty()) {
+                throw new IllegalStateException(
+                        "No ChatClient available — check app.ai.models configuration");
+            }
+            client = chatClientMap.values().iterator().next();
+        }
+        return client;
     }
 }

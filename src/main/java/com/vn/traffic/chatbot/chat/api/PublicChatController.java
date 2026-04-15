@@ -9,6 +9,7 @@ import com.vn.traffic.chatbot.chat.api.dto.CreateChatThreadRequest;
 import com.vn.traffic.chatbot.chat.service.ChatService;
 import com.vn.traffic.chatbot.chat.service.ChatThreadService;
 import com.vn.traffic.chatbot.common.api.ApiPaths;
+import com.vn.traffic.chatbot.common.api.ResponseGeneral;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -31,30 +32,30 @@ public class PublicChatController {
     private final ChatThreadService chatThreadService;
 
     @PostMapping
-    public ResponseEntity<ChatAnswerResponse> answer(@Valid @RequestBody ChatQuestionRequest request) {
-        return ResponseEntity.ok(chatService.answer(request.question()));
+    public ResponseEntity<ResponseGeneral<ChatAnswerResponse>> answer(@Valid @RequestBody ChatQuestionRequest request) {
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Chat answer", chatService.answer(request.question(), request.modelId())));
     }
 
     @GetMapping("/threads")
-    public ResponseEntity<List<ChatThreadSummaryResponse>> listThreads() {
-        return ResponseEntity.ok(chatThreadService.listThreads());
+    public ResponseEntity<ResponseGeneral<List<ChatThreadSummaryResponse>>> listThreads() {
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Thread list", chatThreadService.listThreads()));
     }
 
     @PostMapping("/threads")
-    public ResponseEntity<ChatAnswerResponse> createThread(@Valid @RequestBody CreateChatThreadRequest request) {
-        return ResponseEntity.ok(chatThreadService.createThread(request.question()));
+    public ResponseEntity<ResponseGeneral<ChatAnswerResponse>> createThread(@Valid @RequestBody CreateChatThreadRequest request) {
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Thread created", chatThreadService.createThread(request.question())));
     }
 
     @GetMapping("/threads/{threadId}/messages")
-    public ResponseEntity<List<ChatMessageResponse>> getMessages(@PathVariable UUID threadId) {
-        return ResponseEntity.ok(chatThreadService.getMessages(threadId));
+    public ResponseEntity<ResponseGeneral<List<ChatMessageResponse>>> getMessages(@PathVariable UUID threadId) {
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Thread messages", chatThreadService.getMessages(threadId)));
     }
 
     @PostMapping("/threads/{threadId}/messages")
-    public ResponseEntity<ChatAnswerResponse> postMessage(
+    public ResponseEntity<ResponseGeneral<ChatAnswerResponse>> postMessage(
             @PathVariable UUID threadId,
             @Valid @RequestBody ChatThreadMessageRequest request
     ) {
-        return ResponseEntity.ok(chatThreadService.postMessage(threadId, request.question()));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Message posted", chatThreadService.postMessage(threadId, request.question())));
     }
 }

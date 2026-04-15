@@ -7,6 +7,7 @@ import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService.RetrievalRead
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.common.api.ApiPaths;
 import com.vn.traffic.chatbot.common.api.PageResponse;
+import com.vn.traffic.chatbot.common.api.ResponseGeneral;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageImpl;
@@ -27,28 +28,28 @@ public class ChunkAdminController {
     private final ChunkInspectionService chunkInspectionService;
 
     @GetMapping(ApiPaths.CHUNKS)
-    public ResponseEntity<PageResponse<ChunkSummaryResponse>> listChunks(
+    public ResponseEntity<ResponseGeneral<PageResponse<ChunkSummaryResponse>>> listChunks(
             @RequestParam(required = false) String sourceId,
             @RequestParam(required = false) String sourceVersionId,
             Pageable pageable) {
         var chunks = chunkInspectionService.listChunks(sourceId, sourceVersionId, pageable);
         long totalCount = chunkInspectionService.countChunks(sourceId, sourceVersionId);
         var page = new PageImpl<>(chunks, pageable, totalCount);
-        return ResponseEntity.ok(PageResponse.from(page));
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Chunks", PageResponse.from(page)));
     }
 
     @GetMapping(ApiPaths.CHUNK_READINESS)
-    public ResponseEntity<RetrievalReadinessCounts> getReadiness() {
-        return ResponseEntity.ok(chunkInspectionService.getRetrievalReadinessCounts());
+    public ResponseEntity<ResponseGeneral<RetrievalReadinessCounts>> getReadiness() {
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Retrieval readiness", chunkInspectionService.getRetrievalReadinessCounts()));
     }
 
     @GetMapping(ApiPaths.CHUNK_BY_ID)
-    public ResponseEntity<ChunkDetailResponse> getChunk(@PathVariable UUID chunkId) {
-        return ResponseEntity.ok(chunkInspectionService.getChunk(chunkId));
+    public ResponseEntity<ResponseGeneral<ChunkDetailResponse>> getChunk(@PathVariable UUID chunkId) {
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Chunk detail", chunkInspectionService.getChunk(chunkId)));
     }
 
     @GetMapping(ApiPaths.INDEX_SUMMARY)
-    public ResponseEntity<IndexSummaryResponse> getIndexSummary() {
-        return ResponseEntity.ok(chunkInspectionService.getIndexSummary());
+    public ResponseEntity<ResponseGeneral<IndexSummaryResponse>> getIndexSummary() {
+        return ResponseEntity.ok(ResponseGeneral.ofSuccess("Index summary", chunkInspectionService.getIndexSummary()));
     }
 }

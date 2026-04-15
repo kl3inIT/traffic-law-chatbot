@@ -71,8 +71,8 @@ class ChatLogControllerTest {
 
         mockMvc.perform(get(ApiPaths.CHAT_LOGS))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(id.toString()))
-                .andExpect(jsonPath("$.content[0].groundingStatus").value("GROUNDED"));
+                .andExpect(jsonPath("$.data.content[0].id").value(id.toString()))
+                .andExpect(jsonPath("$.data.content[0].groundingStatus").value("GROUNDED"));
     }
 
     @Test
@@ -94,9 +94,9 @@ class ChatLogControllerTest {
 
         mockMvc.perform(get(ApiPaths.CHAT_LOGS + "/" + id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.answer").value("Phạt từ 3-5 triệu đồng."))
-                .andExpect(jsonPath("$.sources").value("Nghị định 100/2019/NĐ-CP"))
-                .andExpect(jsonPath("$.groundingStatus").value("GROUNDED"));
+                .andExpect(jsonPath("$.data.id").value(id.toString()))
+                .andExpect(jsonPath("$.data.answer").value("Phạt từ 3-5 triệu đồng."))
+                .andExpect(jsonPath("$.data.sources").value("Nghị định 100/2019/NĐ-CP"))
+                .andExpect(jsonPath("$.data.groundingStatus").value("GROUNDED"));
     }
 }

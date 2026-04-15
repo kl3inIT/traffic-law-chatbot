@@ -1,6 +1,5 @@
 package com.vn.traffic.chatbot.chat.service;
 
-import com.vn.traffic.chatbot.chat.api.dto.RememberedFactResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.domain.ResponseMode;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,6 @@ class ScenarioAnswerComposerTest {
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
                 GroundingStatus.GROUNDED,
                 draft,
-                List.of(new RememberedFactResponse("vehicleType", "xe máy", "ACTIVE")),
                 List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))
         );
 
@@ -47,7 +45,7 @@ class ScenarioAnswerComposerTest {
     }
 
     @Test
-    void finalizesLimitedGroundingWhenRememberedFactsExist() {
+    void groundedWithScenarioFactsProducesFinalAnalysis() {
         LegalAnswerDraft draft = new LegalAnswerDraft(
                 "Kết luận tạm thời",
                 "",
@@ -64,20 +62,19 @@ class ScenarioAnswerComposerTest {
         );
 
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
-                GroundingStatus.LIMITED_GROUNDING,
+                GroundingStatus.GROUNDED,
                 draft,
-                List.of(new RememberedFactResponse("documentStatus", "không mang đăng ký xe", "ACTIVE")),
                 List.of()
         );
 
         assertThat(composition.responseMode()).isEqualTo(ResponseMode.FINAL_ANALYSIS);
         assertThat(composition.scenarioAnalysis()).isNotNull();
-        assertThat(composition.scenarioAnalysis().facts()).contains("documentStatus: không mang đăng ký xe");
+        assertThat(composition.scenarioAnalysis().facts()).contains("Thiếu giấy tờ xe");
         assertThat(composition.scenarioAnalysis().rule()).contains("Điều 58");
     }
 
     @Test
-    void doesNotFinalizeLimitedGroundingWithoutRememberedFacts() {
+    void groundedWithoutFactsProducesScenarioAnalysisMode() {
         LegalAnswerDraft draft = new LegalAnswerDraft(
                 "Kết luận tạm thời",
                 "",
@@ -87,16 +84,15 @@ class ScenarioAnswerComposerTest {
                 List.of(),
                 List.of(),
                 List.of("Bổ sung thêm thông tin"),
-                List.of("Thiếu giấy tờ xe"),
+                List.of(),
                 List.of("Áp dụng Điều 58 [Nguồn 1]"),
                 List.of("Có thể bị xử lý"),
                 List.of("Kiểm tra lại giấy tờ")
         );
 
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
-                GroundingStatus.LIMITED_GROUNDING,
+                GroundingStatus.GROUNDED,
                 draft,
-                List.of(),
                 List.of()
         );
 

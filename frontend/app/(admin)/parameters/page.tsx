@@ -16,8 +16,16 @@ import {
   useActivateParameterSet,
   useCopyParameterSet,
   useDeleteParameterSet,
+  useAllowedModels,
 } from '@/hooks/use-parameters';
 import type { AiParameterSetResponse } from '@/types/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -37,26 +45,21 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 // ─── YAML helpers ───────────────────────────────────────────────────────────
 
 interface ParameterYaml {
-  model?: { name?: string; temperature?: number; maxTokens?: number };
+  model?: {
+    chatModel?: string;
+    evaluatorModel?: string;
+  };
   retrieval?: {
     topK?: number;
     similarityThreshold?: number;
-    groundingLimitedThreshold?: number;
   };
   systemPrompt?: string;
   messages?: {
     disclaimer?: string;
     refusal?: string;
-    limitedNotice?: string;
     refusalNextStep1?: string;
     refusalNextStep2?: string;
     refusalNextStep3?: string;
-    clarificationIntro?: string;
-    clarificationNextStep?: string;
-  };
-  caseAnalysis?: {
-    maxClarifications?: number;
-    requiredFacts?: unknown;
   };
   [key: string]: unknown;
 }
@@ -65,67 +68,39 @@ function yamlToForm(content: string): Partial<FormValues> {
   try {
     const parsed = parseYaml(content) as ParameterYaml;
     return {
-      modelName: parsed?.model?.name ?? '',
-      modelTemperature: String(parsed?.model?.temperature ?? '0.3'),
-      modelMaxTokens: String(parsed?.model?.maxTokens ?? '2048'),
+      chatModel: parsed?.model?.chatModel ?? '',
+      evaluatorModel: parsed?.model?.evaluatorModel ?? '',
       retrievalTopK: String(parsed?.retrieval?.topK ?? '5'),
-      retrievalSimilarityThreshold: String(parsed?.retrieval?.similarityThreshold ?? '0.7'),
-      retrievalGroundingLimitedThreshold: String(
-        parsed?.retrieval?.groundingLimitedThreshold ?? '0.5',
-      ),
+      retrievalSimilarityThreshold: String(parsed?.retrieval?.similarityThreshold ?? '0.25'),
       systemPrompt: parsed?.systemPrompt ?? '',
       messagesDisclaimer: parsed?.messages?.disclaimer ?? '',
       messagesRefusal: parsed?.messages?.refusal ?? '',
-      messagesLimitedNotice: parsed?.messages?.limitedNotice ?? '',
       messagesRefusalNextStep1: parsed?.messages?.refusalNextStep1 ?? '',
       messagesRefusalNextStep2: parsed?.messages?.refusalNextStep2 ?? '',
       messagesRefusalNextStep3: parsed?.messages?.refusalNextStep3 ?? '',
-      messagesClarificationIntro: parsed?.messages?.clarificationIntro ?? '',
-      messagesClarificationNextStep: parsed?.messages?.clarificationNextStep ?? '',
-      caseAnalysisMaxClarifications: String(parsed?.caseAnalysis?.maxClarifications ?? '2'),
     };
   } catch {
     return {};
   }
 }
 
-function formToYaml(values: FormValues, existingContent?: string): string {
-  // Preserve caseAnalysis.requiredFacts from existing YAML (it's complex structured data)
-  let existingRequiredFacts: unknown = undefined;
-  try {
-    if (existingContent) {
-      const existing = parseYaml(existingContent) as ParameterYaml;
-      existingRequiredFacts = existing?.caseAnalysis?.requiredFacts;
-    }
-  } catch {
-    // ignore
-  }
-
+function formToYaml(values: FormValues): string {
   const obj: ParameterYaml = {
     model: {
-      name: values.modelName,
-      temperature: parseFloat(values.modelTemperature),
-      maxTokens: parseInt(values.modelMaxTokens, 10),
+      chatModel: values.chatModel || undefined,
+      evaluatorModel: values.evaluatorModel || undefined,
     },
     retrieval: {
       topK: parseInt(values.retrievalTopK, 10),
       similarityThreshold: parseFloat(values.retrievalSimilarityThreshold),
-      groundingLimitedThreshold: parseFloat(values.retrievalGroundingLimitedThreshold),
     },
     systemPrompt: values.systemPrompt,
-    caseAnalysis: {
-      maxClarifications: parseInt(values.caseAnalysisMaxClarifications, 10),
-      ...(existingRequiredFacts !== undefined ? { requiredFacts: existingRequiredFacts } : {}),
-    },
     messages: {
       disclaimer: values.messagesDisclaimer,
       refusal: values.messagesRefusal,
-      limitedNotice: values.messagesLimitedNotice,
       refusalNextStep1: values.messagesRefusalNextStep1,
       refusalNextStep2: values.messagesRefusalNextStep2,
       refusalNextStep3: values.messagesRefusalNextStep3,
-      clarificationIntro: values.messagesClarificationIntro,
-      clarificationNextStep: values.messagesClarificationNextStep,
     },
   };
 
@@ -136,49 +111,35 @@ function formToYaml(values: FormValues, existingContent?: string): string {
 
 const schema = z.object({
   name: z.string().min(1, 'Tên bộ tham số là bắt buộc'),
-  modelName: z.string().min(1, 'Tên mô hình là bắt buộc'),
-  modelTemperature: z.string().min(1),
-  modelMaxTokens: z.string().min(1),
+  chatModel: z.string().optional(),
+  evaluatorModel: z.string().optional(),
   retrievalTopK: z.string().min(1),
   retrievalSimilarityThreshold: z.string().min(1),
-  retrievalGroundingLimitedThreshold: z.string().min(1),
   systemPrompt: z.string().min(1, 'System prompt là bắt buộc'),
   messagesDisclaimer: z.string(),
   messagesRefusal: z.string(),
-  messagesLimitedNotice: z.string(),
   messagesRefusalNextStep1: z.string(),
   messagesRefusalNextStep2: z.string(),
   messagesRefusalNextStep3: z.string(),
-  messagesClarificationIntro: z.string(),
-  messagesClarificationNextStep: z.string(),
-  caseAnalysisMaxClarifications: z.string().min(1),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 const DEFAULT_VALUES: FormValues = {
   name: '',
-  modelName: 'openai',
-  modelTemperature: '0.3',
-  modelMaxTokens: '2048',
+  chatModel: '',
+  evaluatorModel: '',
   retrievalTopK: '5',
-  retrievalSimilarityThreshold: '0.7',
-  retrievalGroundingLimitedThreshold: '0.5',
+  retrievalSimilarityThreshold: '0.25',
   systemPrompt:
     'Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam.\nHãy trả lời bằng tiếng Việt với giọng điệu rõ ràng, trang trọng, dễ hiểu.\nThông tin chỉ mang tính chất tham khảo, không phải tư vấn pháp lý chính thức.',
   messagesDisclaimer:
     'Thông tin chỉ nhằm mục đích tham khảo, không thay thế tư vấn pháp lý chính thức.',
   messagesRefusal:
     'Tôi chưa thể trả lời chắc chắn vì chưa tìm thấy đủ căn cứ đáng tin cậy trong nguồn pháp lý đã được phê duyệt.',
-  messagesLimitedNotice:
-    'Một số nội dung dưới đây chỉ được trả lời trong phạm vi nguồn đã truy xuất được.',
   messagesRefusalNextStep1: 'Nêu rõ hành vi vi phạm, loại phương tiện, thời gian hoặc địa điểm.',
   messagesRefusalNextStep2: 'Nếu bạn đang hỏi về giấy tờ hoặc thủ tục, hãy ghi rõ tên giấy tờ.',
   messagesRefusalNextStep3: 'Ưu tiên đối chiếu thêm với văn bản hoặc cổng thông tin chính thức.',
-  messagesClarificationIntro: 'Tôi cần làm rõ thêm một số tình tiết trước khi kết luận.',
-  messagesClarificationNextStep:
-    'Vui lòng trả lời trực tiếp các câu hỏi làm rõ để tôi phân tích đúng căn cứ.',
-  caseAnalysisMaxClarifications: '2',
 };
 
 // ─── Section helpers ─────────────────────────────────────────────────────────
@@ -215,10 +176,10 @@ function FieldRow({
 
 export default function ParametersPage() {
   const { data: parameterSets, isLoading } = useParameterSets();
+  const { data: allowedModels = [] } = useAllowedModels();
   const [selected, setSelected] = useState<AiParameterSetResponse | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AiParameterSetResponse | null>(null);
-  const [existingContent, setExistingContent] = useState<string | undefined>(undefined);
 
   const createMutation = useCreateParameterSet();
   const updateMutation = useUpdateParameterSet();
@@ -236,27 +197,37 @@ export default function ParametersPage() {
   const openNew = () => {
     setSelected(null);
     setIsNew(true);
-    setExistingContent(undefined);
     form.reset(DEFAULT_VALUES);
   };
 
   const openEdit = (ps: AiParameterSetResponse) => {
     setSelected(ps);
     setIsNew(false);
-    setExistingContent(ps.content);
     const parsed = yamlToForm(ps.content);
-    form.reset({ ...DEFAULT_VALUES, ...parsed, name: ps.name });
+    form.reset({
+      ...DEFAULT_VALUES,
+      ...parsed,
+      name: ps.name,
+    });
   };
 
   const onSubmit = async (values: FormValues) => {
-    const content = formToYaml(values, existingContent);
+    const content = formToYaml(values);
     if (isNew) {
-      await createMutation.mutateAsync({ name: values.name, content });
+      await createMutation.mutateAsync({
+        name: values.name,
+        content,
+      });
       setIsNew(false);
       form.reset(DEFAULT_VALUES);
     } else if (selected) {
-      await updateMutation.mutateAsync({ id: selected.id, data: { name: values.name, content } });
-      setExistingContent(content);
+      await updateMutation.mutateAsync({
+        id: selected.id,
+        data: {
+          name: values.name,
+          content,
+        },
+      });
     }
   };
 
@@ -363,29 +334,60 @@ export default function ParametersPage() {
                       )}
                     </FieldRow>
 
-                    {/* Model */}
-                    <SectionHeader>Mô hình AI</SectionHeader>
-                    <div className="grid grid-cols-3 gap-3">
-                      <FieldRow label="Tên mô hình">
-                        <Input {...form.register('modelName')} placeholder="openai" />
+                    {/* Model selection */}
+                    <SectionHeader>Mô hình mặc định</SectionHeader>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FieldRow label="Mô hình chat mặc định" hint="dùng cho trả lời câu hỏi">
+                        <Select
+                          value={form.watch('chatModel') || '__default__'}
+                          onValueChange={(val) =>
+                            form.setValue('chatModel', val === '__default__' ? '' : (val ?? ''))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="-- Không chỉ định --" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__default__">-- Không chỉ định --</SelectItem>
+                            {allowedModels.map((m) => (
+                              <SelectItem key={m.modelId} value={m.modelId}>
+                                {m.displayName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FieldRow>
-                      <FieldRow label="Temperature" hint="0 – 2">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="2"
-                          {...form.register('modelTemperature')}
-                        />
-                      </FieldRow>
-                      <FieldRow label="Max tokens">
-                        <Input type="number" min="1" {...form.register('modelMaxTokens')} />
+                      <FieldRow
+                        label="Mô hình đánh giá mặc định"
+                        hint="dùng cho kiểm tra chất lượng"
+                      >
+                        <Select
+                          value={form.watch('evaluatorModel') || '__default__'}
+                          onValueChange={(val) =>
+                            form.setValue(
+                              'evaluatorModel',
+                              val === '__default__' ? '' : (val ?? ''),
+                            )
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="-- Không chỉ định --" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__default__">-- Không chỉ định --</SelectItem>
+                            {allowedModels.map((m) => (
+                              <SelectItem key={m.modelId} value={m.modelId}>
+                                {m.displayName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FieldRow>
                     </div>
 
                     {/* Retrieval */}
                     <SectionHeader>Truy xuất ngữ nghĩa</SectionHeader>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <FieldRow label="Top K" hint="số tài liệu">
                         <Input type="number" min="1" {...form.register('retrievalTopK')} />
                       </FieldRow>
@@ -396,15 +398,6 @@ export default function ParametersPage() {
                           min="0"
                           max="1"
                           {...form.register('retrievalSimilarityThreshold')}
-                        />
-                      </FieldRow>
-                      <FieldRow label="Ngưỡng grounding hạn chế" hint="0 – 1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="1"
-                          {...form.register('retrievalGroundingLimitedThreshold')}
                         />
                       </FieldRow>
                     </div>
@@ -422,18 +415,6 @@ export default function ParametersPage() {
                       </p>
                     )}
 
-                    {/* Case Analysis */}
-                    <SectionHeader>Phân tích tình huống</SectionHeader>
-                    <FieldRow label="Số câu hỏi làm rõ tối đa">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="10"
-                        className="w-32"
-                        {...form.register('caseAnalysisMaxClarifications')}
-                      />
-                    </FieldRow>
-
                     {/* Messages */}
                     <SectionHeader>Thông điệp hệ thống</SectionHeader>
                     <div className="space-y-3">
@@ -446,9 +427,6 @@ export default function ParametersPage() {
                           className="min-h-[60px] resize-y text-sm"
                         />
                       </FieldRow>
-                      <FieldRow label="Thông báo grounding hạn chế">
-                        <Input {...form.register('messagesLimitedNotice')} />
-                      </FieldRow>
                       <FieldRow label="Bước tiếp theo khi từ chối — 1">
                         <Input {...form.register('messagesRefusalNextStep1')} />
                       </FieldRow>
@@ -458,19 +436,13 @@ export default function ParametersPage() {
                       <FieldRow label="Bước tiếp theo khi từ chối — 3">
                         <Input {...form.register('messagesRefusalNextStep3')} />
                       </FieldRow>
-                      <FieldRow label="Giới thiệu câu hỏi làm rõ">
-                        <Input {...form.register('messagesClarificationIntro')} />
-                      </FieldRow>
-                      <FieldRow label="Hướng dẫn câu hỏi làm rõ">
-                        <Input {...form.register('messagesClarificationNextStep')} />
-                      </FieldRow>
                     </div>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="yaml" className="min-h-0 overflow-auto p-5">
                   <pre className="bg-muted h-full min-h-[200px] rounded-md p-4 text-xs leading-relaxed break-all whitespace-pre-wrap">
-                    {formToYaml(watchedValues, existingContent)}
+                    {formToYaml(watchedValues)}
                   </pre>
                 </TabsContent>
               </Tabs>

@@ -56,11 +56,11 @@ class CheckRunControllerTest {
                 .parameterSetName("Default")
                 .build();
 
-        when(checkRunService.trigger()).thenReturn(run);
+        when(checkRunService.trigger(null, null)).thenReturn(run);
 
         mockMvc.perform(post(ApiPaths.CHECK_RUNS_TRIGGER))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.runId").value(runId.toString()));
+                .andExpect(jsonPath("$.data.runId").value(runId.toString()));
     }
 
     @Test
@@ -89,6 +89,6 @@ class CheckRunControllerTest {
 
         mockMvc.perform(get(ApiPaths.CHECK_RUN_RESULTS.replace("{runId}", runId.toString())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.data.length()").value(2));
     }
 }

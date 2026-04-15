@@ -1,11 +1,6 @@
 // Enums
 export type GroundingStatus = 'GROUNDED' | 'LIMITED_GROUNDING' | 'REFUSED';
-export type ResponseMode =
-  | 'STANDARD'
-  | 'CLARIFICATION_NEEDED'
-  | 'SCENARIO_ANALYSIS'
-  | 'FINAL_ANALYSIS'
-  | 'REFUSED';
+export type ResponseMode = 'STANDARD' | 'SCENARIO_ANALYSIS' | 'FINAL_ANALYSIS' | 'REFUSED';
 // SourceStatus matches backend SourceStatus enum
 export type SourceStatus = 'DRAFT' | 'READY_FOR_REVIEW' | 'ACTIVE' | 'ARCHIVED' | 'DISABLED';
 // ApprovalState matches backend ApprovalState enum
@@ -28,8 +23,6 @@ export interface ChatAnswerResponse {
   requiredDocuments: string[];
   procedureSteps: string[];
   nextSteps: string[];
-  pendingFacts: PendingFactResponse[];
-  rememberedFacts: RememberedFactResponse[];
   scenarioFacts: string[];
   scenarioAnalysis: ScenarioAnalysisResponse | null;
   citations: CitationResponse[];
@@ -42,18 +35,6 @@ export interface ScenarioAnalysisResponse {
   outcome: string;
   actions: string[];
   sources: SourceReferenceResponse[];
-}
-
-export interface PendingFactResponse {
-  code: string;
-  prompt: string;
-  reason: string;
-}
-
-export interface RememberedFactResponse {
-  key: string;
-  value: string;
-  status: string;
 }
 
 export interface CitationResponse {
@@ -79,7 +60,7 @@ export interface ChatThreadSummaryResponse {
 }
 
 export type ChatMessageRole = 'USER' | 'ASSISTANT';
-export type ChatMessageType = 'QUESTION' | 'ANSWER' | 'CLARIFICATION';
+export type ChatMessageType = 'QUESTION' | 'ANSWER';
 
 export interface ChatMessageResponse {
   id: string;
@@ -229,8 +210,6 @@ export interface AiParameterSetResponse {
   name: string;
   active: boolean;
   content: string;
-  chatModel?: string;
-  evaluatorModel?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -243,8 +222,6 @@ export interface CreateAiParameterSetRequest {
 export interface UpdateAiParameterSetRequest {
   name: string;
   content: string;
-  chatModel?: string;
-  evaluatorModel?: string;
 }
 
 // Chat Log DTOs

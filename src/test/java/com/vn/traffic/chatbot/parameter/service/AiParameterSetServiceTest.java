@@ -46,7 +46,7 @@ class AiParameterSetServiceTest {
         when(repository.save(any(AiParameterSet.class))).thenReturn(saved);
 
         // when
-        AiParameterSet result = service.create(name, content, null, null);
+        AiParameterSet result = service.create(name, content);
 
         // then
         assertThat(result.getId()).isNotNull();

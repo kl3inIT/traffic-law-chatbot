@@ -51,3 +51,8 @@ out/
 .playwright-cli/
 .playwright-mcp/
 frontend/playwright-report/
+frontend/test-results/
+
+# Scripts
+scripts/bulk_import.py
+scripts/import_sources/

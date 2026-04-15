@@ -39,8 +39,6 @@ public class AnswerComposer {
                     List.of(),
                     nextSteps,
                     List.of(),
-                    List.of(),
-                    List.of(),
                     null,
                     List.of(),
                     List.of()
@@ -60,8 +58,6 @@ public class AnswerComposer {
         List<SourceReferenceResponse> safeSources = safeList(sources);
         String uncertaintyNotice = hasText(safeDraft.uncertaintyNotice())
                 ? safeDraft.uncertaintyNotice().trim()
-                : groundingStatus == GroundingStatus.LIMITED_GROUNDING
-                ? policy.getLimitedNotice()
                 : null;
         String normalizedConclusion = normalizeConclusion(safeDraft.conclusion());
 
@@ -80,8 +76,6 @@ public class AnswerComposer {
                 requiredDocuments,
                 procedureSteps,
                 nextSteps,
-                List.of(),
-                List.of(),
                 safeList(safeDraft.scenarioFacts()),
                 null,
                 safeCitations,

@@ -76,17 +76,17 @@ class CheckRunnerTest {
 
         ChatAnswerResponse chatResponse = new ChatAnswerResponse(
                 null, null, null, "test answer", null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null
         );
 
         when(checkRunRepository.findById(runId)).thenReturn(Optional.of(run));
         when(checkDefRepository.findByActiveTrue()).thenReturn(List.of(def1, def2));
-        when(chatService.answer(anyString())).thenReturn(chatResponse);
-        when(evaluator.evaluate(anyString(), anyString())).thenReturn(0.75);
+        when(chatService.answer(anyString(), org.mockito.ArgumentMatchers.isNull())).thenReturn(chatResponse);
+        when(evaluator.evaluate(anyString(), anyString(), any())).thenReturn(0.75);
         when(checkResultRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
         when(checkRunRepository.save(any(CheckRun.class))).thenReturn(run);
 
-        checkRunner.runAll(runId);
+        checkRunner.runAll(runId, null, null);
 
         ArgumentCaptor<List<CheckResult>> resultsCaptor = ArgumentCaptor.forClass(List.class);
         verify(checkResultRepository).saveAll(resultsCaptor.capture());
@@ -108,7 +108,7 @@ class CheckRunnerTest {
         when(checkDefRepository.findByActiveTrue()).thenReturn(List.of());
         when(checkRunRepository.save(any(CheckRun.class))).thenReturn(run);
 
-        checkRunner.runAll(runId);
+        checkRunner.runAll(runId, null, null);
 
         assertThat(run.getStatus()).isEqualTo(CheckRunStatus.FAILED);
         verify(checkResultRepository, never()).saveAll(anyList());
