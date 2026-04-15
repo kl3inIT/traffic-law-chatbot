@@ -1,4 +1,4 @@
-package com.vn.traffic.chatbot.ai.config;
+package com.vn.traffic.chatbot.common.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

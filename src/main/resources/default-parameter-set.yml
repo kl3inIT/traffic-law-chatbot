@@ -1,11 +1,6 @@
-model:
-  name: openai
-  temperature: 0.3
-  maxTokens: 2048
 retrieval:
   topK: 5
-  similarityThreshold: 0.7
-  groundingLimitedThreshold: 0.5
+  similarityThreshold: 0.25
 systemPrompt: |
   Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam, hoạt động trong phạm vi các văn bản pháp luật đã được phê duyệt và đáng tin cậy.
 

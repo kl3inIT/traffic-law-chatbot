@@ -1,7 +1,7 @@
 package com.vn.traffic.chatbot.chat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vn.traffic.chatbot.ai.config.AiModelProperties;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.chat.api.PublicChatController;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
 import com.vn.traffic.chatbot.chat.service.AnswerComposer;

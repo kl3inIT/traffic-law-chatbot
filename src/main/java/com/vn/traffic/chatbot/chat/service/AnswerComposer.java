@@ -58,8 +58,6 @@ public class AnswerComposer {
         List<SourceReferenceResponse> safeSources = safeList(sources);
         String uncertaintyNotice = hasText(safeDraft.uncertaintyNotice())
                 ? safeDraft.uncertaintyNotice().trim()
-                : groundingStatus == GroundingStatus.LIMITED_GROUNDING
-                ? policy.getLimitedNotice()
                 : null;
         String normalizedConclusion = normalizeConclusion(safeDraft.conclusion());
 

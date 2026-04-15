@@ -2,7 +2,7 @@ package com.vn.traffic.chatbot.checks.evaluator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vn.traffic.chatbot.ai.config.AiModelProperties;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.parameter.domain.AiParameterSet;
 import com.vn.traffic.chatbot.parameter.service.AiParameterSetService;
 import lombok.RequiredArgsConstructor;

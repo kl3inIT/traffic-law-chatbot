@@ -23,8 +23,7 @@ public class ScenarioAnswerComposer {
         List<String> actions = buildActions(draft);
         List<SourceReferenceResponse> safeSources = safeList(sources);
 
-        boolean canFinalize = groundingStatus == GroundingStatus.GROUNDED
-                || groundingStatus == GroundingStatus.LIMITED_GROUNDING;
+        boolean canFinalize = groundingStatus == GroundingStatus.GROUNDED;
         boolean hasStructuredScenario = canFinalize && !facts.isEmpty() && hasText(rule) && hasText(outcome);
         ResponseMode responseMode = groundingStatus == GroundingStatus.REFUSED
                 ? ResponseMode.REFUSED

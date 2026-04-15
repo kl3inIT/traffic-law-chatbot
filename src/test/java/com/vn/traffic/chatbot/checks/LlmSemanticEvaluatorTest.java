@@ -1,7 +1,7 @@
 package com.vn.traffic.chatbot.checks;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vn.traffic.chatbot.ai.config.AiModelProperties;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.checks.evaluator.LlmSemanticEvaluator;
 import com.vn.traffic.chatbot.parameter.domain.AiParameterSet;
 import com.vn.traffic.chatbot.parameter.service.AiParameterSetService;

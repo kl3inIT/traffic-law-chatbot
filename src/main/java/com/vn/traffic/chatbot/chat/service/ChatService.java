@@ -2,7 +2,7 @@ package com.vn.traffic.chatbot.chat.service;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vn.traffic.chatbot.ai.config.AiModelProperties;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
@@ -51,8 +51,6 @@ public class ChatService {
 
     @Value("${app.chat.retrieval.top-k:5}")
     private int retrievalTopK;
-    @Value("${app.chat.grounding.limited-threshold:2}")
-    private int limitedGroundingThreshold;
 
     /**
      * Answers a user question with conversation history for multi-turn context.
@@ -219,13 +217,7 @@ public class ChatService {
     }
 
     private GroundingStatus determineGroundingStatus(int documentCount) {
-        if (documentCount <= 0) {
-            return GroundingStatus.REFUSED;
-        }
-        if (documentCount <= limitedGroundingThreshold) {
-            return GroundingStatus.LIMITED_GROUNDING;
-        }
-        return GroundingStatus.GROUNDED;
+        return documentCount <= 0 ? GroundingStatus.REFUSED : GroundingStatus.GROUNDED;
     }
 
     private List<Document> safeDocuments(List<Document> documents) {
@@ -319,9 +311,7 @@ public class ChatService {
             List<CitationResponse> citations,
             List<SourceReferenceResponse> sources
     ) {
-        String conclusion = groundingStatus == GroundingStatus.LIMITED_GROUNDING
-                ? "Chưa thể tổng hợp đầy đủ nội dung trả lời theo định dạng chuẩn từ các nguồn đã truy xuất; chỉ nên tham khảo các căn cứ hiển thị bên dưới."
-                : "Chưa thể tổng hợp đầy đủ nội dung trả lời theo định dạng chuẩn; vui lòng tham khảo các căn cứ hiển thị và diễn đạt lại câu hỏi cụ thể hơn.";
+        String conclusion = "Chưa thể tổng hợp đầy đủ nội dung trả lời theo định dạng chuẩn; vui lòng tham khảo các căn cứ hiển thị và diễn đạt lại câu hỏi cụ thể hơn.";
         String uncertaintyNotice = "Phản hồi từ mô hình không đúng định dạng mong đợi, nên hệ thống chỉ trả về phần thông tin đã truy xuất được một cách an toàn.";
         List<String> legalBasis = citations.isEmpty() && sources.isEmpty()
                 ? List.of()

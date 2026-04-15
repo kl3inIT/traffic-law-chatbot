@@ -1,6 +1,5 @@
 package com.vn.traffic.chatbot.common.config;
 
-import com.vn.traffic.chatbot.ai.config.AiModelProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 

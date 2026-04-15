@@ -1,6 +1,6 @@
 package com.vn.traffic.chatbot.chat.config;
 
-import com.vn.traffic.chatbot.ai.config.AiModelProperties;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.test.util.ReflectionTestUtils;

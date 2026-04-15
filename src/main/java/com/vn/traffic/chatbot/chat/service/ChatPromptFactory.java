@@ -54,9 +54,7 @@ public class ChatPromptFactory {
         prompt.append("Chỉ bao gồm các mục liên quan theo danh sách: ").append(String.join(", ", PromptSectionRules.SECTION_ORDER)).append(".").append("\n");
         prompt.append("Các phần nội dung được phép điền là: ").append(String.join(", ", PromptSectionRules.SUPPORTED_SECTION_NAMES)).append(".").append("\n");
         prompt.append("Mọi nhận định có căn cứ phải gắn nhãn trích dẫn nội dòng đúng định dạng [Nguồn n]; tuyệt đối không tự tạo nhãn ngoài danh sách được cung cấp.").append("\n");
-        prompt.append(groundingStatus == GroundingStatus.LIMITED_GROUNDING
-                ? "Ngữ cảnh hiện có là LIMITED_GROUNDING: chỉ giữ các phần được nguồn hỗ trợ trực tiếp, phải lược bỏ phần không đủ căn cứ thay vì đoán hoặc bổ sung theo hiểu biết chung."
-                : "Ngữ cảnh hiện có là GROUNDED: chỉ sử dụng thông tin được hỗ trợ trực tiếp từ nguồn truy xuất.").append("\n");
+        prompt.append("Ngữ cảnh hiện có là GROUNDED: chỉ sử dụng thông tin được hỗ trợ trực tiếp từ nguồn truy xuất.").append("\n");
         prompt.append("Nếu một phần như mức phạt, giấy tờ, thủ tục hoặc bước tiếp theo không được nguồn hỗ trợ thì phải bỏ hẳn phần đó.").append("\n");
         prompt.append("Chỉ trả về duy nhất một object JSON hợp lệ, không dùng markdown, không dùng ```json, không thêm giải thích trước hoặc sau JSON.").append("\n");
         prompt.append("Tất cả các khóa conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps, scenarioFacts, scenarioRule, scenarioOutcome, scenarioActions phải luôn xuất hiện trong JSON.").append("\n");

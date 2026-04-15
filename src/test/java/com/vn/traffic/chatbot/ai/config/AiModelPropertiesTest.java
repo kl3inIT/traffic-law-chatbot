@@ -1,5 +1,6 @@
 package com.vn.traffic.chatbot.ai.config;
 
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

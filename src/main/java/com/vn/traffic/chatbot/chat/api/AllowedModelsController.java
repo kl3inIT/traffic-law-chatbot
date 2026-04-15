@@ -1,6 +1,6 @@
 package com.vn.traffic.chatbot.chat.api;
 
-import com.vn.traffic.chatbot.ai.config.AiModelProperties;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.chat.api.dto.AllowedModelResponse;
 import com.vn.traffic.chatbot.common.api.ApiPaths;
 import com.vn.traffic.chatbot.common.api.ResponseGeneral;

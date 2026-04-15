@@ -45,17 +45,14 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 // ─── YAML helpers ───────────────────────────────────────────────────────────
 
 interface ParameterYaml {
-  model?: { name?: string; temperature?: number; maxTokens?: number };
   retrieval?: {
     topK?: number;
     similarityThreshold?: number;
-    groundingLimitedThreshold?: number;
   };
   systemPrompt?: string;
   messages?: {
     disclaimer?: string;
     refusal?: string;
-    limitedNotice?: string;
     refusalNextStep1?: string;
     refusalNextStep2?: string;
     refusalNextStep3?: string;
@@ -67,18 +64,11 @@ function yamlToForm(content: string): Partial<FormValues> {
   try {
     const parsed = parseYaml(content) as ParameterYaml;
     return {
-      modelName: parsed?.model?.name ?? '',
-      modelTemperature: String(parsed?.model?.temperature ?? '0.3'),
-      modelMaxTokens: String(parsed?.model?.maxTokens ?? '2048'),
       retrievalTopK: String(parsed?.retrieval?.topK ?? '5'),
-      retrievalSimilarityThreshold: String(parsed?.retrieval?.similarityThreshold ?? '0.7'),
-      retrievalGroundingLimitedThreshold: String(
-        parsed?.retrieval?.groundingLimitedThreshold ?? '0.5',
-      ),
+      retrievalSimilarityThreshold: String(parsed?.retrieval?.similarityThreshold ?? '0.25'),
       systemPrompt: parsed?.systemPrompt ?? '',
       messagesDisclaimer: parsed?.messages?.disclaimer ?? '',
       messagesRefusal: parsed?.messages?.refusal ?? '',
-      messagesLimitedNotice: parsed?.messages?.limitedNotice ?? '',
       messagesRefusalNextStep1: parsed?.messages?.refusalNextStep1 ?? '',
       messagesRefusalNextStep2: parsed?.messages?.refusalNextStep2 ?? '',
       messagesRefusalNextStep3: parsed?.messages?.refusalNextStep3 ?? '',
@@ -90,21 +80,14 @@ function yamlToForm(content: string): Partial<FormValues> {
 
 function formToYaml(values: FormValues, existingContent?: string): string {
   const obj: ParameterYaml = {
-    model: {
-      name: values.modelName,
-      temperature: parseFloat(values.modelTemperature),
-      maxTokens: parseInt(values.modelMaxTokens, 10),
-    },
     retrieval: {
       topK: parseInt(values.retrievalTopK, 10),
       similarityThreshold: parseFloat(values.retrievalSimilarityThreshold),
-      groundingLimitedThreshold: parseFloat(values.retrievalGroundingLimitedThreshold),
     },
     systemPrompt: values.systemPrompt,
     messages: {
       disclaimer: values.messagesDisclaimer,
       refusal: values.messagesRefusal,
-      limitedNotice: values.messagesLimitedNotice,
       refusalNextStep1: values.messagesRefusalNextStep1,
       refusalNextStep2: values.messagesRefusalNextStep2,
       refusalNextStep3: values.messagesRefusalNextStep3,
@@ -118,18 +101,13 @@ function formToYaml(values: FormValues, existingContent?: string): string {
 
 const schema = z.object({
   name: z.string().min(1, 'Tên bộ tham số là bắt buộc'),
-  modelName: z.string().min(1, 'Tên mô hình là bắt buộc'),
-  modelTemperature: z.string().min(1),
-  modelMaxTokens: z.string().min(1),
   chatModel: z.string().optional(),
   evaluatorModel: z.string().optional(),
   retrievalTopK: z.string().min(1),
   retrievalSimilarityThreshold: z.string().min(1),
-  retrievalGroundingLimitedThreshold: z.string().min(1),
   systemPrompt: z.string().min(1, 'System prompt là bắt buộc'),
   messagesDisclaimer: z.string(),
   messagesRefusal: z.string(),
-  messagesLimitedNotice: z.string(),
   messagesRefusalNextStep1: z.string(),
   messagesRefusalNextStep2: z.string(),
   messagesRefusalNextStep3: z.string(),
@@ -139,22 +117,16 @@ type FormValues = z.infer<typeof schema>;
 
 const DEFAULT_VALUES: FormValues = {
   name: '',
-  modelName: 'openai',
-  modelTemperature: '0.3',
-  modelMaxTokens: '2048',
   chatModel: '',
   evaluatorModel: '',
   retrievalTopK: '5',
-  retrievalSimilarityThreshold: '0.7',
-  retrievalGroundingLimitedThreshold: '0.5',
+  retrievalSimilarityThreshold: '0.25',
   systemPrompt:
     'Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam.\nHãy trả lời bằng tiếng Việt với giọng điệu rõ ràng, trang trọng, dễ hiểu.\nThông tin chỉ mang tính chất tham khảo, không phải tư vấn pháp lý chính thức.',
   messagesDisclaimer:
     'Thông tin chỉ nhằm mục đích tham khảo, không thay thế tư vấn pháp lý chính thức.',
   messagesRefusal:
     'Tôi chưa thể trả lời chắc chắn vì chưa tìm thấy đủ căn cứ đáng tin cậy trong nguồn pháp lý đã được phê duyệt.',
-  messagesLimitedNotice:
-    'Một số nội dung dưới đây chỉ được trả lời trong phạm vi nguồn đã truy xuất được.',
   messagesRefusalNextStep1: 'Nêu rõ hành vi vi phạm, loại phương tiện, thời gian hoặc địa điểm.',
   messagesRefusalNextStep2: 'Nếu bạn đang hỏi về giấy tờ hoặc thủ tục, hãy ghi rõ tên giấy tờ.',
   messagesRefusalNextStep3: 'Ưu tiên đối chiếu thêm với văn bản hoặc cổng thông tin chính thức.',
@@ -362,26 +334,9 @@ export default function ParametersPage() {
                       )}
                     </FieldRow>
 
-                    {/* Model */}
+                    {/* Model selection */}
                     <SectionHeader>Mô hình AI</SectionHeader>
-                    <div className="grid grid-cols-3 gap-3">
-                      <FieldRow label="Tên mô hình">
-                        <Input {...form.register('modelName')} placeholder="openai" />
-                      </FieldRow>
-                      <FieldRow label="Temperature" hint="0 – 2">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="2"
-                          {...form.register('modelTemperature')}
-                        />
-                      </FieldRow>
-                      <FieldRow label="Max tokens">
-                        <Input type="number" min="1" {...form.register('modelMaxTokens')} />
-                      </FieldRow>
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <FieldRow label="Chat model">
                         <Select
                           value={form.watch('chatModel') ?? ''}
@@ -422,7 +377,7 @@ export default function ParametersPage() {
 
                     {/* Retrieval */}
                     <SectionHeader>Truy xuất ngữ nghĩa</SectionHeader>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <FieldRow label="Top K" hint="số tài liệu">
                         <Input type="number" min="1" {...form.register('retrievalTopK')} />
                       </FieldRow>
@@ -433,15 +388,6 @@ export default function ParametersPage() {
                           min="0"
                           max="1"
                           {...form.register('retrievalSimilarityThreshold')}
-                        />
-                      </FieldRow>
-                      <FieldRow label="Ngưỡng grounding hạn chế" hint="0 – 1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="1"
-                          {...form.register('retrievalGroundingLimitedThreshold')}
                         />
                       </FieldRow>
                     </div>
@@ -470,9 +416,6 @@ export default function ParametersPage() {
                           {...form.register('messagesRefusal')}
                           className="min-h-[60px] resize-y text-sm"
                         />
-                      </FieldRow>
-                      <FieldRow label="Thông báo grounding hạn chế">
-                        <Input {...form.register('messagesLimitedNotice')} />
                       </FieldRow>
                       <FieldRow label="Bước tiếp theo khi từ chối — 1">
                         <Input {...form.register('messagesRefusalNextStep1')} />

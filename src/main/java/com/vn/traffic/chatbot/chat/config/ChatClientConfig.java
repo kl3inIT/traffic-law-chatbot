@@ -1,6 +1,6 @@
 package com.vn.traffic.chatbot.chat.config;
 
-import com.vn.traffic.chatbot.ai.config.AiModelProperties;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -12,7 +12,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.retry.RetryTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,7 +27,7 @@ import java.util.Map;
  * pointing to 9router at {@code app.ai.base-url} — intentionally separate from the
  * Spring AI auto-configured {@code OpenAiApi} bean used by the embedding model.
  *
- * <p>Pattern follows pacphi/spring-ai-openrouter-example.
+ * <p>Pattern follows pacphi/spring-ai-openrouter-example (feature/spring-boot-4-migration).
  */
 @Slf4j
 @Configuration
@@ -43,11 +47,24 @@ public class ChatClientConfig {
         String baseUrl = modelProperties.baseUrl() != null
                 ? modelProperties.baseUrl()
                 : "http://localhost:20128";
+
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofMinutes(10));
+        requestFactory.setReadTimeout(Duration.ofMinutes(10));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.ACCEPT_ENCODING, "gzip, deflate");
+
+        RestClient.Builder restClientBuilder = RestClient.builder()
+                .requestFactory(requestFactory)
+                .defaultHeaders(h -> h.addAll(headers));
+
         OpenAiApi nineRouterApi = OpenAiApi.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
+                .restClientBuilder(restClientBuilder)
                 .build();
-        log.info("ChatClientConfig: using 9router base-url={}", baseUrl);
+        log.info("ChatClientConfig: using 9router base-url={}, timeout=10min", baseUrl);
 
         Map<String, ChatClient> map = new LinkedHashMap<>();
         for (AiModelProperties.ModelEntry entry : modelProperties.models()) {

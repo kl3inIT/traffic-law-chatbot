@@ -40,7 +40,7 @@ spring:
       api-key: ${OPENAI_API_KEY:none}
       embedding:
         base-url: ${EMBEDDING_BASE_URL:https://platform.beeknoee.com/api/v1}
-        api-key: ${EMBEDDING_API_KEY:${OPENAI_API_KEY:none}}
+        api-key: ${OPENAI_API_KEY:none}
         embeddings-path: /embeddings
         options:
           model: ${EMBEDDING_MODEL:text-embedding-3-small}
@@ -68,15 +68,13 @@ app:
     models:
       - id: cx/gpt-5.4
         display-name: "GPT-5.4"
-      - id: claude-sonnet-4-6
+      - id: cc/claude-sonnet-4-6
         display-name: "Claude Sonnet 4.6"
-      - id: claude-haiku-4-5-20251001
+      - id: cc/claude-haiku-4-5-20251001
         display-name: "Claude Haiku 4.5"
   chat:
     retrieval:
       top-k: 5
-    grounding:
-      limited-threshold: 2
 
 server:
   port: 8089
