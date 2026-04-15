@@ -263,50 +263,6 @@ class ChatServiceTest {
     }
 
     @Test
-    void answerReturnsLimitedGroundingForOneOrTwoDocumentsAndUsesLimitedNotice() {
-        String question = "Quên mang đăng ký xe thì sao?";
-        SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
-        List<Document> documents = List.of(document("1"), document("2"));
-        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Luật Giao thông", "https://vbpl.vn/lgt", 2, "Điều 58", "excerpt"));
-        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Luật Giao thông", "https://vbpl.vn/lgt", 2, "Điều 58"));
-        ChatAnswerResponse expected = standardResponse(GroundingStatus.LIMITED_GROUNDING, citations, sources);
-
-        String jsonPayload = """
-                {
-                  "conclusion": "Có thể bị xử lý về giấy tờ xe [Nguồn 1].",
-                  "answer": "unused",
-                  "uncertaintyNotice": "ignored",
-                  "legalBasis": ["Điều 58 [Nguồn 1]"],
-                  "penalties": [],
-                  "requiredDocuments": [],
-                  "procedureSteps": [],
-                  "nextSteps": ["Kiểm tra lại loại giấy tờ còn thiếu"],
-                  "scenarioFacts": ["Thiếu giấy tờ xe"],
-                  "scenarioRule": ["Áp dụng Điều 58 [Nguồn 1]"],
-                  "scenarioOutcome": ["Có thể bị xử lý [Nguồn 1]"],
-                  "scenarioActions": ["Bổ sung giấy tờ"]
-                }
-                """;
-
-        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
-        when(vectorStore.similaritySearch(request)).thenReturn(documents);
-        when(citationMapper.toCitations(documents)).thenReturn(citations);
-        when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.LIMITED_GROUNDING), eq(citations), anyList())).thenReturn("limited-prompt");
-        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.user("limited-prompt")).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
-        stubChatResponse(jsonPayload);
-        when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
-
-        ChatAnswerResponse response = chatService.answer(question, null);
-
-        assertThat(response).isSameAs(expected);
-        verify(retrievalPolicy).buildRequest(question, 5);
-        verify(chatPromptFactory).buildPrompt(eq(question), eq(GroundingStatus.LIMITED_GROUNDING), eq(citations), anyList());
-    }
-
-    @Test
     void answerReturnsRefusedWithoutModelCallWhenNoDocumentsExistAndCollectsReadinessDiagnostics() {
         String question = "Tình huống không có căn cứ";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
@@ -401,7 +357,7 @@ class ChatServiceTest {
                 "final answer",
                 "Kết luận [Nguồn 1].",
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
-                groundingStatus == GroundingStatus.LIMITED_GROUNDING ? AnswerCompositionPolicy.LIMITED_NOTICE : null,
+                null,
                 List.of("Điều 6 [Nguồn 1]"),
                 List.of("Phạt tiền [Nguồn 1]"),
                 List.of("GPLX"),

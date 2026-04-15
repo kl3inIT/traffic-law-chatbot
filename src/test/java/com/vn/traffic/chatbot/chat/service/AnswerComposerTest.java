@@ -77,31 +77,6 @@ class AnswerComposerTest {
     }
 
     @Test
-    void composeLimitedGroundingOmitsUnsupportedSectionsAndPopulatesUncertaintyNotice() {
-        ChatAnswerResponse response = answerComposer.compose(
-                GroundingStatus.LIMITED_GROUNDING,
-                draft(
-                        "Có thể áp dụng quy định về giấy tờ xe [Nguồn 1].",
-                        List.of("Điều 58 [Nguồn 1]"),
-                        List.of(),
-                        null,
-                        null,
-                        List.of("Nên kiểm tra lại loại giấy tờ đang thiếu")
-                ),
-                List.of(new CitationResponse("[Nguồn 1]", "source-1", "version-1", "Luật Giao thông", "https://vbpl.vn/lgt", 2, "Điều 58", "excerpt")),
-                List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Luật Giao thông", "https://vbpl.vn/lgt", 2, "Điều 58"))
-        );
-
-        assertThat(response.groundingStatus()).isEqualTo(GroundingStatus.LIMITED_GROUNDING);
-        assertThat(response.uncertaintyNotice()).isEqualTo(AnswerCompositionPolicy.LIMITED_NOTICE);
-        assertThat(response.answer()).contains("Kết luận:");
-        assertThat(response.answer()).contains("Căn cứ pháp lý:");
-        assertThat(response.answer()).contains("Các bước nên làm tiếp:");
-        assertThat(response.answer()).doesNotContain("Mức phạt hoặc hậu quả:");
-        assertThat(response.answer()).doesNotContain("Giấy tờ hoặc thủ tục:");
-    }
-
-    @Test
     void composeRefusedResponseSuppressesSubstantiveSectionsAndUsesRefusalMessage() {
         ChatAnswerResponse response = answerComposer.compose(
                 GroundingStatus.REFUSED,
@@ -140,7 +115,7 @@ class AnswerComposerTest {
     @Test
     void composeStripsDuplicatedConclusionLabelFromConclusionAndAnswer() {
         ChatAnswerResponse response = answerComposer.compose(
-                GroundingStatus.LIMITED_GROUNDING,
+                GroundingStatus.GROUNDED,
                 draft(
                         "Kết luận: Người điều khiển xe mô tô vượt đèn tín hiệu màu đỏ bị xử phạt tiền từ 4.000.000 đồng đến 6.000.000 đồng. [Nguồn 1]",
                         List.of("Điều 7 Nghị định 168/2024/NĐ-CP. [Nguồn 1]"),

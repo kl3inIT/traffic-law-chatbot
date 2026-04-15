@@ -45,7 +45,7 @@ class ScenarioAnswerComposerTest {
     }
 
     @Test
-    void finalizesLimitedGroundingWithScenarioFacts() {
+    void groundedWithScenarioFactsProducesFinalAnalysis() {
         LegalAnswerDraft draft = new LegalAnswerDraft(
                 "Kết luận tạm thời",
                 "",
@@ -62,7 +62,7 @@ class ScenarioAnswerComposerTest {
         );
 
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
-                GroundingStatus.LIMITED_GROUNDING,
+                GroundingStatus.GROUNDED,
                 draft,
                 List.of()
         );
@@ -74,7 +74,7 @@ class ScenarioAnswerComposerTest {
     }
 
     @Test
-    void limitedGroundingWithoutFactsProducesScenarioAnalysisMode() {
+    void groundedWithoutFactsProducesScenarioAnalysisMode() {
         LegalAnswerDraft draft = new LegalAnswerDraft(
                 "Kết luận tạm thời",
                 "",
@@ -91,7 +91,7 @@ class ScenarioAnswerComposerTest {
         );
 
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
-                GroundingStatus.LIMITED_GROUNDING,
+                GroundingStatus.GROUNDED,
                 draft,
                 List.of()
         );

@@ -82,14 +82,14 @@ class ChatScenarioAnalysisIntegrationTest {
     }
 
     @Test
-    void limitedGroundingStillProducesFinalAnalysis() {
+    void groundedWithScenarioFactsProducesFinalAnalysis() {
         UUID threadId = UUID.randomUUID();
         ChatThread thread = ChatThread.builder().id(threadId).createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
         ChatMessage userMsg = ChatMessage.builder().id(UUID.randomUUID()).thread(thread).role(ChatMessageRole.USER).messageType(ChatMessageType.QUESTION).content("Tôi vượt đèn đỏ bằng xe máy").build();
 
         when(chatThreadRepository.save(any(ChatThread.class))).thenReturn(thread);
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(userMsg);
-        when(chatService.answer(anyString(), isNull(), anyString())).thenReturn(limitedGroundingAnswer());
+        when(chatService.answer(anyString(), isNull(), anyString())).thenReturn(groundedAnswerWithScenarioFacts());
 
         ChatAnswerResponse response = chatThreadService.createThread("Tôi vượt đèn đỏ bằng xe máy");
 
@@ -119,9 +119,9 @@ class ChatScenarioAnalysisIntegrationTest {
         );
     }
 
-    private ChatAnswerResponse limitedGroundingAnswer() {
+    private ChatAnswerResponse groundedAnswerWithScenarioFacts() {
         return new ChatAnswerResponse(
-                GroundingStatus.LIMITED_GROUNDING,
+                GroundingStatus.GROUNDED,
                 null,
                 ResponseMode.STANDARD,
                 "Nội dung trả lời hạn chế",
