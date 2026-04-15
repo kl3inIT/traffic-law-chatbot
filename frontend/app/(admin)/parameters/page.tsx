@@ -335,9 +335,9 @@ export default function ParametersPage() {
                     </FieldRow>
 
                     {/* Model selection */}
-                    <SectionHeader>Mô hình AI</SectionHeader>
+                    <SectionHeader>Mô hình mặc định</SectionHeader>
                     <div className="grid grid-cols-2 gap-3">
-                      <FieldRow label="Chat model">
+                      <FieldRow label="Mô hình chat mặc định" hint="dùng cho trả lời câu hỏi">
                         <Select
                           value={form.watch('chatModel') ?? ''}
                           onValueChange={(val) => form.setValue('chatModel', val ?? '')}
@@ -355,7 +355,10 @@ export default function ParametersPage() {
                           </SelectContent>
                         </Select>
                       </FieldRow>
-                      <FieldRow label="Evaluator model">
+                      <FieldRow
+                        label="Mô hình đánh giá mặc định"
+                        hint="dùng cho kiểm tra chất lượng"
+                      >
                         <Select
                           value={form.watch('evaluatorModel') ?? ''}
                           onValueChange={(val) => form.setValue('evaluatorModel', val ?? '')}
