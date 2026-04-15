@@ -119,6 +119,10 @@ public class LlmSemanticEvaluator implements SemanticEvaluator {
         if (client == null) {
             log.warn("Fallback evaluator model '{}' also not in chatClientMap — using first available",
                     aiModelProperties.evaluatorModel());
+            if (chatClientMap.isEmpty()) {
+                throw new IllegalStateException(
+                        "No ChatClient available — check app.ai.models configuration");
+            }
             client = chatClientMap.values().iterator().next();
         }
         return client;

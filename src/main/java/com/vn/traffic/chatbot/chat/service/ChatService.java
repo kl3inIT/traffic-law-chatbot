@@ -211,6 +211,10 @@ public class ChatService {
         if (fallback == null) {
             log.warn("Default model '{}' not in chatClientMap — using first available",
                     aiModelProperties.chatModel());
+            if (chatClientMap.isEmpty()) {
+                throw new IllegalStateException(
+                        "No ChatClient available — check app.ai.models configuration");
+            }
             return chatClientMap.values().iterator().next();
         }
         return fallback;
