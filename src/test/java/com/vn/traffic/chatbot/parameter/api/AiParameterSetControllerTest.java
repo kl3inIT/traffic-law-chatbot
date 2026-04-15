@@ -89,32 +89,32 @@ class AiParameterSetControllerTest {
     @Test
     void createReturns201() throws Exception {
         UUID id = UUID.randomUUID();
-        when(service.create(any(), any(), any(), any())).thenReturn(paramSet(id, "New Set", false));
+        when(service.create(any(), any())).thenReturn(paramSet(id, "New Set", false));
 
         mockMvc.perform(post(ApiPaths.PARAMETER_SETS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new CreateAiParameterSetRequest("New Set", "model:\n  name: openai", null, null))))
+                                new CreateAiParameterSetRequest("New Set", "model:\n  name: openai"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.id").value(id.toString()))
                 .andExpect(jsonPath("$.data.name").value("New Set"));
 
-        verify(service).create("New Set", "model:\n  name: openai", null, null);
+        verify(service).create("New Set", "model:\n  name: openai");
     }
 
     @Test
     void updateReturns200() throws Exception {
         UUID id = UUID.randomUUID();
-        when(service.update(eq(id), any(), any(), any(), any())).thenReturn(paramSet(id, "Updated Set", false));
+        when(service.update(eq(id), any(), any())).thenReturn(paramSet(id, "Updated Set", false));
 
         mockMvc.perform(put(ApiPaths.PARAMETER_SETS + "/" + id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpdateAiParameterSetRequest("Updated Set", "model:\n  name: openai", null, null))))
+                                new UpdateAiParameterSetRequest("Updated Set", "model:\n  name: openai"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name").value("Updated Set"));
 
-        verify(service).update(eq(id), eq("Updated Set"), any(), any(), any());
+        verify(service).update(eq(id), eq("Updated Set"), any());
     }
 
     @Test

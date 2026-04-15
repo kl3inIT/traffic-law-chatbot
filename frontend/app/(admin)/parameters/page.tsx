@@ -45,6 +45,10 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 // ─── YAML helpers ───────────────────────────────────────────────────────────
 
 interface ParameterYaml {
+  model?: {
+    chatModel?: string;
+    evaluatorModel?: string;
+  };
   retrieval?: {
     topK?: number;
     similarityThreshold?: number;
@@ -64,6 +68,8 @@ function yamlToForm(content: string): Partial<FormValues> {
   try {
     const parsed = parseYaml(content) as ParameterYaml;
     return {
+      chatModel: parsed?.model?.chatModel ?? '',
+      evaluatorModel: parsed?.model?.evaluatorModel ?? '',
       retrievalTopK: String(parsed?.retrieval?.topK ?? '5'),
       retrievalSimilarityThreshold: String(parsed?.retrieval?.similarityThreshold ?? '0.25'),
       systemPrompt: parsed?.systemPrompt ?? '',
@@ -78,8 +84,12 @@ function yamlToForm(content: string): Partial<FormValues> {
   }
 }
 
-function formToYaml(values: FormValues, existingContent?: string): string {
+function formToYaml(values: FormValues): string {
   const obj: ParameterYaml = {
+    model: {
+      chatModel: values.chatModel || undefined,
+      evaluatorModel: values.evaluatorModel || undefined,
+    },
     retrieval: {
       topK: parseInt(values.retrievalTopK, 10),
       similarityThreshold: parseFloat(values.retrievalSimilarityThreshold),
@@ -170,7 +180,6 @@ export default function ParametersPage() {
   const [selected, setSelected] = useState<AiParameterSetResponse | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AiParameterSetResponse | null>(null);
-  const [existingContent, setExistingContent] = useState<string | undefined>(undefined);
 
   const createMutation = useCreateParameterSet();
   const updateMutation = useUpdateParameterSet();
@@ -188,32 +197,26 @@ export default function ParametersPage() {
   const openNew = () => {
     setSelected(null);
     setIsNew(true);
-    setExistingContent(undefined);
     form.reset(DEFAULT_VALUES);
   };
 
   const openEdit = (ps: AiParameterSetResponse) => {
     setSelected(ps);
     setIsNew(false);
-    setExistingContent(ps.content);
     const parsed = yamlToForm(ps.content);
     form.reset({
       ...DEFAULT_VALUES,
       ...parsed,
       name: ps.name,
-      chatModel: ps.chatModel ?? '',
-      evaluatorModel: ps.evaluatorModel ?? '',
     });
   };
 
   const onSubmit = async (values: FormValues) => {
-    const content = formToYaml(values, existingContent);
+    const content = formToYaml(values);
     if (isNew) {
       await createMutation.mutateAsync({
         name: values.name,
         content,
-        chatModel: values.chatModel || undefined,
-        evaluatorModel: values.evaluatorModel || undefined,
       });
       setIsNew(false);
       form.reset(DEFAULT_VALUES);
@@ -223,11 +226,8 @@ export default function ParametersPage() {
         data: {
           name: values.name,
           content,
-          chatModel: values.chatModel || undefined,
-          evaluatorModel: values.evaluatorModel || undefined,
         },
       });
-      setExistingContent(content);
     }
   };
 
@@ -341,7 +341,7 @@ export default function ParametersPage() {
                         <Select
                           value={form.watch('chatModel') || '__default__'}
                           onValueChange={(val) =>
-                            form.setValue('chatModel', val === '__default__' ? '' : val)
+                            form.setValue('chatModel', val === '__default__' ? '' : (val ?? ''))
                           }
                         >
                           <SelectTrigger>
@@ -364,7 +364,10 @@ export default function ParametersPage() {
                         <Select
                           value={form.watch('evaluatorModel') || '__default__'}
                           onValueChange={(val) =>
-                            form.setValue('evaluatorModel', val === '__default__' ? '' : val)
+                            form.setValue(
+                              'evaluatorModel',
+                              val === '__default__' ? '' : (val ?? ''),
+                            )
                           }
                         >
                           <SelectTrigger>
@@ -439,7 +442,7 @@ export default function ParametersPage() {
 
                 <TabsContent value="yaml" className="min-h-0 overflow-auto p-5">
                   <pre className="bg-muted h-full min-h-[200px] rounded-md p-4 text-xs leading-relaxed break-all whitespace-pre-wrap">
-                    {formToYaml(watchedValues, existingContent)}
+                    {formToYaml(watchedValues)}
                   </pre>
                 </TabsContent>
               </Tabs>

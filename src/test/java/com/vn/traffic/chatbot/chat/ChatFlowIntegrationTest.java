@@ -109,7 +109,6 @@ class ChatFlowIntegrationTest {
                 chatMemory
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
-        ReflectionTestUtils.setField(chatService, "limitedGroundingThreshold", 2);
 
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();

@@ -327,7 +327,7 @@ export default function ChecksPage() {
         <div className="flex items-center gap-2">
           <Select
             value={chatModelId || '__default__'}
-            onValueChange={(v) => setChatModelId(v === '__default__' ? '' : v)}
+            onValueChange={(v) => setChatModelId(v === '__default__' ? '' : (v ?? ''))}
           >
             <SelectTrigger className="w-44">
               <SelectValue placeholder="Chat model" />
@@ -343,7 +343,7 @@ export default function ChecksPage() {
           </Select>
           <Select
             value={evaluatorModelId || '__default__'}
-            onValueChange={(v) => setEvaluatorModelId(v === '__default__' ? '' : v)}
+            onValueChange={(v) => setEvaluatorModelId(v === '__default__' ? '' : (v ?? ''))}
           >
             <SelectTrigger className="w-44">
               <SelectValue placeholder="Evaluator model" />

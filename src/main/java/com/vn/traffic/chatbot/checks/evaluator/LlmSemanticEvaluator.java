@@ -3,8 +3,7 @@ package com.vn.traffic.chatbot.checks.evaluator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vn.traffic.chatbot.common.config.AiModelProperties;
-import com.vn.traffic.chatbot.parameter.domain.AiParameterSet;
-import com.vn.traffic.chatbot.parameter.service.AiParameterSetService;
+import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -44,7 +43,7 @@ public class LlmSemanticEvaluator implements SemanticEvaluator {
 
     private final Map<String, ChatClient> chatClientMap;
     private final AiModelProperties aiModelProperties;
-    private final AiParameterSetService parameterSetService;
+    private final ActiveParameterSetProvider paramProvider;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -105,10 +104,7 @@ public class LlmSemanticEvaluator implements SemanticEvaluator {
      * Fallback chain: activeParamSet.evaluatorModel → app.ai.evaluator-model → first available.
      */
     private ChatClient resolveEvaluatorClient() {
-        String modelId = parameterSetService.getActive()
-                .map(AiParameterSet::getEvaluatorModel)
-                .filter(m -> m != null && !m.isBlank())
-                .orElse(aiModelProperties.evaluatorModel());
+        String modelId = paramProvider.getString("model.evaluatorModel", aiModelProperties.evaluatorModel());
 
         ChatClient client = chatClientMap.get(modelId);
         if (client == null) {

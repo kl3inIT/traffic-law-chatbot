@@ -8,8 +8,6 @@ public record AiParameterSetResponse(
         String name,
         boolean active,
         String content,
-        String chatModel,
-        String evaluatorModel,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {

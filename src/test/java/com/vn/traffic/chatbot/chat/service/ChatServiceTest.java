@@ -91,7 +91,6 @@ class ChatServiceTest {
                 chatMemory
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
-        ReflectionTestUtils.setField(chatService, "limitedGroundingThreshold", 2);
     }
 
     @Test

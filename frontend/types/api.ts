@@ -210,8 +210,6 @@ export interface AiParameterSetResponse {
   name: string;
   active: boolean;
   content: string;
-  chatModel?: string;
-  evaluatorModel?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -219,15 +217,11 @@ export interface AiParameterSetResponse {
 export interface CreateAiParameterSetRequest {
   name: string;
   content: string;
-  chatModel?: string;
-  evaluatorModel?: string;
 }
 
 export interface UpdateAiParameterSetRequest {
   name: string;
   content: string;
-  chatModel?: string;
-  evaluatorModel?: string;
 }
 
 // Chat Log DTOs

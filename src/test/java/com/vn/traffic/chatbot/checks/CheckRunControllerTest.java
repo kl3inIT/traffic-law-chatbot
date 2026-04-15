@@ -56,7 +56,7 @@ class CheckRunControllerTest {
                 .parameterSetName("Default")
                 .build();
 
-        when(checkRunService.trigger()).thenReturn(run);
+        when(checkRunService.trigger(null, null)).thenReturn(run);
 
         mockMvc.perform(post(ApiPaths.CHECK_RUNS_TRIGGER))
                 .andExpect(status().isAccepted())

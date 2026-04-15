@@ -3,8 +3,7 @@ package com.vn.traffic.chatbot.checks;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.checks.evaluator.LlmSemanticEvaluator;
-import com.vn.traffic.chatbot.parameter.domain.AiParameterSet;
-import com.vn.traffic.chatbot.parameter.service.AiParameterSetService;
+import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,7 +13,6 @@ import org.springframework.ai.chat.client.ChatClient;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -27,7 +25,7 @@ class LlmSemanticEvaluatorTest {
     private ChatClient chatClient;
 
     @Mock
-    private AiParameterSetService parameterSetService;
+    private ActiveParameterSetProvider paramProvider;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -50,7 +48,7 @@ class LlmSemanticEvaluatorTest {
                 "claude-sonnet-4-6", chatClient,
                 "claude-haiku-4-5-20251001", chatClient
         );
-        evaluator = new LlmSemanticEvaluator(chatClientMap, aiModelProperties, parameterSetService, objectMapper);
+        evaluator = new LlmSemanticEvaluator(chatClientMap, aiModelProperties, paramProvider, objectMapper);
     }
 
     @Test
@@ -70,7 +68,7 @@ class LlmSemanticEvaluatorTest {
     @Test
     void testReturnsZeroOnLlmFailure() {
         // Active param set returns evaluatorModel so map lookup succeeds
-        when(parameterSetService.getActive()).thenReturn(Optional.empty());
+        when(paramProvider.getString("model.evaluatorModel", "claude-haiku-4-5-20251001")).thenReturn("claude-haiku-4-5-20251001");
 
         // Mock the full ChatClient chain to throw on call
         ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
@@ -88,9 +86,7 @@ class LlmSemanticEvaluatorTest {
 
     @Test
     void usesEvaluatorModelFromActiveParamSet() {
-        AiParameterSet paramSet = mock(AiParameterSet.class);
-        when(paramSet.getEvaluatorModel()).thenReturn("claude-haiku-4-5-20251001");
-        when(parameterSetService.getActive()).thenReturn(Optional.of(paramSet));
+        when(paramProvider.getString("model.evaluatorModel", "claude-haiku-4-5-20251001")).thenReturn("claude-haiku-4-5-20251001");
 
         ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
         ChatClient.CallResponseSpec callResponseSpec = mock(ChatClient.CallResponseSpec.class);
@@ -103,12 +99,13 @@ class LlmSemanticEvaluatorTest {
 
         double result = evaluator.evaluate("ref", "actual");
         assertThat(result).isGreaterThan(0.0);
-        verify(parameterSetService).getActive();
+        verify(paramProvider).getString("model.evaluatorModel", "claude-haiku-4-5-20251001");
     }
 
     @Test
     void fallsBackToConfigEvaluatorModelWhenActiveParamSetEmpty() {
-        when(parameterSetService.getActive()).thenReturn(Optional.empty());
+        // paramProvider returns the fallback (config default) when no active param set overrides it
+        when(paramProvider.getString("model.evaluatorModel", "claude-haiku-4-5-20251001")).thenReturn("claude-haiku-4-5-20251001");
 
         ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
         ChatClient.CallResponseSpec callResponseSpec = mock(ChatClient.CallResponseSpec.class);
@@ -122,6 +119,6 @@ class LlmSemanticEvaluatorTest {
         double result = evaluator.evaluate("ref", "actual");
         // Falls back to aiModelProperties.evaluatorModel() = "claude-haiku-4-5-20251001"
         assertThat(result).isGreaterThan(0.0);
-        verify(parameterSetService).getActive();
+        verify(paramProvider).getString("model.evaluatorModel", "claude-haiku-4-5-20251001");
     }
 }
