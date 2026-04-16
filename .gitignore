@@ -57,3 +57,6 @@ frontend/test-results/
 # Scripts
 scripts/bulk_import.py
 scripts/import_sources/
+
+# SSH deploy keys
+.ssh/
