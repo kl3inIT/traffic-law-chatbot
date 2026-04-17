@@ -128,6 +128,7 @@ package-backend:
         --destination "$SHA_TAG"
         --destination "$LATEST_TAG"
         --cache=true
+        --skip-tls-verify-registry=git.dth.com.vn:5050
         --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
   needs:
     - test-backend
@@ -152,6 +153,7 @@ package-frontend:
         --destination "$SHA_TAG"
         --destination "$LATEST_TAG"
         --cache=true
+        --skip-tls-verify-registry=git.dth.com.vn:5050
         --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
   needs:
     - test-frontend

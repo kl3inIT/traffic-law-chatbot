@@ -11,7 +11,9 @@ vi.mock('next/navigation', () => ({
 
 // Mock shadcn Sidebar to render children directly (avoids SidebarProvider dependency)
 vi.mock('@/components/ui/sidebar', () => ({
-  Sidebar: ({ children }: { children: React.ReactNode }) => <div data-testid="sidebar">{children}</div>,
+  Sidebar: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="sidebar">{children}</div>
+  ),
   SidebarContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarGroupContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -29,27 +31,28 @@ function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
-  );
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
 describe('AppSidebar', () => {
   it('renders the sidebar with correct number of admin nav items', () => {
     renderWithProviders(<AppSidebar />);
-    // 3 admin nav items exported
-    expect(adminNavItems).toHaveLength(3);
+    expect(adminNavItems).toHaveLength(7);
   });
 
   it('renders all admin nav item labels', () => {
     renderWithProviders(<AppSidebar />);
-    expect(screen.getByText('Quan ly nguon')).toBeInTheDocument();
-    expect(screen.getByText('Chi muc kien thuc')).toBeInTheDocument();
-    expect(screen.getByText('Bo tham so AI')).toBeInTheDocument();
+    expect(screen.getByText('Quản lý nguồn')).toBeInTheDocument();
+    expect(screen.getByText('Chỉ mục kiến thức')).toBeInTheDocument();
+    expect(screen.getByText('Bộ tham số AI')).toBeInTheDocument();
+    expect(screen.getByText('Chính sách tin cậy')).toBeInTheDocument();
+    expect(screen.getByText('Lịch sử hội thoại')).toBeInTheDocument();
+    expect(screen.getByText('Kiểm tra chất lượng')).toBeInTheDocument();
+    expect(screen.getByText('Lịch sử chạy')).toBeInTheDocument();
   });
 
   it('renders the chat section label', () => {
     renderWithProviders(<AppSidebar />);
-    expect(screen.getByText('Tro chuyen')).toBeInTheDocument();
+    expect(screen.getByText('Trò chuyện')).toBeInTheDocument();
   });
 });

@@ -5,8 +5,8 @@ import type { ChatAnswerResponse } from '@/types/api';
 
 describe('UserBubble', () => {
   it('renders user message content', () => {
-    render(<UserBubble content="Xin chao" />);
-    expect(screen.getByText('Xin chao')).toBeInTheDocument();
+    render(<UserBubble content="Xin chào" />);
+    expect(screen.getByText('Xin chào')).toBeInTheDocument();
   });
 });
 
@@ -15,9 +15,9 @@ describe('AiBubble', () => {
     groundingStatus: 'GROUNDED',
     threadId: 'test-id',
     responseMode: 'STANDARD',
-    answer: 'Cau tra loi tu AI',
+    answer: 'Câu trả lời từ AI',
     conclusion: null,
-    disclaimer: 'Thong tin tham khao.',
+    disclaimer: 'Thông tin tham khảo.',
     uncertaintyNotice: null,
     legalBasis: [],
     penalties: [],
@@ -32,12 +32,12 @@ describe('AiBubble', () => {
 
   it('renders standard answer as plain text', () => {
     render(<AiBubble response={baseResponse} />);
-    expect(screen.getByText('Cau tra loi tu AI')).toBeInTheDocument();
+    expect(screen.getByText('Câu trả lời từ AI')).toBeInTheDocument();
   });
 
   it('renders disclaimer in muted style', () => {
     render(<AiBubble response={baseResponse} />);
-    const disclaimer = screen.getByText('Thong tin tham khao.');
+    const disclaimer = screen.getByText('Thông tin tham khảo.');
     expect(disclaimer).toHaveClass('text-muted-foreground', 'text-xs');
   });
 
@@ -46,16 +46,16 @@ describe('AiBubble', () => {
       ...baseResponse,
       responseMode: 'SCENARIO_ANALYSIS',
       scenarioAnalysis: {
-        facts: ['Su kien 1'],
-        rule: 'Quy tac 1',
-        outcome: 'Hau qua 1',
-        actions: ['Hanh dong 1'],
+        facts: ['Sự kiện 1'],
+        rule: 'Quy tắc 1',
+        outcome: 'Hậu quả 1',
+        actions: ['Hành động 1'],
         sources: [],
       },
     };
     render(<AiBubble response={scenarioResponse} />);
-    expect(screen.getByText('Su kien duoc xac dinh')).toBeInTheDocument();
-    expect(screen.getByText('Nguon tai lieu')).toBeInTheDocument();
+    expect(screen.getByText('Sự kiện được xác định')).toBeInTheDocument();
+    expect(screen.getByText('Nguồn tài liệu')).toBeInTheDocument();
   });
 });
 
