@@ -109,26 +109,23 @@ test-frontend:
 # ============================================================================
 package-backend:
   stage: package
-  image: docker:26-cli
-  services:
-    - docker:26-dind
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
   variables:
     SHA_TAG: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
     LATEST_TAG: $CI_REGISTRY_IMAGE/backend:latest
   before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
   script:
-    - |
-      docker build \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
-        --cache-from "$LATEST_TAG" \
-        --tag "$SHA_TAG" \
-        --tag "$LATEST_TAG" \
-        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
-        --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        .
-    - docker push "$SHA_TAG"
-    - docker push "$LATEST_TAG"
+    - /kaniko/executor
+        --context "$CI_PROJECT_DIR"
+        --dockerfile "$CI_PROJECT_DIR/Dockerfile"
+        --destination "$SHA_TAG"
+        --destination "$LATEST_TAG"
+        --cache=true
+        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
   needs:
     - test-backend
   rules:
@@ -136,26 +133,23 @@ package-backend:
 
 package-frontend:
   stage: package
-  image: docker:26-cli
-  services:
-    - docker:26-dind
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
   variables:
     SHA_TAG: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA
     LATEST_TAG: $CI_REGISTRY_IMAGE/frontend:latest
   before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
   script:
-    - |
-      docker build \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
-        --cache-from "$LATEST_TAG" \
-        --tag "$SHA_TAG" \
-        --tag "$LATEST_TAG" \
-        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
-        --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        frontend/
-    - docker push "$SHA_TAG"
-    - docker push "$LATEST_TAG"
+    - /kaniko/executor
+        --context "$CI_PROJECT_DIR/frontend"
+        --dockerfile "$CI_PROJECT_DIR/frontend/Dockerfile"
+        --destination "$SHA_TAG"
+        --destination "$LATEST_TAG"
+        --cache=true
+        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
   needs:
     - test-frontend
   rules:
