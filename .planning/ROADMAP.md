@@ -49,7 +49,7 @@ Plans:
 - [x] 07-01-PLAN.md — Wave 0: expose /actuator/prometheus, add Caffeine + cache-starter + prometheus-registry deps, author 4 Nyquist RED test scaffolds + CacheKeyNormalizer stub
 - [x] 07-02-PLAN.md — Caffeine embedding cache: CachingEmbeddingModel @Primary decorator, EmbeddingCacheConfig (JHipster pattern, .recordStats()), EmbeddingModelChangedEvent + listener, dimension-mismatch guard
 - [x] 07-03-PLAN.md — ChatService trio: ChatLogAsyncConfig + @Async @Transactional(REQUIRES_NEW) on ChatLogService.save + List.copyOf snapshots; LegalAnswerDraft slim schema (12→8 fields) + prompt trim + AnswerComposer update + frontend branch removal; Vietnamese chitchat short-circuit
-- [ ] 07-04-PLAN.md — Wave 2: manual smoke (curl loop + /actuator/prometheus scrape) + human-verify checkpoint; produces 07-SMOKE-REPORT.md per CONTEXT.md D-06
+- [x] 07-04-PLAN.md — Wave 2: manual smoke (curl loop + /actuator/prometheus scrape) + human-verify checkpoint; produces 07-SMOKE-REPORT.md per CONTEXT.md D-06
 
 ### Phase 8: Structured Output + GroundingGuardAdvisor
 **Goal**: Chat responses use native structured output and refusal/chitchat policy is encapsulated in an advisor pair; no hardcoded Vietnamese keyword heuristic drives grounding decisions.
@@ -101,7 +101,7 @@ Plans:
 | 5. Quality Operations & Evaluation | v1.0 | 4/4 | Complete | 2026-04-13 |
 | 6. Audit, Real-Data Validation & Stabilization | v1.0 | 6/6 | Complete | 2026-04-14 |
 | 06.1. Multi-Provider AI Model Selection | v1.0 | 2/2 | Complete | 2026-04-15 |
-| 7. Chat Latency Foundation | v1.1 | 0/4 | In planning | — |
+| 7. Chat Latency Foundation | v1.1 | 4/4 | Awaiting verification | — |
 | 8. Structured Output + GroundingGuardAdvisor | v1.1 | 0/0 | Not started | — |
 | 9. Modular RAG + Prompt Caching | v1.1 | 0/0 | Not started | — |
 | 10. User-Managed API Key Admin | v1.1 | 0/0 | Not started | — |
