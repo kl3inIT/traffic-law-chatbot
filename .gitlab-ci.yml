@@ -185,13 +185,12 @@ deploy:
     - |
       ssh -o StrictHostKeyChecking=yes "$SERVER_USER@$SERVER_HOST" bash -s << EOF
         set -e
-        cd /home/deploy/app/traffic-law
-        git pull --ff-only origin main
         docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
         docker pull "$BACKEND_IMAGE"
         docker pull "$FRONTEND_IMAGE"
+        cd /home/deploy/app/traffic-law
         BACKEND_IMAGE="$BACKEND_IMAGE" FRONTEND_IMAGE="$FRONTEND_IMAGE" \
-          docker compose up -d --wait backend frontend
+          docker compose up -d --no-deps --wait backend frontend
         docker image prune -f
         echo "Deploy OK: backend=$BACKEND_IMAGE frontend=$FRONTEND_IMAGE"
       EOF
