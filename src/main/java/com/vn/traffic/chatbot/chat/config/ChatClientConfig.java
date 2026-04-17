@@ -44,7 +44,7 @@ public class ChatClientConfig {
 
     @Bean
     public Map<String, ChatClient> chatClientMap(AiModelProperties modelProperties) {
-        String baseUrl = modelProperties.baseUrl() != null
+        String defaultBaseUrl = modelProperties.baseUrl() != null
                 ? modelProperties.baseUrl()
                 : "http://localhost:20128";
 
@@ -59,21 +59,23 @@ public class ChatClientConfig {
                 .requestFactory(requestFactory)
                 .defaultHeaders(h -> h.addAll(headers));
 
-        OpenAiApi nineRouterApi = OpenAiApi.builder()
-                .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .restClientBuilder(restClientBuilder)
-                .build();
-        log.info("ChatClientConfig: using 9router base-url={}, timeout=10min", baseUrl);
-
         Map<String, ChatClient> map = new LinkedHashMap<>();
         for (AiModelProperties.ModelEntry entry : modelProperties.models()) {
+            String modelBaseUrl = entry.baseUrl() != null ? entry.baseUrl() : defaultBaseUrl;
+            String modelApiKey = entry.apiKey() != null ? entry.apiKey() : apiKey;
+
+            OpenAiApi api = OpenAiApi.builder()
+                    .baseUrl(modelBaseUrl)
+                    .apiKey(modelApiKey)
+                    .restClientBuilder(restClientBuilder)
+                    .build();
+
             OpenAiChatOptions options = OpenAiChatOptions.builder()
                     .model(entry.id())
                     .build();
 
             OpenAiChatModel.Builder modelBuilder = OpenAiChatModel.builder()
-                    .openAiApi(nineRouterApi)
+                    .openAiApi(api)
                     .defaultOptions(options);
 
             if (retryTemplate != null) {
@@ -85,7 +87,7 @@ public class ChatClientConfig {
 
             OpenAiChatModel chatModel = modelBuilder.build();
             map.put(entry.id(), ChatClient.builder(chatModel).build());
-            log.info("Registered ChatClient for model: {}", entry.id());
+            log.info("Registered ChatClient model={} baseUrl={}", entry.id(), modelBaseUrl);
         }
         if (map.isEmpty()) {
             log.warn("ChatClientMap is empty — check app.ai.models configuration");

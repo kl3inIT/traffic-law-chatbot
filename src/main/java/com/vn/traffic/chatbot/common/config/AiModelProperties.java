@@ -27,6 +27,8 @@ public record AiModelProperties(
      *
      * @param id          the model ID used in API requests (e.g. "claude-sonnet-4-6")
      * @param displayName the human-readable name shown in the UI (e.g. "Claude Sonnet 4.6")
+     * @param baseUrl     per-model override of provider base URL (null = use top-level baseUrl)
+     * @param apiKey      per-model override of provider API key (null = use spring.ai.openai.api-key)
      */
-    public record ModelEntry(String id, String displayName) {}
+    public record ModelEntry(String id, String displayName, String baseUrl, String apiKey) {}
 }

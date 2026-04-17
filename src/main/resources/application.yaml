@@ -69,16 +69,33 @@ spring:
 
 app:
   ai:
-    base-url: ${OPENAI_BASE_URL:http://localhost:20128}
+    # Fallback base-url + api-key (dùng khi model entry không có override)
+    base-url: ${ROUTER_BASE_URL:http://localhost:20128}
     chat-model: ${CHAT_MODEL:cx/gpt-5.4}
     evaluator-model: ${EVALUATOR_MODEL:cx/gpt-5.4}
     models:
+      # --- 3 models qua 9router (tunnel AI proxy) ---
       - id: cx/gpt-5.4
         display-name: "GPT-5.4"
+        base-url: ${ROUTER_BASE_URL:http://localhost:20128}
+        api-key: ${ROUTER_API_KEY:dummy}
       - id: cc/claude-sonnet-4-6
         display-name: "Claude Sonnet 4.6"
+        base-url: ${ROUTER_BASE_URL:http://localhost:20128}
+        api-key: ${ROUTER_API_KEY:dummy}
       - id: cc/claude-haiku-4-5-20251001
         display-name: "Claude Haiku 4.5"
+        base-url: ${ROUTER_BASE_URL:http://localhost:20128}
+        api-key: ${ROUTER_API_KEY:dummy}
+      # --- OpenAI thật (key riêng) ---
+      - id: gpt-4o-mini
+        display-name: "GPT-4o Mini"
+        base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+        api-key: ${OPENAI_API_KEY}
+      - id: gpt-4o
+        display-name: "GPT-4o"
+        base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+        api-key: ${OPENAI_API_KEY}
   chat:
     retrieval:
       top-k: 5
