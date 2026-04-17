@@ -40,7 +40,7 @@ spring:
       api-key: ${OPENAI_API_KEY:none}
       embedding:
         base-url: ${EMBEDDING_BASE_URL:https://platform.beeknoee.com/api/v1}
-        api-key: ${OPENAI_API_KEY:none}
+        api-key: ${EMBEDDING_API_KEY:none}
         embeddings-path: /embeddings
         options:
           model: ${EMBEDDING_MODEL:text-embedding-3-small}
