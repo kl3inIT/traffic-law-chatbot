@@ -74,7 +74,7 @@ test-backend:
 
 test-frontend:
   stage: test
-  image: node:22-alpine@sha256:10867d5406692dbcd5cec6fe62cee821f2af771bc4ef24519e843fd6367357f5
+  image: node:22-alpine
   cache:
     key:
       files:
