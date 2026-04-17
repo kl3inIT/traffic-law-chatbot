@@ -1,5 +1,6 @@
 package com.vn.traffic.chatbot.chat.service;
 
+import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.domain.ResponseMode;
@@ -12,15 +13,29 @@ import java.util.List;
 @Component
 public class ScenarioAnswerComposer {
 
+    /**
+     * Compose scenario analysis from an existing ChatAnswerResponse plus effective sources.
+     * After plan 07-03 slimmed LegalAnswerDraft to 8 fields, scenario-specific rule/outcome/actions
+     * data is carried on the existing ChatAnswerResponse (scenarioFacts + scenarioAnalysis wrapper)
+     * rather than on LegalAnswerDraft.
+     */
     public ScenarioComposition compose(
-            GroundingStatus groundingStatus,
-            LegalAnswerDraft draft,
+            ChatAnswerResponse answer,
             List<SourceReferenceResponse> sources
     ) {
-        List<String> facts = buildFacts(draft);
-        String rule = firstNonBlank(joinLines(draft == null ? null : draft.scenarioRule()), joinLines(draft == null ? null : draft.legalBasis()));
-        String outcome = firstNonBlank(joinLines(draft == null ? null : draft.scenarioOutcome()), draft == null ? null : draft.conclusion());
-        List<String> actions = buildActions(draft);
+        GroundingStatus groundingStatus = answer == null ? null : answer.groundingStatus();
+        ScenarioAnalysisResponse existing = answer == null ? null : answer.scenarioAnalysis();
+
+        List<String> facts = buildFacts(answer, existing);
+        String rule = firstNonBlank(
+                existing == null ? null : existing.rule(),
+                joinLines(answer == null ? null : answer.legalBasis())
+        );
+        String outcome = firstNonBlank(
+                existing == null ? null : existing.outcome(),
+                answer == null ? null : answer.conclusion()
+        );
+        List<String> actions = buildActions(answer, existing);
         List<SourceReferenceResponse> safeSources = safeList(sources);
 
         boolean canFinalize = groundingStatus == GroundingStatus.GROUNDED;
@@ -38,25 +53,37 @@ public class ScenarioAnswerComposer {
         return new ScenarioComposition(responseMode, scenarioAnalysis);
     }
 
-    private List<String> buildFacts(LegalAnswerDraft draft) {
+    private List<String> buildFacts(ChatAnswerResponse answer, ScenarioAnalysisResponse existing) {
         LinkedHashSet<String> facts = new LinkedHashSet<>();
-        safeList(draft == null ? null : draft.scenarioFacts()).stream()
-                .filter(this::hasText)
-                .map(String::trim)
-                .forEach(facts::add);
+        if (existing != null) {
+            safeList(existing.facts()).stream()
+                    .filter(this::hasText)
+                    .map(String::trim)
+                    .forEach(facts::add);
+        }
+        if (answer != null) {
+            safeList(answer.scenarioFacts()).stream()
+                    .filter(this::hasText)
+                    .map(String::trim)
+                    .forEach(facts::add);
+        }
         return List.copyOf(facts);
     }
 
-    private List<String> buildActions(LegalAnswerDraft draft) {
+    private List<String> buildActions(ChatAnswerResponse answer, ScenarioAnalysisResponse existing) {
         LinkedHashSet<String> actions = new LinkedHashSet<>();
-        safeList(draft == null ? null : draft.scenarioActions()).stream()
-                .filter(this::hasText)
-                .map(String::trim)
-                .forEach(actions::add);
-        safeList(draft == null ? null : draft.nextSteps()).stream()
-                .filter(this::hasText)
-                .map(String::trim)
-                .forEach(actions::add);
+        if (existing != null) {
+            safeList(existing.actions()).stream()
+                    .filter(this::hasText)
+                    .map(String::trim)
+                    .forEach(actions::add);
+        }
+        if (answer != null) {
+            safeList(answer.nextSteps()).stream()
+                    .filter(this::hasText)
+                    .map(String::trim)
+                    .forEach(actions::add);
+        }
         return List.copyOf(actions);
     }
 

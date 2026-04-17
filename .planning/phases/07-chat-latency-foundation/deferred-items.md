@@ -25,3 +25,18 @@ Additional cascading failures (symbols not found because the above don't compile
 **Decision:** Out of 07-01 scope per execute-plan.md scope-boundary rule ("pre-existing failures in unrelated files are out of scope"). Recommend a small follow-up fix in phase 07-02 (or a standalone chore commit) to update the 6 test files' `ModelEntry` instantiations to the 4-arg form.
 
 **Follow-up action:** Before Plan 07-02 Task 1 RED→GREEN run, add a one-line chore commit updating each `new ModelEntry(id, name)` call-site to `new ModelEntry(id, name, baseUrl, apiKey)` matching the production record signature.
+
+## Pre-existing failures at full-suite run (plan 07-03 verify)
+
+**Discovered during:** 07-03 Task 3 full `./gradlew test` run
+**Status:** Pre-existing on base (confirmed via `git stash --include-untracked` — same 5 failures in stash state with no 07-03 changes present)
+**Failing classes (15 total failures across 5 classes):**
+
+- `ChatClientConfigTest` (3 failures) — `IllegalArgumentException` from ChatClient bean wiring; unrelated to Task 3
+- `SpringBootSmokeTest` (2 failures) — Liquibase DB migration needs PostgreSQL; no PG available in CI
+- `LoggingAspectTest` (1 failure) — Spring context cascade from SmokeTest
+- `AppPropertiesTest` (3 failures) — Spring context cascade from SmokeTest
+
+**Impact on 07-03:** None. All targeted Task 2 and Task 3 tests pass. Chitchat short-circuit, LegalAnswerDraft slim, and async ChatLog infra behave as specified.
+
+**Decision:** Out of 07-03 scope per execute-plan.md scope-boundary rule.
