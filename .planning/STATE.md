@@ -1,32 +1,41 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: MVP
+milestone: v1.1
+milestone_name: Chat Performance & Spring AI Modular RAG
 current_phase: ""
-status: v1.0 milestone complete
-last_updated: "2026-04-15T10:48:00.000Z"
+status: Defining requirements
+last_updated: "2026-04-17T00:00:00.000Z"
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 38
-  completed_plans: 38
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # State: Vietnam Traffic Law Chatbot
 
 **Initialized:** 2026-04-07
-**Current phase:** —
-**Project status:** v1.0 MVP shipped
+**Current phase:** Not started (defining requirements)
+**Project status:** v1.1 milestone started (v1.0 MVP shipped 2026-04-15)
+
+## Current Position
+
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-17 — Milestone v1.1 started
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-04-15)
+See: `.planning/PROJECT.md` (updated 2026-04-17)
 
 **Core value:** Users can describe a Vietnam traffic-law situation in natural language and receive grounded, source-backed guidance that explains the relevant rule, likely penalty, required documents, procedure, and recommended next steps.
-**Current focus:** Planning next milestone
+**Current focus:** v1.1 — Chat Performance & Spring AI Modular RAG
 
 ## Roadmap Snapshot
+
+v1.0 (Complete):
 
 | Phase | Name | Status |
 |------|------|--------|
@@ -40,6 +49,15 @@ See: `.planning/PROJECT.md` (updated 2026-04-15)
 | 6 | Audit, Real-Data Validation & Stabilization | Complete |
 | 06.1 | Multi-Provider AI Model Selection | Complete |
 
+v1.1 (planned after roadmap step): Phases 7–12.
+
+## Accumulated Context
+
+- OpenRouter migration (2026-04-17): 9router + beeknoee replaced with unified OpenRouter gateway for chat + embedding
+- Default chat model switched to `openai/gpt-4o-mini` for speed
+- Chat pipeline currently uses manual RAG (ChatService.doAnswer ~150 lines): hardcoded keyword matching in `containsAnyLegalCitation` causes false refusals on greetings; 12-field JSON schema inflates completion tokens; sync chat log save blocks response; only `MessageChatMemoryAdvisor` from Spring AI is used
+- Spring AI 2.0.0-M4 available; modular RAG building blocks (`RetrievalAugmentationAdvisor`, `ContextualQueryAugmenter`, `DocumentRetriever`, `DocumentPostProcessor`) are stable since M3
+
 ## Workflow Settings
 
 - Mode: yolo
@@ -51,4 +69,4 @@ See: `.planning/PROJECT.md` (updated 2026-04-15)
 - Nyquist validation: enabled
 
 ---
-*Last updated: 2026-04-15 — v1.0 milestone complete*
+*Last updated: 2026-04-17 — v1.1 milestone started*

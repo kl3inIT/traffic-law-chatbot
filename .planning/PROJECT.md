@@ -45,7 +45,16 @@ Users can describe a Vietnam traffic-law situation in natural language and recei
 
 ### Active
 
-(No active requirements — next milestone TBD)
+**v1.1 — Chat Performance & Spring AI Modular RAG**
+
+- [ ] PERF-01: Chat p95 latency under 2.5s for common lookups
+- [ ] PERF-02: No false refusal on greetings or non-legal small talk
+- [ ] ARCH-01: Chat pipeline uses Spring AI idiomatic advisors (modular RAG)
+- [ ] ARCH-02: Structured output via BeanOutputConverter (drop manual JSON parsing)
+- [ ] ARCH-03: Minimize hardcoded keyword matching — prefer score thresholds, policy config, or LLM classification
+- [ ] CACHE-01: Prompt caching for static system block via OpenRouter cache_control
+- [ ] CACHE-02: Embedding cache for repeat queries (Caffeine)
+- [ ] ADMIN-07: User-managed API key admin (per-provider, encrypted at rest, masked display, audit logged)
 
 ### Out of Scope
 
@@ -57,17 +66,29 @@ Users can describe a Vietnam traffic-law situation in natural language and recei
 - Alternate scenario comparison — v2 scope
 - Non-traffic legal domains — v2 scope
 
+## Current Milestone: v1.1 Chat Performance & Spring AI Modular RAG
+
+**Goal:** Cut chat latency 3-5× and migrate the manual RAG pipeline to Spring AI idiomatic (modular RAG + structured output + custom advisors). Eliminate hardcoded keyword matching. Add user-managed API key administration.
+
+**Target features:**
+- Chat latency quick wins (async log, slim JSON schema, prompt trim, loosen grounding gate)
+- Extract GroundingGuardAdvisor (refusal policy as CallAroundAdvisor, chitchat mode)
+- Migrate to RetrievalAugmentationAdvisor with custom CitationPostProcessor
+- Structured output via BeanOutputConverter
+- Prompt caching (OpenRouter cache_control) + embedding cache (Caffeine)
+- User-managed API key admin with encryption at rest
+
 ## Context
 
-Shipped v1.0 MVP on 2026-04-15. 291 commits over 9 days.
+Shipped v1.0 MVP on 2026-04-15. 291 commits over 9 days. Post-v1.0 migration on 2026-04-17 replaced 9router + beeknoee with OpenRouter as sole AI gateway for both chat and embedding.
 
-**Tech stack:** Java 25 Spring Boot, PostgreSQL + pgvector, Spring AI ETL, 9router (OpenAI-compatible gateway), Next.js 16, shadcn/ui, React Query, base-ui.
+**Tech stack:** Java 25 Spring Boot, PostgreSQL + pgvector, Spring AI ETL, OpenRouter (unified OpenAI-compatible API for chat + embedding), Next.js 16, shadcn/ui, React Query, base-ui.
 
 **Codebase:** 12,837 LOC Java (backend) + 11,455 LOC TypeScript (frontend). 15 database tables via Liquibase migrations. 185+ automated tests.
 
 **Knowledge base:** 3 core Vietnamese legal decrees ingested and validated (ND 168/2024, Luat GTDB 2008, ND 100/2019). Trust policy enforcement with PRIMARY/SECONDARY/MANUAL_REVIEW tiers.
 
-**AI routing:** Multi-provider model catalog (GPT-5.4, Claude Sonnet 4.6, Claude Haiku 4.5) via YAML config, Map<String,ChatClient> factory with fallback chain.
+**AI routing:** OpenRouter unified gateway (`https://openrouter.ai/api/v1`) with 8-model catalog: Anthropic (Sonnet/Opus/Haiku 4.6), OpenAI (GPT-5.1, 4o-mini), Google (Gemini 3.1 Pro), DeepSeek V3.2, Claude Sonnet 4.5 1M-context. Default chat model: `openai/gpt-4o-mini` (speed-optimized); user picks heavier models via UI dropdown.
 
 ## Constraints
 
@@ -89,12 +110,15 @@ Shipped v1.0 MVP on 2026-04-15. 291 commits over 9 days.
 | Next.js + shadcn/ui for frontend | Practical, maintainable UI stack | ✓ Good — shipped quickly |
 | Spring AI ETL as primary ingestion | Leverage framework readers while layering trust/provenance | ✓ Good — reduced custom code |
 | Inline clarification via system prompt | Simpler than explicit clarification gate; removed in quick task 260414-kfe | ✓ Good — reduced complexity |
-| 9router as sole AI gateway | Single OpenAI-compatible endpoint for all providers | ✓ Good — clean model routing |
+| 9router as sole AI gateway | Single OpenAI-compatible endpoint for all providers | ✓ Superseded by OpenRouter migration (v1.1) |
 | YAML-driven model catalog | Replace hardcoded AllowedModel enum with config-driven catalog | ✓ Good — extensible without code changes |
+| OpenRouter replaces 9router + beeknoee | One unified provider for chat + embedding, single credential, broader catalog | 2026-04-17 — removes local tunnel dependency |
+| Default chat model → openai/gpt-4o-mini | 3-5× faster p95 for common lookups; heavier models opt-in via dropdown | 2026-04-17 — speed optimization |
+| Minimize hardcoded keyword matching (v1.1) | Previous `containsAnyLegalCitation` gate caused false refusals; prefer policy config / LLM classification | Cross-cutting principle for v1.1 |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-15 after v1.0 milestone*
+*Last updated: 2026-04-17 — v1.1 milestone started*
