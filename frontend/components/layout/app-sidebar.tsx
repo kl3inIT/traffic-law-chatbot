@@ -27,7 +27,7 @@ import { ThreadList } from '@/components/chat/thread-list';
 
 export const adminNavItems = [
   { title: 'Quản lý nguồn', href: '/sources', icon: Database },
-  { title: 'Chỉ mục kiến thức', href: '/index', icon: BookOpen },
+  { title: 'Chỉ mục kiến thức', href: '/knowledge-base', icon: BookOpen },
   { title: 'Bộ tham số AI', href: '/parameters', icon: Settings },
   { title: 'Chính sách tin cậy', href: '/trust-policy', icon: ShieldCheck },
   { title: 'Lịch sử hội thoại', href: '/chat-logs', icon: MessageSquare },
