@@ -36,7 +36,7 @@ default:
 # ============================================================================
 test-backend:
   stage: test
-  image: eclipse-temurin:25-jdk-alpine@sha256:6376112b998b14a1ab3ec7f4a47f045a07c021320f1556cd9074d480c6e553b5
+  image: eclipse-temurin:25-jdk-alpine
   services:
     - name: pgvector/pgvector:pg16
       alias: postgres
@@ -165,7 +165,7 @@ package-frontend:
 # ============================================================================
 deploy:
   stage: deploy
-  image: alpine:3.21@sha256:a90cb6b4c9917a8d0604cfb8f967edc828c75d139602258d321ce4e7960f4795
+  image: alpine:3.21
   environment:
     name: production
     url: https://traffic-law.dth.com.vn
