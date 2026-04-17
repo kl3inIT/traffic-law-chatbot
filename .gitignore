@@ -60,3 +60,7 @@ scripts/import_sources/
 
 # SSH deploy keys
 .ssh/
+
+# Playwright screenshots
+*.png
+.playwright-mcp/
