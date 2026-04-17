@@ -46,9 +46,9 @@
   5. ~~Feature-flag infrastructure (`app.chat.v11.*`)~~ **SUPERSEDED by CONTEXT.md D-01 (solo-dev 2026-04-17): no feature-flag layer; rollback = `git revert`. Criterion dropped.**
 **Plans**: 4 plans
 Plans:
-- [ ] 07-01-PLAN.md — Wave 0: expose /actuator/prometheus, add Caffeine + cache-starter + prometheus-registry deps, author 4 Nyquist RED test scaffolds + CacheKeyNormalizer stub
-- [ ] 07-02-PLAN.md — Caffeine embedding cache: CachingEmbeddingModel @Primary decorator, EmbeddingCacheConfig (JHipster pattern, .recordStats()), EmbeddingModelChangedEvent + listener, dimension-mismatch guard
-- [ ] 07-03-PLAN.md — ChatService trio: ChatLogAsyncConfig + @Async @Transactional(REQUIRES_NEW) on ChatLogService.save + List.copyOf snapshots; LegalAnswerDraft slim schema (12→8 fields) + prompt trim + AnswerComposer update + frontend branch removal; Vietnamese chitchat short-circuit
+- [x] 07-01-PLAN.md — Wave 0: expose /actuator/prometheus, add Caffeine + cache-starter + prometheus-registry deps, author 4 Nyquist RED test scaffolds + CacheKeyNormalizer stub
+- [x] 07-02-PLAN.md — Caffeine embedding cache: CachingEmbeddingModel @Primary decorator, EmbeddingCacheConfig (JHipster pattern, .recordStats()), EmbeddingModelChangedEvent + listener, dimension-mismatch guard
+- [x] 07-03-PLAN.md — ChatService trio: ChatLogAsyncConfig + @Async @Transactional(REQUIRES_NEW) on ChatLogService.save + List.copyOf snapshots; LegalAnswerDraft slim schema (12→8 fields) + prompt trim + AnswerComposer update + frontend branch removal; Vietnamese chitchat short-circuit
 - [ ] 07-04-PLAN.md — Wave 2: manual smoke (curl loop + /actuator/prometheus scrape) + human-verify checkpoint; produces 07-SMOKE-REPORT.md per CONTEXT.md D-06
 
 ### Phase 8: Structured Output + GroundingGuardAdvisor
