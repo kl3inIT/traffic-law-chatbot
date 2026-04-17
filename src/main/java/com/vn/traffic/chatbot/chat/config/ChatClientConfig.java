@@ -46,7 +46,7 @@ public class ChatClientConfig {
     public Map<String, ChatClient> chatClientMap(AiModelProperties modelProperties) {
         String defaultBaseUrl = modelProperties.baseUrl() != null
                 ? modelProperties.baseUrl()
-                : "http://localhost:20128";
+                : "https://openrouter.ai/api/v1";
 
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofMinutes(10));
