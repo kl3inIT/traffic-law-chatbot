@@ -1,6 +1,7 @@
 package com.vn.traffic.chatbot.chatlog.service;
 
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
+import com.vn.traffic.chatbot.chat.config.ChatLogAsyncConfig;
 import com.vn.traffic.chatbot.chat.service.GroundingStatus;
 import com.vn.traffic.chatbot.chatlog.domain.ChatLog;
 import com.vn.traffic.chatbot.chatlog.repo.ChatLogRepository;
@@ -10,7 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -26,6 +30,8 @@ public class ChatLogService {
 
     private final ChatLogRepository chatLogRepository;
 
+    @Async(ChatLogAsyncConfig.CHAT_LOG_EXECUTOR)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void save(String question, ChatAnswerResponse response, GroundingStatus groundingStatus,
                      String conversationId, int promptTokens, int completionTokens, int responseTime,
                      String pipelineLog) {

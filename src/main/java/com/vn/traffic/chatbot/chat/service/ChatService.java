@@ -130,7 +130,8 @@ public class ChatService {
             chunkInspectionService.getRetrievalReadinessCounts();
             ChatAnswerResponse refused = refusalResponse();
             try {
-                String pipelineLog = String.join("\n", logMessages);
+                // D-11: snapshot BEFORE async handoff — prevents ConcurrentModificationException (Pitfall 7)
+                String pipelineLog = String.join("\n", List.copyOf(logMessages));
                 chatLogService.save(question, refused, GroundingStatus.REFUSED, null, 0, 0, 0, pipelineLog);
                 logger.accept("Chat log: refusal entry saved");
             } catch (Exception ex) {
@@ -178,7 +179,8 @@ public class ChatService {
         logger.accept("Answer composed: done");
 
         try {
-            String pipelineLog = String.join("\n", logMessages);
+            // D-11: snapshot BEFORE async handoff — prevents ConcurrentModificationException (Pitfall 7)
+            String pipelineLog = String.join("\n", List.copyOf(logMessages));
             chatLogService.save(question, response, groundingStatus, null,
                     promptTokens, completionTokens, responseTime, pipelineLog);
             logger.accept("Chat log: entry saved");
