@@ -3,7 +3,7 @@
 # ============================================================================
 # STAGE 1: Application builder with optimized caching
 # ============================================================================
-FROM eclipse-temurin:25-jdk-alpine@sha256:6376112b998b14a1ab3ec7f4a47f045a07c021320f1556cd9074d480c6e553b5 AS builder
+FROM eclipse-temurin:25-jdk-alpine AS builder
 
 ENV GRADLE_USER_HOME=/cache/.gradle \
     LANG=C.UTF-8 \
@@ -59,7 +59,7 @@ RUN java -Djarmode=layertools -jar app.jar extract --destination /app/extracted
 # ============================================================================
 # STAGE 2: Minimal runtime image
 # ============================================================================
-FROM alpine:3.21@sha256:a90cb6b4c9917a8d0604cfb8f967edc828c75d139602258d321ce4e7960f4795
+FROM alpine:3.21
 
 # Install only critical runtime dependencies
 # ca-certificates: for HTTPS connections to AI providers (OpenAI, Anthropic, etc.)
