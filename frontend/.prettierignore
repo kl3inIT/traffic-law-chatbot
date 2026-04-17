@@ -2,3 +2,9 @@
 node_modules
 pnpm-lock.yaml
 *.generated.*
+
+# AI Elements CLI-generated components
+components/ai-elements/**
+
+# shadcn/ui primitives
+components/ui/**
