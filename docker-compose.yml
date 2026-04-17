@@ -46,7 +46,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: "https://api.chatbot.x2h.com.vn"
+      NEXT_PUBLIC_API_BASE_URL: "https://api.chatbot.x2h.com.vn"
     ports:
       - "3333:3000"
     healthcheck:
