@@ -28,10 +28,8 @@ public class ChatThreadMapper {
             List<SourceReferenceResponse> sources
     ) {
         List<SourceReferenceResponse> effectiveSources = sources == null ? answer.sources() : sources;
-        LegalAnswerDraft draft = toDraft(answer);
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
-                answer.groundingStatus(),
-                draft,
+                answer,
                 effectiveSources
         );
         return new ChatAnswerResponse(
@@ -54,20 +52,4 @@ public class ChatThreadMapper {
         );
     }
 
-    private LegalAnswerDraft toDraft(ChatAnswerResponse answer) {
-        return new LegalAnswerDraft(
-                answer.conclusion(),
-                answer.answer(),
-                answer.uncertaintyNotice(),
-                answer.legalBasis(),
-                answer.penalties(),
-                answer.requiredDocuments(),
-                answer.procedureSteps(),
-                answer.nextSteps(),
-                answer.scenarioFacts() == null ? List.of() : answer.scenarioFacts(),
-                answer.scenarioAnalysis() == null || answer.scenarioAnalysis().rule() == null ? List.of() : List.of(answer.scenarioAnalysis().rule()),
-                answer.scenarioAnalysis() == null || answer.scenarioAnalysis().outcome() == null ? List.of() : List.of(answer.scenarioAnalysis().outcome()),
-                answer.scenarioAnalysis() == null ? List.of() : answer.scenarioAnalysis().actions()
-        );
-    }
 }

@@ -1,5 +1,7 @@
 package com.vn.traffic.chatbot.chat.service;
 
+import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
+import com.vn.traffic.chatbot.chat.api.dto.ScenarioAnalysisResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.domain.ResponseMode;
 import org.junit.jupiter.api.Test;
@@ -14,24 +16,34 @@ class ScenarioAnswerComposerTest {
 
     @Test
     void composesFactsRuleOutcomeStructureInsideChatResponseEnvelope() {
-        LegalAnswerDraft draft = new LegalAnswerDraft(
-                "Người điều khiển xe máy vượt đèn đỏ có thể bị xử phạt.",
+        ScenarioAnalysisResponse existing = new ScenarioAnalysisResponse(
+                List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
+                "Áp dụng Điều 7 Nghị định 168 [Nguồn 1]",
+                "Có thể bị xử phạt tiền theo khung dành cho xe máy [Nguồn 1]",
+                List.of("Giữ lại biên bản để đối chiếu"),
+                List.of()
+        );
+        ChatAnswerResponse answer = new ChatAnswerResponse(
+                GroundingStatus.GROUNDED,
+                null,
+                ResponseMode.STANDARD,
                 "",
+                "Người điều khiển xe máy vượt đèn đỏ có thể bị xử phạt.",
+                null,
                 null,
                 List.of("Điều 7 Nghị định 168 [Nguồn 1]"),
                 List.of("Phạt tiền [Nguồn 1]"),
                 List.of(),
                 List.of(),
                 List.of("Đối chiếu biên bản"),
-                List.of("Người điều khiển dùng xe máy", "Hành vi: vượt đèn đỏ"),
-                List.of("Áp dụng Điều 7 Nghị định 168 [Nguồn 1]"),
-                List.of("Có thể bị xử phạt tiền theo khung dành cho xe máy [Nguồn 1]"),
-                List.of("Giữ lại biên bản để đối chiếu")
+                List.of(),
+                existing,
+                List.of(),
+                List.of()
         );
 
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
-                GroundingStatus.GROUNDED,
-                draft,
+                answer,
                 List.of(new SourceReferenceResponse("[Nguồn 1]", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"))
         );
 
@@ -46,24 +58,34 @@ class ScenarioAnswerComposerTest {
 
     @Test
     void groundedWithScenarioFactsProducesFinalAnalysis() {
-        LegalAnswerDraft draft = new LegalAnswerDraft(
-                "Kết luận tạm thời",
+        ScenarioAnalysisResponse existing = new ScenarioAnalysisResponse(
+                List.of("Thiếu giấy tờ xe"),
+                "Áp dụng Điều 58 [Nguồn 1]",
+                "Có thể bị xử lý",
+                List.of("Kiểm tra lại giấy tờ"),
+                List.of()
+        );
+        ChatAnswerResponse answer = new ChatAnswerResponse(
+                GroundingStatus.GROUNDED,
+                null,
+                ResponseMode.STANDARD,
                 "",
+                "Kết luận tạm thời",
+                null,
                 null,
                 List.of("Điều 58 [Nguồn 1]"),
                 List.of(),
                 List.of(),
                 List.of(),
                 List.of("Bổ sung thêm thông tin"),
-                List.of("Thiếu giấy tờ xe"),
-                List.of("Áp dụng Điều 58 [Nguồn 1]"),
-                List.of("Có thể bị xử lý"),
-                List.of("Kiểm tra lại giấy tờ")
+                List.of(),
+                existing,
+                List.of(),
+                List.of()
         );
 
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
-                GroundingStatus.GROUNDED,
-                draft,
+                answer,
                 List.of()
         );
 
@@ -75,9 +97,13 @@ class ScenarioAnswerComposerTest {
 
     @Test
     void groundedWithoutFactsProducesScenarioAnalysisMode() {
-        LegalAnswerDraft draft = new LegalAnswerDraft(
-                "Kết luận tạm thời",
+        ChatAnswerResponse answer = new ChatAnswerResponse(
+                GroundingStatus.GROUNDED,
+                null,
+                ResponseMode.STANDARD,
                 "",
+                "Kết luận tạm thời",
+                null,
                 null,
                 List.of("Điều 58 [Nguồn 1]"),
                 List.of(),
@@ -85,14 +111,13 @@ class ScenarioAnswerComposerTest {
                 List.of(),
                 List.of("Bổ sung thêm thông tin"),
                 List.of(),
-                List.of("Áp dụng Điều 58 [Nguồn 1]"),
-                List.of("Có thể bị xử lý"),
-                List.of("Kiểm tra lại giấy tờ")
+                null,
+                List.of(),
+                List.of()
         );
 
         ScenarioAnswerComposer.ScenarioComposition composition = scenarioAnswerComposer.compose(
-                GroundingStatus.GROUNDED,
-                draft,
+                answer,
                 List.of()
         );
 

@@ -331,15 +331,11 @@ public class ChatService {
                 List.of(),
                 List.of(),
                 List.of(),
-                nextSteps,
-                List.of(),
-                null,
-                null,
-                List.of()
+                nextSteps
         );
     }
 
     private LegalAnswerDraft emptyDraft() {
-        return new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null, null, List.of());
+        return new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of());
     }
 }

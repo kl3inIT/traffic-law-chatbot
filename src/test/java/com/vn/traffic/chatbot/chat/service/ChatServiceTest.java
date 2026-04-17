@@ -111,11 +111,7 @@ class ChatServiceTest {
                   "penalties": ["Phạt tiền [Nguồn 1]"],
                   "requiredDocuments": ["GPLX"],
                   "procedureSteps": ["Làm việc với cơ quan chức năng"],
-                  "nextSteps": ["Kiểm tra biên bản"],
-                  "scenarioFacts": ["Phương tiện: xe máy"],
-                  "scenarioRule": ["Áp dụng Điều 6 [Nguồn 1]"],
-                  "scenarioOutcome": ["Có thể bị xử phạt [Nguồn 1]"],
-                  "scenarioActions": ["Đối chiếu biên bản"]
+                  "nextSteps": ["Kiểm tra biên bản"]
                 }
                 """;
 
@@ -146,7 +142,7 @@ class ChatServiceTest {
         List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Nghị định 100", "https://vbpl.vn/nd100", 4, "Điều 6", "excerpt"));
         List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 100", "https://vbpl.vn/nd100", 4, "Điều 6"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
-        String jsonPayload = "{\"conclusion\":\"ok [Nguồn 1]\",\"answer\":\"\",\"uncertaintyNotice\":null,\"legalBasis\":[\"Điều 6 [Nguồn 1]\"],\"penalties\":[],\"requiredDocuments\":[],\"procedureSteps\":[],\"nextSteps\":[],\"scenarioFacts\":[],\"scenarioRule\":[],\"scenarioOutcome\":[],\"scenarioActions\":[]}";
+        String jsonPayload = "{\"conclusion\":\"ok [Nguồn 1]\",\"answer\":\"\",\"uncertaintyNotice\":null,\"legalBasis\":[\"Điều 6 [Nguồn 1]\"],\"penalties\":[],\"requiredDocuments\":[],\"procedureSteps\":[],\"nextSteps\":[]}";
 
         when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
@@ -172,7 +168,7 @@ class ChatServiceTest {
         List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "excerpt"));
         List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
-        String jsonPayload = "{\"conclusion\":\"ok [Nguồn 1]\",\"answer\":\"\",\"uncertaintyNotice\":null,\"legalBasis\":[\"Điều 7 [Nguồn 1]\"],\"penalties\":[],\"requiredDocuments\":[],\"procedureSteps\":[],\"nextSteps\":[],\"scenarioFacts\":[],\"scenarioRule\":[],\"scenarioOutcome\":[],\"scenarioActions\":[]}";
+        String jsonPayload = "{\"conclusion\":\"ok [Nguồn 1]\",\"answer\":\"\",\"uncertaintyNotice\":null,\"legalBasis\":[\"Điều 7 [Nguồn 1]\"],\"penalties\":[],\"requiredDocuments\":[],\"procedureSteps\":[],\"nextSteps\":[]}";
 
         when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
@@ -198,7 +194,7 @@ class ChatServiceTest {
         List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "excerpt"));
         List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
-        String jsonPayload = "{\"conclusion\":\"ok [Nguồn 1]\",\"answer\":\"\",\"uncertaintyNotice\":null,\"legalBasis\":[\"Điều 7 [Nguồn 1]\"],\"penalties\":[],\"requiredDocuments\":[],\"procedureSteps\":[],\"nextSteps\":[],\"scenarioFacts\":[],\"scenarioRule\":[],\"scenarioOutcome\":[],\"scenarioActions\":[]}";
+        String jsonPayload = "{\"conclusion\":\"ok [Nguồn 1]\",\"answer\":\"\",\"uncertaintyNotice\":null,\"legalBasis\":[\"Điều 7 [Nguồn 1]\"],\"penalties\":[],\"requiredDocuments\":[],\"procedureSteps\":[],\"nextSteps\":[]}";
 
         when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
@@ -235,11 +231,7 @@ class ChatServiceTest {
                   "penalties": ["Phạt tiền [Nguồn 1]"],
                   "requiredDocuments": [],
                   "procedureSteps": [],
-                  "nextSteps": [],
-                  "scenarioFacts": ["Vượt đèn đỏ"],
-                  "scenarioRule": ["Áp dụng Điều 7 [Nguồn 1]"],
-                  "scenarioOutcome": ["Có thể bị xử phạt [Nguồn 1]"],
-                  "scenarioActions": []
+                  "nextSteps": []
                 }
                 ```""";
 

@@ -46,7 +46,7 @@ public class AnswerComposer {
         }
 
         LegalAnswerDraft safeDraft = draft == null
-                ? new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null, null, List.of())
+                ? new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of())
                 : draft;
 
         List<String> legalBasis = safeList(safeDraft.legalBasis());
@@ -76,7 +76,7 @@ public class AnswerComposer {
                 requiredDocuments,
                 procedureSteps,
                 nextSteps,
-                safeList(safeDraft.scenarioFacts()),
+                List.of(),
                 null,
                 safeCitations,
                 safeSources

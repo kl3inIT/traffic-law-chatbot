@@ -57,9 +57,9 @@ public class ChatPromptFactory {
         prompt.append("Ngữ cảnh hiện có là GROUNDED: chỉ sử dụng thông tin được hỗ trợ trực tiếp từ nguồn truy xuất.").append("\n");
         prompt.append("Nếu một phần như mức phạt, giấy tờ, thủ tục hoặc bước tiếp theo không được nguồn hỗ trợ thì phải bỏ hẳn phần đó.").append("\n");
         prompt.append("Chỉ trả về duy nhất một object JSON hợp lệ, không dùng markdown, không dùng ```json, không thêm giải thích trước hoặc sau JSON.").append("\n");
-        prompt.append("Tất cả các khóa conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps, scenarioFacts, scenarioRule, scenarioOutcome, scenarioActions phải luôn xuất hiện trong JSON.").append("\n");
+        prompt.append("Tất cả các khóa conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phải luôn xuất hiện trong JSON.").append("\n");
         prompt.append("Các trường danh sách phải luôn là mảng JSON; nếu không có nội dung thì trả về []. Các trường chuỗi có thể là null hoặc chuỗi rỗng nhưng không được bỏ khóa.").append("\n");
-        prompt.append("Trả về JSON hợp lệ với đúng các khóa sau: conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps, scenarioFacts, scenarioRule, scenarioOutcome, scenarioActions.").append("\n");
+        prompt.append("Trả về JSON hợp lệ với đúng các khóa sau: conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps.").append("\n");
         prompt.append("Giá trị answer có thể để trống vì hệ thống sẽ tự tổng hợp lại câu trả lời cuối cùng.").append("\n");
         if (!historyBlock.isEmpty()) {
             prompt.append("Lịch sử hội thoại:\n").append(historyBlock).append("\n");

@@ -10,10 +10,6 @@ public record LegalAnswerDraft(
         List<String> penalties,
         List<String> requiredDocuments,
         List<String> procedureSteps,
-        List<String> nextSteps,
-        List<String> scenarioFacts,
-        List<String> scenarioRule,
-        List<String> scenarioOutcome,
-        List<String> scenarioActions
+        List<String> nextSteps
 ) {
 }

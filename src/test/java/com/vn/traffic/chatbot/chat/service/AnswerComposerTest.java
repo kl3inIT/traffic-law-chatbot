@@ -151,11 +151,7 @@ class AnswerComposerTest {
                 penalties == null ? List.of() : penalties,
                 requiredDocuments == null ? List.of() : requiredDocuments,
                 procedureSteps == null ? List.of() : procedureSteps,
-                nextSteps == null ? List.of() : nextSteps,
-                List.of(),
-                null,
-                null,
-                List.of()
+                nextSteps == null ? List.of() : nextSteps
         );
     }
 }
