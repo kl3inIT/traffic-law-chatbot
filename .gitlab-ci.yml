@@ -78,15 +78,18 @@ test-frontend:
   cache:
     key:
       files:
-        - frontend/package-lock.json
+        - frontend/pnpm-lock.yaml
     paths:
       - frontend/node_modules/
+      - .pnpm-store/
     policy: pull-push
   before_script:
-    - cd frontend && npm ci
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
+    - cd frontend && pnpm install --frozen-lockfile --config.storeDir=../.pnpm-store
   script:
-    - npm run lint
-    - npm run test:ci
+    - pnpm run lint
+    - pnpm run test:ci
   artifacts:
     when: always
     reports:

@@ -7,16 +7,18 @@
 FROM node:22-alpine@sha256:10867d5406692dbcd5cec6fe62cee821f2af771bc4ef24519e843fd6367357f5 AS deps
 
 RUN apk add --no-cache libc6-compat
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # ============================================================================
 # STAGE 2: Build Next.js app (standalone output)
 # ============================================================================
 FROM node:22-alpine@sha256:10867d5406692dbcd5cec6fe62cee821f2af771bc4ef24519e843fd6367357f5 AS builder
 
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -25,7 +27,7 @@ COPY . .
 # Disable Next.js telemetry in CI/build
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build
+RUN pnpm run build
 
 # ============================================================================
 # STAGE 3: Minimal runtime (standalone mode = no node_modules needed)
