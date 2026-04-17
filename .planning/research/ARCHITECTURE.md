@@ -1,649 +1,389 @@
-# Architecture Patterns
+# Architecture Research — v1.1 Spring AI Modular RAG Integration
 
-**Domain:** Vietnam traffic-law RAG chatbot
-**Researched:** 2026-04-07
-**Overall confidence:** HIGH for backend/service layering and Spring AI fit, MEDIUM for frontend integration details
+**Domain:** RAG chat pipeline migration (manual orchestration → Spring AI idiomatic advisors)
+**Researched:** 2026-04-17
+**Confidence:** HIGH (Spring AI `BaseAdvisor`, `RetrievalAugmentationAdvisor`, `BeanOutputConverter`, `ENABLE_NATIVE_STRUCTURED_OUTPUT`, `StructuredOutputValidationAdvisor` verified via Context7 against `/spring-projects/spring-ai` current docs)
 
-## Executive Recommendation
+## Scope
 
-Architect the system as a **modular monolith with explicit AI domain modules** inside a Spring Boot REST backend, paired with a **single Next.js App Router frontend** that contains both public chat and admin screens. This best preserves the conceptual capabilities of `jmix-ai-backend` while aligning implementation style with the migrated shoes system's controller/service/DTO/response-wrapper pattern.
+This document covers ONLY the integration of six v1.1 features into the already-implemented v1.0 chat pipeline. Existing architecture (ChatService.doAnswer flow, ChatClientConfig, CitationMapper, AnswerComposer, LegalAnswerDraft, RetrievalPolicy, AnswerCompositionPolicy) is assumed and not re-researched.
 
-The key design choice is to separate the system into **six backend capability slices** rather than one generic “AI service”:
-1. **Chat orchestration**
-2. **Case analysis orchestration**
-3. **Retrieval + reranking**
-4. **Ingestion + vector store administration**
-5. **Parameter/version management**
-6. **Observability + answer checks**
+**Six v1.1 features addressed:**
 
-This keeps the strong ideas from `jmix-ai-backend`—active parameters, ingester manager, vector store management, chat logs, answer checks, RAG tools, and chat memory—but exposes them through REST endpoints shaped like the shoes backend: `Controller -> Service -> Repository/Client`, DTO-based contracts, and consistent `ResponseGeneral<T>` / `PageResponse<T>` wrappers.
+1. GroundingGuardAdvisor (replaces `containsAnyLegalCitation` + `determineGroundingStatus` gate)
+2. RetrievalAugmentationAdvisor (replaces manual `vectorStore.similaritySearch` + `citationMapper.toCitations`)
+3. BeanOutputConverter / `.entity(...)` (replaces `parseDraft` + `extractJson`)
+4. Prompt caching via OpenRouter `cache_control` (modifies ChatPromptFactory + ChatClient call)
+5. Embedding cache via Caffeine (wraps `EmbeddingModel`, transparent to chat flow)
+6. API-key admin (new DB-backed layer beside/in front of `AiModelProperties`)
 
-The frontend should call the Spring backend directly for almost all authenticated and admin operations. Use **Next.js Route Handlers only as thin BFF endpoints when the browser should not talk directly to the backend**, such as streaming adaptation, secure cookie/session mediation, or file-upload token exchange. Do not duplicate business logic in Next.js.
+---
 
-## Recommended Architecture
+## 1. Target Pipeline (After Full v1.1 Migration)
 
-```text
-Next.js App Router
-  ├─ Public chat UI
-  ├─ Admin sidebar UI
-  ├─ Route handlers (thin only: auth/session/stream proxy when needed)
-  └─ API client layer
-          │
-          ▼
-Spring Boot REST backend
-  ├─ ai.chat            # regular legal Q&A chat
-  ├─ ai.case            # structured case-analysis workflow
-  ├─ ai.rag             # retrieval, filtering, reranking, grounding
-  ├─ ai.ingestion       # import/reindex/update source documents
-  ├─ ai.vectorstore     # browse/update/delete vector documents
-  ├─ ai.parameters      # active YAML/JSON prompt-model-tool settings
-  ├─ ai.checks          # regression/evaluation runs
-  ├─ ai.chatlog         # logs, traces, token usage, sources
-  ├─ knowledge          # source registry, crawl/file metadata, provenance
-  └─ common             # DTOs, API paths, exceptions, security, config
-          │
-          ├─ PostgreSQL relational schema
-          │    ├─ parameters
-          │    ├─ source registry
-          │    ├─ ingestion jobs
-          │    ├─ chat logs
-          │    ├─ check defs / runs / results
-          │    └─ case analysis records (optional if persisted)
-          │
-          ├─ PostgreSQL + pgvector
-          │    └─ embeddings + chunk metadata
-          │
-          ├─ Document/object storage
-          │    └─ uploaded PDFs, Word docs, normalized text, snapshots
-          │
-          ├─ LLM / embedding providers
-          │    ├─ chat model
-          │    ├─ embedding model
-          │    └─ evaluator / reranker model
-          │
-          └─ optional crawler/parser adapters
-               ├─ website fetcher
-               ├─ PDF/Word extraction
-               └─ structured regulation importer
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│                         ChatController (unchanged)                         │
+└───────────────────────────────────────────┬───────────────────────────────┘
+                                            │
+                                            ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                      ChatService.answer(...)  (slim)                       │
+│   Responsibilities left: resolve client, build prompt spec, persist log    │
+└───────────────────────────────────────────┬───────────────────────────────┘
+                                            │ client.prompt().advisors(...).user(q).call().entity(LegalAnswerDraft.class)
+                                            ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                        Spring AI Advisor Chain                             │
+│                                                                            │
+│   order=MIN_VALUE   GroundingGuardAdvisor.input                           │
+│                      ├─ classify intent (chitchat / legal / refuse)       │
+│                      └─ short-circuit chitchat → ChatClientResponse       │
+│                                                                            │
+│   order=-500        MessageChatMemoryAdvisor  (existing)                  │
+│                                                                            │
+│   order=0           RetrievalAugmentationAdvisor                          │
+│                      ├─ VectorStoreDocumentRetriever (uses RetrievalPolicy)│
+│                      ├─ DocumentPostProcessor → CitationPostProcessor      │
+│                      │     (calls CitationMapper, stores citations in ctx) │
+│                      └─ augments user message with context                 │
+│                                                                            │
+│   order=+500        PromptCachingAdvisor                                  │
+│                      └─ injects OpenRouter cache_control markers           │
+│                                                                            │
+│   order=+1000       StructuredOutputValidationAdvisor                     │
+│                      └─ retries if LegalAnswerDraft parse fails           │
+│                                                                            │
+│   order=MAX_VALUE   GroundingGuardAdvisor.output                          │
+│                      └─ if ctx.citations empty → rewrite to refusal draft  │
+└───────────────────────────────────────────┬───────────────────────────────┘
+                                            │ entity(LegalAnswerDraft.class)
+                                            ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│       AnswerComposer.compose(status, draft, citations, sources)  (kept)   │
+│       status + citations pulled from AdvisorContext by ChatService         │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Why this architecture fits the references
+---
 
-### From `jmix-ai-backend`, preserve these concepts
+## 2. Component Table — New / Modified / Retired
 
-The reference backend clearly centers on:
-- a `ChatController` delegating to a `Chat` service
-- `ChatImpl` orchestrating prompt building, tool use, retrieval, reranking, memory, and logging
-- `IngesterManager` invoking multiple source-specific ingesters
-- active `Parameters` records loaded from the database
-- `ChatLogManager` persisting logs/tokens/sources
-- `CheckRunner` reusing chat logic to evaluate answer quality
-- pgvector + PostgreSQL as the storage foundation
+| Component | Fate | Notes |
+|-----------|------|-------|
+| `ChatService.doAnswer` | **Modified** — shrinks ~70%; retrieval + parsing + gating moved into advisors | Keeps: client resolution, logging, chat-log persistence |
+| `RetrievalPolicy` | **Kept** — becomes input to `VectorStoreDocumentRetriever.Builder` | `buildRequest` deconstructed into `similarityThreshold` + `topK` + filter |
+| `CitationMapper` | **Kept** — called from new `CitationPostProcessor` | No change to class itself |
+| `AnswerComposer` | **Kept** — still composes final `ChatAnswerResponse` | Consumes parsed `LegalAnswerDraft` from `.entity()` |
+| `AnswerCompositionPolicy` | **Kept** | Used by `AnswerComposer` and `GroundingGuardAdvisor` refusal path |
+| `LegalAnswerDraft` | **Kept as-is** (12-field record) | Becomes `BeanOutputConverter` target type |
+| `ChatPromptFactory.buildPrompt` | **Modified** — system block moves to advisor-provided template, user block simplifies | Context text injected by RAG advisor, not concatenated manually |
+| `containsAnyLegalCitation` + keyword list | **Retired** | Replaced by `GroundingGuardAdvisor` (LLM classification + score thresholds) |
+| `determineGroundingStatus` | **Retired** | Status derived from `AdvisorContext.DOCUMENT_CONTEXT` size + advisor decision |
+| `parseDraft` + `extractJson` + `fallbackDraft` | **Retired** | Replaced by `.entity(LegalAnswerDraft.class)` + `StructuredOutputValidationAdvisor` |
+| `GroundingStatus` enum | **Kept** | Still used by `AnswerComposer` + chat log |
+| `ChatClientConfig` | **Modified** — reads API keys from new `ApiKeyService` with YAML fallback | Rebuild map on key rotation via `@EventListener` |
+| `AiModelProperties` | **Kept for model catalog**; API-key field becomes optional fallback | Catalog entries (id, baseUrl, model name) stay YAML |
+| `ApiKeyService` + `ApiKeyEntity` | **New** | DB-backed, AES-GCM encrypted, audit-logged |
+| `GroundingGuardAdvisor` | **New** — split into `InputAdvisor` + `OutputAdvisor` | Intent classification in `before`, refusal override in `after` |
+| `CitationPostProcessor` | **New** — `DocumentPostProcessor` | Runs inside `RetrievalAugmentationAdvisor`; stores `List<CitationResponse>` in advisor context |
+| `PromptCachingAdvisor` | **New** — `BaseAdvisor` | Mutates system message metadata to set OpenRouter `cache_control` |
+| `EmbeddingCache` (Caffeine) | **New** — `EmbeddingModel` decorator bean | Wraps auto-configured embedding model; keyed by normalized text hash |
 
-Those concepts should remain intact.
+---
 
-### From the shoes backend, adopt these structural patterns
+## 3. Feature-by-Feature Integration Details
 
-The shoes backend shows the target REST shape:
-- domain-specific controllers with `@RequestMapping(ApiPaths...)`
-- service interfaces/implementations behind controllers
-- `ResponseGeneral<T>` response envelopes and `PageResponse<T>` for pagination
-- admin endpoints separated from public endpoints
-- explicit DTO request/response models instead of exposing entities
+### 3.1 GroundingGuardAdvisor — advisor chain placement
 
-So the migration target is not “rewrite the AI logic from scratch,” but rather “move Jmix concepts into shoes-style Spring REST modules.”
+**Plugs in:** outermost on both sides of the chain. Must run before `RetrievalAugmentationAdvisor` (to skip retrieval for chitchat) and last on response (to override to refusal if post-retrieval / post-LLM signals warrant it).
 
-## Component Boundaries
+**Recommended split (confirmed by Spring AI docs — "For advisors that need to be first in the chain on both request and response, use separate advisors for each side with different order values and share state via advisor context"):**
 
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| Next.js Chat UI | Public Vietnamese-first chat experience, thread management, source rendering, answer citations, case-analysis form UX | Next.js API client, optional route handler, Spring `/api/v1/chat`, `/api/v1/case-analysis` |
-| Next.js Admin UI | Admin sidebar screens for sources, ingestion jobs, vector docs, parameters, chat logs, checks | Spring admin/public AI REST endpoints |
-| Next.js Route Handlers | Thin proxy/BFF only for streaming, cookie mediation, or hiding backend URL/secrets | Browser, Spring backend |
-| `ai.chat` controller/service | General legal Q&A endpoint; validate request, load active chat params, invoke orchestration, return answer + citations + logs | `ai.parameters`, `ai.rag`, `ai.chatlog`, chat memory, LLM provider |
-| `ai.case` controller/service | Structured real-life scenario analysis; extract facts, classify issue, run targeted retrieval, produce legal guidance sections | `ai.parameters`, `ai.rag`, `ai.chatlog`, optional case classifier/rules service |
-| `ai.rag` services/tools | Query transformation, retrieval, metadata filtering, reranking, grounding assembly, citation extraction | pgvector, parameter reader, embeddings/LLM clients |
-| `ai.ingestion` controller/service | Run ingestion jobs by source or source type; parse, chunk, embed, upsert | knowledge source registry, parser adapters, pgvector, job tables |
-| `ai.vectorstore` admin service | List, inspect, delete, refresh, and filter vector documents/chunks | pgvector and knowledge/source metadata |
-| `knowledge` module | Canonical record of trusted sources, provenance, source type, fetch config, status | ingestion, vectorstore admin, admin UI |
-| `ai.parameters` service | Store multiple prompt/model configs; activate one per target type (`CHAT`, `CASE_ANALYSIS`, `CHECKS`, maybe `INGESTION`) | chat, case, checks, rag services |
-| `ai.chatlog` service | Persist answer traces, sources, token usage, timings, errors, thread identifiers | chat, case, streaming adapter, admin logs UI |
-| `ai.checks` service | Maintain check definitions, trigger runs, compare actual vs reference answer, score regressions | chat/case service, evaluator model, parameter versions |
-| Chat memory service | Maintain short-term conversational context for each thread/conversation | chat service, Spring AI `ChatMemory` / JDBC repository |
-| Parser adapters | Extract text + structure from PDF/Word/HTML/legal documents | ingestion service |
-| LLM client layer | Encapsulate chat model, embedding model, evaluator/reranker model configuration | chat, case, ingestion, checks |
+```java
+public class GroundingGuardInputAdvisor implements CallAdvisor {
+    @Override public int getOrder() { return BaseAdvisor.HIGHEST_PRECEDENCE; }
+    @Override public ChatClientResponse adviseCall(ChatClientRequest req, CallAdvisorChain chain) {
+        IntentClass intent = intentClassifier.classify(req.prompt().getUserMessage().getText());
+        req.context().put(GroundingGuardKeys.INTENT, intent);
+        if (intent == IntentClass.CHITCHAT) {
+            // short-circuit: build chitchat response, skip rest of chain
+            return ChatClientResponse.builder()
+                .chatResponse(chitchatResponse(req))
+                .context(req.context())
+                .build();
+        }
+        if (intent == IntentClass.OUT_OF_SCOPE) {
+            req.context().put(GroundingGuardKeys.FORCE_REFUSAL, true);
+        }
+        return chain.nextCall(req);
+    }
+}
 
-## Module Layout Recommendation for Spring Boot
-
-Use a package structure like this:
-
-```text
-com.vn.traffic.chatbot
-  configuration/
-  constant/
-  dto/
-    request/
-      ai/
-      admin/
-    response/
-      ai/
-      admin/
-  controller/
-    ai/
-      ChatController.java
-      CaseAnalysisController.java
-      SearchController.java
-    admin/
-      AdminKnowledgeSourceController.java
-      AdminIngestionController.java
-      AdminVectorStoreController.java
-      AdminParameterController.java
-      AdminChatLogController.java
-      AdminCheckController.java
-  service/
-    ai/
-      ChatService.java
-      CaseAnalysisService.java
-      SearchService.java
-    admin/
-      IngestionService.java
-      VectorStoreAdminService.java
-      ParameterService.java
-      ChatLogAdminService.java
-      CheckAdminService.java
-    knowledge/
-    retrieval/
-    llm/
-  repository/
-  entity/
-  mapper/
-  security/
-  exception/
-  utils/
+public class GroundingGuardOutputAdvisor implements CallAdvisor {
+    @Override public int getOrder() { return BaseAdvisor.LOWEST_PRECEDENCE; }
+    @Override public ChatClientResponse adviseCall(ChatClientRequest req, CallAdvisorChain chain) {
+        ChatClientResponse resp = chain.nextCall(req);
+        List<Document> docs = (List<Document>) resp.context()
+            .getOrDefault(RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT, List.of());
+        boolean forceRefuse = Boolean.TRUE.equals(req.context().get(GroundingGuardKeys.FORCE_REFUSAL));
+        resp.context().put(GroundingGuardKeys.STATUS,
+            (forceRefuse || docs.isEmpty()) ? GroundingStatus.REFUSED : GroundingStatus.GROUNDED);
+        return resp;
+    }
+}
 ```
 
-This mirrors the shoes backend more closely than the Jmix source tree, while still preserving the AI subdomains.
+**Intent classifier** uses small/fast model (gpt-4o-mini) with 3-way enum output via structured output — eliminates hardcoded keyword gate (ARCH-03, PERF-02).
 
-## Data Flow
+### 3.2 RetrievalAugmentationAdvisor — manual retrieval replacement
 
-### 1. Public chat flow
+**Replaces:** lines 97–118 of `ChatService.doAnswer` (vectorStore search + citationMapper.toCitations + toSources + docSummary log).
 
-```text
-User -> Next.js chat screen
-     -> POST Spring /api/v1/chat
-     -> ChatController validates DTO
-     -> ChatService loads active CHAT parameters
-     -> ChatService restores conversation memory using conversation/thread id
-     -> RetrievalOrchestrator builds retrieval plan
-     -> RAG tools query pgvector with filters (law category, source type, document status)
-     -> Post-retrieval filtering removes low-quality or invalid chunks
-     -> Reranker reorders candidates
-     -> AnswerComposer calls chat model with system prompt + memory + grounded context
-     -> CitationExtractor builds source list
-     -> ChatLogService persists logs/tokens/sources/timing
-     -> ResponseGeneral<ChatResponseDto>
-     -> Next.js renders answer, citations, follow-ups
+**Bean wiring:**
+
+```java
+@Bean
+Advisor retrievalAdvisor(VectorStore vectorStore,
+                         RetrievalPolicy retrievalPolicy,
+                         CitationPostProcessor citationPostProcessor) {
+    return RetrievalAugmentationAdvisor.builder()
+        .documentRetriever(VectorStoreDocumentRetriever.builder()
+            .vectorStore(vectorStore)
+            .similarityThreshold(retrievalPolicy.getSimilarityThreshold())
+            .topK(retrievalPolicy.getTopK())
+            .build())
+        .documentPostProcessors(citationPostProcessor)   // runs CitationMapper
+        .build();
+}
 ```
 
-### 2. Case-analysis flow
+**Preserving CitationMapper/AnswerComposer:** the `CitationPostProcessor` implements `DocumentPostProcessor` (returns documents unchanged) but as a side effect writes `List<CitationResponse>` and `List<SourceReferenceResponse>` into the advisor context:
 
-This must be separate from normal chat logic, even if they share the same lower layers.
-
-```text
-User -> Next.js case-analysis form/chat
-     -> POST Spring /api/v1/case-analysis
-     -> CaseAnalysisController validates scenario payload
-     -> CaseAnalysisService loads active CASE_ANALYSIS parameters
-     -> FactExtractor structures the narrative
-     -> IssueClassifier identifies topics (license, alcohol, accident, vehicle papers, lane violation, etc.)
-     -> RetrievalOrchestrator performs targeted multi-query retrieval
-     -> EvidenceAssembler groups retrieved chunks by legal issue
-     -> AnswerComposer generates structured output:
-           facts understood
-           relevant legal basis
-           likely violation/penalty
-           required documents/procedure
-           uncertainty / assumptions
-           suggested next steps
-     -> AnswerGuard checks for missing citations / unsupported claims
-     -> ChatLogService persists detailed trace
-     -> ResponseGeneral<CaseAnalysisResponseDto>
+```java
+@Component
+public class CitationPostProcessor implements DocumentPostProcessor {
+    public static final String CITATIONS = "chat.citations";
+    public static final String SOURCES = "chat.sources";
+    private final CitationMapper mapper;
+    @Override public List<Document> process(Query q, List<Document> docs) {
+        List<CitationResponse> cites = mapper.toCitations(docs);
+        AdvisorContextHolder.put(CITATIONS, cites);
+        AdvisorContextHolder.put(SOURCES, mapper.toSources(cites));
+        return docs;   // unchanged
+    }
+}
 ```
 
-### 3. Ingestion flow
+`ChatService` then reads citations from the response `context()` map after the call returns and passes them to `AnswerComposer.compose()`. No change to `CitationMapper` or `AnswerComposer` signatures.
 
-```text
-Admin -> Next.js admin source screen
-      -> POST /api/admin/knowledge-sources or upload/create source
-      -> source registry saved in PostgreSQL
-      -> POST /api/admin/ingestion/jobs or /run/{type}
-      -> IngestionService selects adapter by source type
-      -> parser fetches/extracts text
-      -> normalizer cleans headers/footers/duplicate clauses
-      -> legal chunker creates semantically useful chunks
-      -> embedding model generates vectors
-      -> VectorStoreWriter upserts into pgvector
-      -> source/chunk metadata stored
-      -> ingestion job status updated
-      -> admin UI shows success/fail counts
+Per-call trust/active filter is passed in via `VectorStoreDocumentRetriever.FILTER_EXPRESSION` context param — already documented in Spring AI for metadata-filtered RAG.
+
+### 3.3 BeanOutputConverter + LegalAnswerDraft
+
+**Current flow:** `client.prompt().user(...).call().chatResponse()` → raw text → `parseDraft` → `LegalAnswerDraft`.
+
+**Target flow (verified in Spring AI docs):**
+
+```java
+LegalAnswerDraft draft = client.prompt()
+    .advisors(AdvisorParams.ENABLE_NATIVE_STRUCTURED_OUTPUT)   // if model supports it
+    .user(prompt)
+    .call()
+    .entity(LegalAnswerDraft.class);
 ```
 
-### 4. Answer-check flow
+**Zero changes to `LegalAnswerDraft`** — it is already a plain Java record with simple fields, which is exactly what `BeanOutputConverter` consumes. Spring AI generates a JSON schema from the record and appends format instructions to the prompt automatically (or supplies a native `response_format` for models that support it).
 
-```text
-Admin -> Next.js checks screen
-      -> POST /api/admin/checks/runs
-      -> CheckAdminService creates run for active parameter set
-      -> runner replays check definitions through ChatService and/or CaseAnalysisService
-      -> evaluator model scores semantic alignment and groundedness heuristics
-      -> failures and logs stored in DB
-      -> admin UI compares runs over time
+**Model caveat:** `ENABLE_NATIVE_STRUCTURED_OUTPUT` requires provider support. OpenRouter proxies Anthropic/OpenAI/Google — most current catalog models support it. For older or partial-support models (e.g. DeepSeek V3.2), fall back to non-native mode (`.entity(LegalAnswerDraft.class)` without the advisor) which uses prompt-augmented schema via `BeanOutputConverter`. Decision is per-model: add `supportsNativeStructuredOutput: true|false` to each `AiModelProperties.ModelEntry`.
+
+**Validation:** wrap with `StructuredOutputValidationAdvisor.builder().outputType(LegalAnswerDraft.class).maxRepeatAttempts(2).advisorOrder(BaseAdvisor.HIGHEST_PRECEDENCE + 1000).build()`. This subsumes the current `fallbackDraft` defensive path by auto-retrying bad JSON.
+
+### 3.4 API-key admin vs AiModelProperties
+
+**Split of concerns:**
+
+| Concern | Owner | Storage |
+|---------|-------|---------|
+| Model catalog (id, display name, provider) | `AiModelProperties` | YAML (stays) |
+| Per-model `baseUrl` | `AiModelProperties` | YAML (stays) |
+| API keys (per provider, not per model id) | **new `ApiKeyService`** | DB (`api_key` table, AES-GCM encrypted) |
+| Default/bootstrap API key | `spring.ai.openai.api-key` | YAML/env (fallback only) |
+
+**Resolution chain** (in `ChatClientConfig`, when building each `ChatClient`):
+1. `apiKeyService.findActiveByProvider(entry.provider())` → decrypt → use
+2. else `entry.apiKey()` (YAML per-model override, existing)
+3. else `spring.ai.openai.api-key` (existing fallback)
+
+**Key rotation:** `ApiKeyService.save()` publishes `ApiKeyRotatedEvent`. `ChatClientConfig` listens, rebuilds affected `ChatClient` entries in the map. The map bean changes from `@Bean Map<String, ChatClient>` to a small `ChatClientRegistry` component wrapping a `ConcurrentHashMap` so it can be mutated without app restart.
+
+**Schema (Liquibase):**
+```
+api_key(id UUID PK, provider VARCHAR, key_ciphertext BYTEA, key_iv BYTEA,
+        key_tag BYTEA, masked_display VARCHAR, created_at, rotated_at,
+        rotated_by, active BOOLEAN)
+api_key_audit(id PK, api_key_id FK, actor, action, at, request_ip)
 ```
 
-### 5. Raw retrieval debug flow
+**Admin endpoints** (under `/api/admin/api-keys`): `GET` returns `masked_display` only; `POST`/`PUT` accepts new raw key and encrypts; `DELETE` deactivates. All write endpoints log to `api_key_audit`.
 
-Keep a search endpoint for retrieval debugging, similar to the reference systems.
+### 3.5 Prompt caching (OpenRouter `cache_control`)
 
-```text
-Admin -> POST /api/v1/search
-      -> SearchService similarity search only
-      -> return chunks + scores + source metadata
+**Mechanism:** OpenRouter accepts Anthropic-style `cache_control: {"type":"ephemeral"}` markers on message content parts. Static system prompt (disclaimer, output schema instructions, role definition — roughly 1–3 KB) should be marked cached; dynamic per-request content (retrieved docs, user question) must not.
+
+**Integration point:** new `PromptCachingAdvisor` (order=+500, runs AFTER retrieval so user message contains doc context, but BEFORE the model call). It mutates the `SystemMessage` metadata to add the provider-specific `cache_control` flag. Alternative: set `OpenAiChatOptions.metadata` per call in `ChatService`. Advisor approach preferred — keeps ChatService slim.
+
+**Implication:** requires splitting `ChatPromptFactory.buildPrompt` — current implementation concatenates everything into a single user prompt. Must produce separate `SystemMessage` (cacheable) + `UserMessage` (dynamic). This refactor is a prerequisite for F.
+
+### 3.6 Embedding cache (Caffeine)
+
+**Integration point:** decorator bean around the auto-configured `EmbeddingModel`. Does NOT touch chat flow directly — but `VectorStoreDocumentRetriever` calls `EmbeddingModel.embed(query)` for each chat. Caching is the quickest latency win (PERF-01).
+
+```java
+@Bean @Primary
+EmbeddingModel cachingEmbeddingModel(EmbeddingModel delegate) {
+    Cache<String, float[]> cache = Caffeine.newBuilder()
+        .maximumSize(10_000).expireAfterWrite(Duration.ofHours(24)).build();
+    return new CachingEmbeddingModel(delegate, cache);  // delegates on miss
+}
 ```
 
-This is important for diagnosing whether failures come from retrieval or generation.
+Keyed by SHA-256 of normalized (trim + lowercase + collapse whitespace) query string. Cache is read-through; ingestion path should bypass (use delegate directly) to avoid polluting with unique per-chunk texts.
 
-## Where Each Required Concern Should Live
+---
 
-### Ingestion
-Live in `admin` + `knowledge` + `service/ingestion` layers, not inside chat.
+## 4. Advisor Chain Ordering Table
 
-- `AdminKnowledgeSourceController`: create/update trusted source definitions
-- `AdminIngestionController`: run ingestion/reindex jobs
-- `IngestionService`: orchestration
-- `Ingester` implementations per source type:
-  - `PdfLegalIngester`
-  - `WordLegalIngester`
-  - `WebsiteLegalIngester`
-  - `StructuredRegulationIngester`
-- `KnowledgeSourceRepository`, `IngestionJobRepository`
+Verified against Spring AI docs — "Lower order values = higher priority = execute earlier in request phase. Response phase executes in reverse order (stack unwinding)."
 
-Reason: ingestion is a back-office content pipeline, not a runtime chat concern.
+| Order | Advisor | Purpose |
+|-------|---------|---------|
+| `HIGHEST_PRECEDENCE` (MIN_VALUE) | `GroundingGuardInputAdvisor` | Intent classify, short-circuit chitchat |
+| `-500` | `MessageChatMemoryAdvisor` (existing, per-call) | Load thread history |
+| `0` | `RetrievalAugmentationAdvisor` | Retrieve + post-process (CitationMapper) |
+| `+500` | `PromptCachingAdvisor` | Mark system block cacheable |
+| `+1000` | `StructuredOutputValidationAdvisor` | Retry on bad JSON (bounded) |
+| `LOWEST_PRECEDENCE` (MAX_VALUE) | `GroundingGuardOutputAdvisor` | Final refusal override |
 
-### Vector store management
-Live in a dedicated admin module.
+**Request phase (winding):** GuardIn → Memory → RAG → Cache → Validation → GuardOut → LLM
+**Response phase (unwinding):** LLM → GuardOut → Validation → Cache → RAG → Memory → GuardIn
 
-- `AdminVectorStoreController`
-- `VectorStoreAdminService`
-- DTOs for document/chunk inspection, delete, refresh, and filter operations
+GuardOut sees fully-processed response first; GuardIn sees the final response last (useful for classifier cache warming).
 
-Reason: this preserves the Jmix “vector store view” concept while expressing it in shoes-style REST.
+---
 
-### Parameters
-Live in a dedicated parameter service with target types.
+## 5. AdvisorContext Keys (shared state contract)
 
-Recommended target types:
-- `CHAT`
-- `CASE_ANALYSIS`
-- `ANSWER_CHECK`
-- optionally `INGESTION` for chunking/parser settings if you want DB-managed runtime tuning
+Central contract for cross-advisor + ChatService communication. Constants live in new interface `ChatAdvisorContextKeys` to avoid string-typo bugs.
 
-Reason: `jmix-ai-backend` already demonstrates that parameter versioning and activation is a first-class capability, and both chat and checks depend on it.
+| Key | Writer | Reader | Type |
+|-----|--------|--------|------|
+| `GroundingGuardKeys.INTENT` | InputGuard | OutputGuard, ChatService (logging) | `IntentClass` enum |
+| `GroundingGuardKeys.FORCE_REFUSAL` | InputGuard | OutputGuard | `Boolean` |
+| `GroundingGuardKeys.STATUS` | OutputGuard | ChatService (composer + chat-log) | `GroundingStatus` |
+| `RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT` | RAG advisor | OutputGuard, ChatService | `List<Document>` |
+| `CitationPostProcessor.CITATIONS` | CitationPostProcessor | ChatService | `List<CitationResponse>` |
+| `CitationPostProcessor.SOURCES` | CitationPostProcessor | ChatService | `List<SourceReferenceResponse>` |
+| `VectorStoreDocumentRetriever.FILTER_EXPRESSION` | ChatService (per-call) | RAG advisor | `Filter.Expression` (trust tier, active flag) |
 
-### Chat logs
-Live in `ai.chatlog` as a separate persistence concern.
+---
 
-Persist at least:
-- conversation/thread id
-- endpoint type (`chat` vs `case-analysis`)
-- user input
-- answer text
-- retrieved sources
-- prompt/completion tokens
-- duration
-- parameter version used
-- retrieval diagnostics
-- error state
+## 6. Data Flow — Before vs After
 
-Reason: Spring AI chat memory is not full audit history; official docs distinguish memory from history. Keep chat memory for model context, and chat logs for admin observability/audit.
-
-### Answer checks
-Live in `ai.checks` and call existing chat/case services as clients.
-
-Do not create a completely separate generation pipeline for checks. Reuse production answer paths, otherwise check results are misleading.
-
-Recommended subparts:
-- `CheckDefinition`
-- `CheckRun`
-- `CheckResult`
-- `AnswerEvaluationService`
-- `CheckRunner`
-
-### Case-analysis logic
-Live in its own `ai.case` module, not hidden inside generic chat.
-
-It should reuse retrieval and generation primitives, but expose a distinct application service because it needs:
-- structured input normalization
-- scenario fact extraction
-- issue classification
-- multi-part output schema
-- stricter answer guards around assumptions and ambiguity
-
-This is one of the most important boundaries in the system.
-
-## Recommended REST Surface
-
-Follow shoes-style route naming and wrappers.
-
-### Public/user-facing
-- `POST /api/v1/chat`
-- `POST /api/v1/chat/stream` or proxied through Next.js route handler
-- `POST /api/v1/case-analysis`
-- `POST /api/v1/search` (admin/debug only in UI, but can still be a versioned API)
-
-### Admin-facing
-- `GET/POST/PUT/DELETE /api/admin/knowledge-sources`
-- `GET/POST /api/admin/ingestion/jobs`
-- `POST /api/admin/ingestion/run/{sourceId|type}`
-- `GET/DELETE /api/admin/vector-store/documents`
-- `GET/POST/PUT/DELETE /api/admin/ai-parameters`
-- `POST /api/admin/ai-parameters/{id}/activate`
-- `GET /api/admin/chat-logs`
-- `GET /api/admin/chat-logs/{id}`
-- `GET/POST/PUT/DELETE /api/admin/checks/definitions`
-- `POST /api/admin/checks/runs`
-- `GET /api/admin/checks/runs`
-- `GET /api/admin/checks/runs/{runId}/results`
-
-## Patterns to Follow
-
-### Pattern 1: Orchestration service above reusable AI primitives
-**What:** Controllers should call application services (`ChatService`, `CaseAnalysisService`) that orchestrate lower-level retrieval, memory, and model clients.
-
-**When:** Always. Do not let controllers assemble prompts or talk to vector stores directly.
-
-**Why:** This preserves testability and keeps REST structure aligned with the shoes migration style.
-
-**Example:**
-```typescript
-ChatController -> ChatService
-CaseAnalysisController -> CaseAnalysisService
-ChatService -> ParameterService + RetrievalOrchestrator + ChatLogService
+### 6.1 v1.0 (current)
+```
+question → RetrievalPolicy.buildRequest → vectorStore.similaritySearch → [docs]
+        → CitationMapper.toCitations → [citations]
+        → containsAnyLegalCitation (keyword gate) → refuse / continue
+        → ChatPromptFactory.buildPrompt → single user prompt string
+        → ChatClient.call().chatResponse() → raw text
+        → parseDraft(extractJson) → LegalAnswerDraft | fallbackDraft
+        → AnswerComposer.compose → ChatAnswerResponse
+        → chatLogService.save (sync, blocking on return path)
 ```
 
-### Pattern 2: Retrieval and generation are separate services
-**What:** Keep retrieval planning/search/reranking separate from answer composition.
+### 6.2 v1.1 (target)
+```
+question → client.prompt().advisors(chain).user(q).call().entity(LegalAnswerDraft)
+           │
+           └─ advisor chain does: intent classify → retrieve+cite → cache →
+              native structured output → validate → final refusal check
+           │
+           returns: LegalAnswerDraft + AdvisorContext{status, citations, sources, docs}
 
-**When:** For both chat and case analysis.
-
-**Why:** Legal systems fail differently in retrieval and generation; you need to inspect them separately.
-
-### Pattern 3: Active parameter sets per target type
-**What:** Store editable parameter records in DB and mark one active per target.
-
-**When:** For chat, case analysis, and checks.
-
-**Why:** This is core to the reference backend and critical for experimentation without redeploying.
-
-### Pattern 4: Source registry before ingestion job execution
-**What:** Maintain canonical metadata for legal sources before chunking/indexing.
-
-**When:** Always for admin-managed sources.
-
-**Why:** You need provenance, trust level, effective date, source type, and refresh status independent of vector chunks.
-
-### Pattern 5: Thin Next.js BFF, fat Spring domain backend
-**What:** Keep business rules in Spring. Let Next.js focus on UI composition, optimistic state, streaming UX, and auth/session glue.
-
-**When:** Across the whole app.
-
-**Why:** Otherwise the admin logic gets split across two runtimes and becomes hard to reason about.
-
-## Anti-Patterns to Avoid
-
-### Anti-Pattern 1: One giant `AiService`
-**What:** A single service handling chat, ingestion, vector management, parameters, checks, and admin logic.
-
-**Why bad:** It destroys boundaries, makes tests weak, and prevents independent evolution of chat vs ingestion vs evaluation.
-
-**Instead:** Separate modules with one orchestration service per capability.
-
-### Anti-Pattern 2: Putting case analysis inside prompt-only chat branching
-**What:** A single `/chat` endpoint with prompt text like “if this looks like a case, analyze it.”
-
-**Why bad:** Hard to validate, hard to monitor, hard to tune independently, and hard to provide structured UI output.
-
-**Instead:** Create a first-class `CaseAnalysisService` and endpoint.
-
-### Anti-Pattern 3: Treating chat memory as audit history
-**What:** Assuming Spring AI memory tables replace chat logs.
-
-**Why bad:** Memory is for short context windows, not full admin observability. Tool-call internals may not be preserved there.
-
-**Instead:** Keep JDBC chat memory for context and a separate `chat_logs` domain for audit/debug.
-
-### Anti-Pattern 4: Storing only vectors without legal metadata
-**What:** Index chunks without clear metadata like source URL, regulation code, article number, effective date, issuer, and source trust tier.
-
-**Why bad:** You cannot cite properly, filter outdated content, or explain answers.
-
-**Instead:** Enforce rich metadata on every chunk.
-
-### Anti-Pattern 5: Putting admin CRUD directly on vector rows only
-**What:** Managing the knowledge base solely by editing vector entries.
-
-**Why bad:** You lose the source-of-truth distinction between a document source and its derived chunks.
-
-**Instead:** Manage sources in a source registry, and use vector-store admin for derived-document inspection and maintenance.
-
-## Suggested Internal Services
-
-| Service | Purpose | Notes |
-|---------|---------|-------|
-| `ChatService` | User legal Q&A orchestration | Reuses retrieval and memory |
-| `CaseAnalysisService` | Structured scenario analysis | Separate endpoint and output schema |
-| `RetrievalOrchestrator` | Query planning, filtering, reranking | Shared by chat and case analysis |
-| `GroundingService` | Build citation-ready context package | Converts docs to prompt-safe evidence |
-| `AnswerGuardService` | Check citation presence, unsupported claims, missing disclaimers | Lightweight runtime guard |
-| `ParameterService` | Manage active configs and versions | Target-type aware |
-| `ChatLogService` | Persist traces and metrics | Independent of chat memory |
-| `CheckRunnerService` | Regression execution | Calls production services |
-| `KnowledgeSourceService` | Trusted-source CRUD and status | Source of truth for ingestion |
-| `IngestionService` | Job orchestration | Uses source adapters |
-| `VectorStoreAdminService` | Inspect/delete/update chunks | Admin only |
-| `LegalMetadataNormalizer` | Normalize document metadata | Very important for legal citations |
-| `LegalChunkingService` | Chunk by article/section where possible | Better than naive fixed-size chunks |
-
-## Suggested Data Model Boundaries
-
-### Relational tables/entities
-- `knowledge_source`
-- `knowledge_source_snapshot` or `source_version`
-- `ingestion_job`
-- `ai_parameter`
-- `chat_log`
-- `check_definition`
-- `check_run`
-- `check_result`
-- optionally `case_analysis_record`
-
-### Vector metadata per chunk
-At minimum:
-- `source_id`
-- `source_type`
-- `source_url` or file path
-- `document_title`
-- `regulation_code`
-- `article`
-- `clause`
-- `effective_date`
-- `issuer`
-- `jurisdiction`
-- `language`
-- `trust_level`
-- `chunk_index`
-- `content_hash`
-- `status` (`active`, `superseded`, `draft`)
-
-This metadata is what enables filtering outdated legal text and producing credible citations.
-
-## Next.js Frontend Structure
-
-```text
-app/
-  (chat)/
-    chat/page.tsx
-    case-analysis/page.tsx
-  (admin)/
-    admin/layout.tsx
-    admin/sources/page.tsx
-    admin/ingestion/page.tsx
-    admin/vector-store/page.tsx
-    admin/parameters/page.tsx
-    admin/chat-logs/page.tsx
-    admin/checks/page.tsx
-  api/
-    chat/stream/route.ts      # optional thin proxy for SSE/streaming
-    auth/...                  # only if needed
-components/
-  chat/
-  admin/
-lib/
-  api-client/
-  schemas/
-  auth/
+ChatService: → AnswerComposer.compose(status, draft, citations, sources)
+             → chatLogService.saveAsync (PERF-01 quick win)
+             → return ChatAnswerResponse
 ```
 
-### Frontend rule of thumb
-- **Direct browser -> Spring REST** for normal CRUD and query endpoints.
-- **Next.js route handler -> Spring REST** only when streaming, cookie mediation, or secret-bearing exchange benefits from a proxy.
+`ChatService.doAnswer` shrinks from ~250 lines to ~70.
 
-## Build Order Implications
+---
 
-Build in this order because later pieces depend on earlier data and contracts.
+## 7. Backward Compatibility & Incremental Rollout
 
-### Phase 1: Backend AI foundations
-1. **Core Spring project structure and common REST conventions**
-2. **pgvector + PostgreSQL configuration**
-3. **parameter management service**
-4. **knowledge source registry**
+Each feature can ship as its own phase without breaking v1.0 behaviour. Recommended build order reflects dependency graph:
 
-Why first: every downstream AI workflow depends on stable storage, config, and source-of-truth metadata.
+| Phase | Deliverable | Depends on | Risk if done earlier |
+|-------|-------------|------------|----------------------|
+| A | Latency quick wins: async chat log, slim LegalAnswerDraft JSON schema in prompt, prompt trim, loosen/disable keyword gate behind feature flag | none | none |
+| B | Embedding cache (Caffeine) | A | none — transparent decorator |
+| C | BeanOutputConverter (`.entity(LegalAnswerDraft.class)` + `StructuredOutputValidationAdvisor`) | A | Structured output across OpenRouter providers varies — mitigate with per-model native vs bean-converter toggle |
+| D | GroundingGuardAdvisor (input classifier; output trivial context read) | C (classifier uses `.entity(IntentDecision.class)`) | false refusals if classifier prompt weak — gate behind feature flag, A/B against keyword gate |
+| E | RetrievalAugmentationAdvisor + CitationPostProcessor | D (guard must short-circuit chitchat BEFORE retrieval runs) | trust/active filter regression — port `RetrievalPolicy` filter to `FILTER_EXPRESSION` carefully |
+| F | PromptCachingAdvisor + system/user message split | E (system block must be stable post-retrieval) | no correctness risk; only cost/latency impact |
+| G | API-key admin (DB schema, service, UI, ChatClientRegistry rebuild on rotation) | none technically; parallelizable with A–F | rotation race conditions — use copy-on-write map |
 
-### Phase 2: Ingestion pipeline
-5. **source adapters for PDF/Word/web/structured docs**
-6. **chunking + metadata normalization**
-7. **embedding + vector upsert pipeline**
-8. **admin ingestion APIs**
+**Feature flags:** each of D, E, F guarded by `app.chat.v11.<feature>=true|false`. `ChatService` branches between old path and new path until flag flips. Remove legacy code (parseDraft, keyword gate, manual retrieval) only after each flag is permanently true in staging.
 
-Why second: chat quality depends on having a usable corpus before UI polish.
+**Rollback story:** every phase leaves v1.0 code path present behind flag. Rollback = flip flag + redeploy. No DB migration blocks rollback except Phase G (`api_key` table is additive and tolerates YAML fallback, so even G is reversible).
 
-### Phase 3: Retrieval layer
-9. **semantic search service**
-10. **metadata filtering**
-11. **reranker**
-12. **retrieval debug endpoint**
+---
 
-Why third: validate retrieval independently before generation hides problems.
+## 8. Risk Register (integration-specific)
 
-### Phase 4: Chat runtime
-13. **chat memory integration**
-14. **chat orchestration service**
-15. **chat logging**
-16. **public chat endpoint**
-17. **basic Next.js chat UI**
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| `DocumentPostProcessor` signature lacks direct access to advisor context in some Spring AI versions | MED | Use ThreadLocal-bound `AdvisorContextHolder` OR call `CitationMapper` inside a thin wrapping `CallAdvisor` at order=+10 (right after RAG advisor) that reads `DOCUMENT_CONTEXT` from response context |
+| `ENABLE_NATIVE_STRUCTURED_OUTPUT` unsupported by a catalog model | MED | Per-model boolean `supportsNativeStructuredOutput` in `AiModelProperties.ModelEntry`; toggle the advisor at client build time |
+| OpenRouter `cache_control` semantics differ per upstream provider | MED | Caching advisor skips if catalog entry provider ≠ `anthropic`/`openai` |
+| Advisor chain order conflicts if `MessageChatMemoryAdvisor` must see the augmented (post-RAG) user message | LOW | Current v1.0 places memory advisor on raw question — keep that; memory should store the user's actual words, not injected context |
+| API key rotation races with in-flight requests | LOW | `ChatClientRegistry` uses `ConcurrentHashMap`; rebuild publishes new reference atomically; in-flight requests complete on old client |
+| Intent classifier adds one LLM roundtrip and raises latency | MED | Use gpt-4o-mini with 64-token cap; cache recent classifications (Caffeine, 5-min TTL); skip classifier when strong legal keyword present (cheap pre-check, NOT a hard gate) |
 
-Why fourth: once retrieval works, standard Q&A is the lowest-friction production path.
+---
 
-### Phase 5: Case analysis
-18. **fact extraction + issue classification**
-19. **structured case-analysis answer schema**
-20. **answer guard checks**
-21. **case-analysis endpoint + UI**
+## 8b. Provider routing ADR — single `OpenAiChatModel` (v1.1)
 
-Why fifth: this is the most product-defining feature but should be built on already-proven retrieval and logging layers.
+**Decision:** All 8 cataloged models (`anthropic/*`, `openai/*`, `google/*`, `deepseek/*`) go through one `OpenAiChatModel` bean per model, all pointing to OpenRouter's OpenAI-compat endpoint. No `spring-ai-starter-model-anthropic` or other provider-specific starter in v1.1.
 
-### Phase 6: Admin observability and evaluation
-22. **vector-store admin UI**
-23. **chat log screens**
-24. **answer checks definitions + runs**
-25. **parameter activation/comparison UX**
+**Why this is safe:**
+- OpenRouter translates OpenAI-shape requests transparently to every upstream provider — verified for all 8 models.
+- Explicit per-block `cache_control: {"type":"ephemeral"}` still flows through OpenAI-compat to Anthropic upstreams, so CACHE-01 is achievable without multi-SDK.
+- Gemini's native Spring AI client requires GCP auth — not routable via OpenRouter anyway.
 
-Why sixth: this completes the preserved Jmix-admin capability set and enables safe iteration.
+**What v1.1 gives up (accepted):** Anthropic extended-thinking blocks, native tool-use shape, 1h `cache_control` TTL (5m via per-block still works).
 
-## Dependency Graph
+**Revisit trigger (v1.2+):** scenario analysis needs extended reasoning tokens, or system prompt reuse window > 5m. Then add `spring-ai-starter-model-anthropic`, route `anthropic/*` via it (OpenRouter Anthropic-Skin endpoint). Full sketch in `STACK.md` ADR section.
 
-```text
-Knowledge Source Registry -> Ingestion Pipeline -> Vector Store
-Vector Store -> Retrieval/Reranking -> Chat
-Parameters -> Retrieval/Reranking -> Chat
-Parameters -> Case Analysis
-Chat + Parameters -> Answer Checks
-Chat + Case Analysis -> Chat Logs -> Admin Observability UI
-```
+## 9. Summary for Requirement-Definer
 
-Or more explicitly:
-
-```text
-Source registry
-  -> ingestion jobs
-  -> vector chunks indexed
-  -> retrieval works
-  -> chat works
-  -> case analysis works
-  -> checks become meaningful
-```
-
-## Scalability Considerations
-
-| Concern | At 100 users | At 10K users | At 1M users |
-|---------|--------------|--------------|-------------|
-| Chat traffic | Single Spring app fine | Separate web/app and worker pools | Split chat runtime, ingestion workers, and read replicas |
-| Ingestion jobs | Synchronous admin-triggered jobs acceptable | Move long jobs to async queue/executor | Dedicated ingestion pipeline and job orchestration |
-| Vector search | pgvector in same Postgres is fine | Tune indexes, metadata filters, and table growth | Consider dedicated vector infra only if pgvector becomes bottleneck |
-| Chat logs | Single table ok | Add paging/indexing/retention | Archive cold logs and separate analytics store |
-| Checks | Manual runs ok | Background workers and run queue | Dedicated evaluation service |
-| Frontend | Single Next.js app fine | Cache admin lists and chat shell assets | Edge/static optimization, backend streaming tuning |
-
-## Confidence Notes
-
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Spring REST modular-monolith recommendation | HIGH | Strongly supported by both reference codebases and standard Spring layering |
-| pgvector + PostgreSQL choice | HIGH | Explicitly supported by Spring AI docs and already used by the reference backend |
-| Separate chat memory vs chat logs | HIGH | Official Spring AI docs explicitly distinguish memory from history |
-| Separate case-analysis module | MEDIUM | Opinionated recommendation based on product requirements and maintainability rather than an official framework rule |
-| Thin Next.js route-handler usage | MEDIUM | Strong architectural fit, but exact proxy choice depends on auth and streaming needs |
-
-## Bottom-Line Recommendation
-
-Build the Vietnam traffic-law chatbot as a **Spring Boot modular monolith with dedicated AI subdomains and a Next.js App Router frontend**, not as a generic chatbot service. Preserve `jmix-ai-backend`’s conceptual core—active parameters, ingesters, vector administration, chat logs, checks, reranking, and grounded chat—but express it through **shoes-style REST controllers and services**.
-
-Most importantly:
-- keep **chat** and **case analysis** as separate application services,
-- keep **ingestion** and **vector management** as admin/back-office capabilities,
-- keep **chat memory** separate from **audit logs**,
-- keep **Spring** as the source of business and AI orchestration logic,
-- keep **Next.js** focused on chat UX, admin UX, and thin proxy concerns only.
+- **Six v1.1 features map to a clean advisor chain** with ordering `GuardIn → Memory → RAG → Cache → Validation → GuardOut`.
+- **`CitationMapper`, `AnswerComposer`, `AnswerCompositionPolicy`, `LegalAnswerDraft`, `RetrievalPolicy`, `GroundingStatus` — all kept.** Integration is via Spring AI extension points (`DocumentPostProcessor`, `BeanOutputConverter`, `CallAdvisor`), not rewrites.
+- **Retired code:** `parseDraft` + `extractJson` + `fallbackDraft`, `containsAnyLegalCitation` + keyword list, `determineGroundingStatus`, raw `vectorStore.similaritySearch` in ChatService.
+- **API-key admin is an additive DB layer** in front of the YAML model catalog; catalog remains YAML.
+- **Build order A→B→C→D→E→F (with G parallel)** enables phase-by-phase shipping; each phase feature-flagged for incremental rollout and trivial rollback.
+- **Single file to modify aggressively:** `ChatService.doAnswer` shrinks by ~70%; `ChatClientConfig` gains a key-resolution step and an event listener.
 
 ## Sources
 
-### HIGH confidence
-- Jmix AI Backend README: `D:/Study materials spring 2026/EXE101/ai/jmix-ai-backend/README.md`
-- Jmix chat controller: `D:/Study materials spring 2026/EXE101/ai/jmix-ai-backend/src/main/java/io/jmix/ai/backend/controller/ChatController.java`
-- Jmix chat implementation: `D:/Study materials spring 2026/EXE101/ai/jmix-ai-backend/src/main/java/io/jmix/ai/backend/chat/ChatImpl.java`
-- Jmix ingester manager: `D:/Study materials spring 2026/EXE101/ai/jmix-ai-backend/src/main/java/io/jmix/ai/backend/vectorstore/IngesterManager.java`
-- Jmix chat log manager: `D:/Study materials spring 2026/EXE101/ai/jmix-ai-backend/src/main/java/io/jmix/ai/backend/chatlog/ChatLogManager.java`
-- Jmix check runner: `D:/Study materials spring 2026/EXE101/ai/jmix-ai-backend/src/main/java/io/jmix/ai/backend/checks/CheckRunner.java`
-- Shoes backend README: `D:/Study materials spring 2026/SBA301/project/shoes-shopping-online-system-be/README.md`
-- Shoes AI chat controller: `D:/Study materials spring 2026/SBA301/project/shoes-shopping-online-system-be/src/main/java/com/sba/ssos/ai/chat/ChatController.java`
-- Shoes ingestion controller: `D:/Study materials spring 2026/SBA301/project/shoes-shopping-online-system-be/src/main/java/com/sba/ssos/ai/ingestion/IngestionController.java`
-- Shoes parameters controller: `D:/Study materials spring 2026/SBA301/project/shoes-shopping-online-system-be/src/main/java/com/sba/ssos/ai/parameters/ParametersController.java`
-- Shoes chat-log controller: `D:/Study materials spring 2026/SBA301/project/shoes-shopping-online-system-be/src/main/java/com/sba/ssos/ai/chatlog/AdminChatLogController.java`
-- Shoes checks controller: `D:/Study materials spring 2026/SBA301/project/shoes-shopping-online-system-be/src/main/java/com/sba/ssos/ai/checks/AdminCheckController.java`
-- Shoes vector-store controller: `D:/Study materials spring 2026/SBA301/project/shoes-shopping-online-system-be/src/main/java/com/sba/ssos/ai/vectorstore/AdminVectorStoreController.java`
-- Shoes search controller: `D:/Study materials spring 2026/SBA301/project/shoes-shopping-online-system-be/src/main/java/com/sba/ssos/ai/search/SearchController.java`
-- Spring AI chat memory reference: https://docs.spring.io/spring-ai/reference/api/chat-memory.html
-- Spring AI vector database reference: https://docs.spring.io/spring-ai/reference/api/vectordbs.html
+- Spring AI docs — RetrievalAugmentationAdvisor & Modular RAG: https://github.com/spring-projects/spring-ai/blob/main/spring-ai-docs/src/main/antora/modules/ROOT/pages/api/retrieval-augmented-generation.adoc (Context7, HIGH)
+- Spring AI docs — Advisors chain ordering, CallAdvisor, BaseAdvisor, HIGHEST/LOWEST_PRECEDENCE: https://github.com/spring-projects/spring-ai/blob/main/spring-ai-docs/src/main/antora/modules/ROOT/pages/api/advisors.adoc (Context7, HIGH)
+- Spring AI docs — StructuredOutputValidationAdvisor: https://github.com/spring-projects/spring-ai/blob/main/spring-ai-docs/src/main/antora/modules/ROOT/pages/api/advisors-recursive.adoc (Context7, HIGH)
+- Spring AI docs — BeanOutputConverter + `.entity()`: https://github.com/spring-projects/spring-ai/blob/main/spring-ai-docs/src/main/antora/modules/ROOT/pages/api/structured-output-converter.adoc (Context7, HIGH)
+- Spring AI docs — ENABLE_NATIVE_STRUCTURED_OUTPUT advisor: https://github.com/spring-projects/spring-ai/blob/main/spring-ai-docs/src/main/antora/modules/ROOT/pages/api/chatclient.adoc (Context7, HIGH)
+- Existing v1.0 classes read for integration points: `ChatService`, `ChatClientConfig`, `AnswerComposer`, `LegalAnswerDraft`, `CitationMapper` (verified, HIGH)
 
-### MEDIUM confidence
-- Next.js route handlers documentation path was not reliably fetched via WebFetch during this session; frontend guidance is based on current App Router conventions plus the project constraints rather than a successful official page extraction.
+---
+*Architecture research for: v1.1 Spring AI modular RAG integration*
+*Researched: 2026-04-17*
