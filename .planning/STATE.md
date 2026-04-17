@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Chat Performance & Spring AI Modular RAG
 current_phase: ""
-status: Defining requirements
+status: Ready to discuss Phase 7
 last_updated: "2026-04-17T00:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -16,15 +16,15 @@ progress:
 # State: Vietnam Traffic Law Chatbot
 
 **Initialized:** 2026-04-07
-**Current phase:** Not started (defining requirements)
-**Project status:** v1.1 milestone started (v1.0 MVP shipped 2026-04-15)
+**Current phase:** Not started (ready to discuss Phase 7)
+**Project status:** v1.1 roadmap approved (v1.0 MVP shipped 2026-04-15)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: — (ready to discuss Phase 7)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-17 — Milestone v1.1 started
+Status: Ready to discuss Phase 7
+Last activity: 2026-04-17 — v1.1 roadmap created (Phases 7–10)
 
 ## Project Reference
 
@@ -49,14 +49,25 @@ v1.0 (Complete):
 | 6 | Audit, Real-Data Validation & Stabilization | Complete |
 | 06.1 | Multi-Provider AI Model Selection | Complete |
 
-v1.1 (planned after roadmap step): Phases 7–12.
+v1.1 (Planned):
+
+| Phase | Name | Status |
+|------|------|--------|
+| 7 | Chat Latency Foundation | Not started |
+| 8 | Structured Output + GroundingGuardAdvisor | Not started |
+| 9 | Modular RAG + Prompt Caching | Not started |
+| 10 | User-Managed API Key Admin | Not started (parallelizable with Phase 7) |
 
 ## Accumulated Context
 
 - OpenRouter migration (2026-04-17): 9router + beeknoee replaced with unified OpenRouter gateway for chat + embedding
 - Default chat model switched to `openai/gpt-4o-mini` for speed
-- Chat pipeline currently uses manual RAG (ChatService.doAnswer ~150 lines): hardcoded keyword matching in `containsAnyLegalCitation` causes false refusals on greetings; 12-field JSON schema inflates completion tokens; sync chat log save blocks response; only `MessageChatMemoryAdvisor` from Spring AI is used
+- Chat pipeline currently uses manual RAG (ChatService.doAnswer ~250 lines): hardcoded keyword matching in `containsAnyLegalCitation` causes false refusals on greetings; 12-field JSON schema inflates completion tokens; sync chat log save blocks response; only `MessageChatMemoryAdvisor` from Spring AI is used
 - Spring AI 2.0.0-M4 available; modular RAG building blocks (`RetrievalAugmentationAdvisor`, `ContextualQueryAugmenter`, `DocumentRetriever`, `DocumentPostProcessor`) are stable since M3
+- ADR locked: single `OpenAiChatModel` via OpenRouter OpenAI-compat for all 8 models in v1.1 (no provider-specific starters)
+- ADR locked: Caffeine in-JVM cache (not Redis/Hazelcast) for v1.1; Spring Cache abstraction preserves swap path
+- ADR locked: hardcoded Vietnamese legal-keyword gate removed wholesale in v1.1 (ARCH-03)
+- Roadmap v1.1 created 2026-04-17: 4 phases (7, 8, 9, 10), 16/16 requirement coverage
 
 ## Workflow Settings
 
@@ -69,4 +80,4 @@ v1.1 (planned after roadmap step): Phases 7–12.
 - Nyquist validation: enabled
 
 ---
-*Last updated: 2026-04-17 — v1.1 milestone started*
+*Last updated: 2026-04-17 — v1.1 roadmap created*

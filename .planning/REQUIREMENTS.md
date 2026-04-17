@@ -70,26 +70,24 @@ Explicitly excluded from v1.1:
 
 ## Traceability
 
-_Filled by the roadmapper after phase breakdown._
-
 | REQ-ID | Phase | Success Criterion |
 |--------|-------|-------------------|
-| PERF-01 | — | — |
-| PERF-02 | — | — |
-| PERF-03 | — | — |
-| ARCH-01 | — | — |
-| ARCH-02 | — | — |
-| ARCH-03 | — | — |
-| ARCH-04 | — | — |
-| ARCH-05 | — | — |
-| CACHE-01 | — | — |
-| CACHE-02 | — | — |
-| ADMIN-07 | — | — |
-| ADMIN-08 | — | — |
-| ADMIN-09 | — | — |
-| ADMIN-10 | — | — |
-| ADMIN-11 | — | — |
-| ADMIN-12 | — | — |
+| PERF-01 | Phase 7 | Top-20 canonical legal lookups served in <2.5s p95 end-to-end (baseline + post-change snapshot) |
+| PERF-02 | Phase 7 | Greetings / non-legal small talk pass the loosened grounding gate (`keywordGate=false`) without hitting the refusal template; refusal-rate baseline captured |
+| PERF-03 | Phase 7 | HTTP response returns before chat-log persistence; HTTP-200 count equals chat_log row count within ≤0.1% gap under 1000-request load |
+| ARCH-01 | Phase 9 | Chat flow runs through `RetrievalAugmentationAdvisor` + custom advisors; raw `vectorStore.similaritySearch` in `ChatService` removed; `doAnswer` LOC ≥60% smaller |
+| ARCH-02 | Phase 8 | `.entity(LegalAnswerDraft.class)` backed by `BeanOutputConverter` replaces `parseDraft`/`extractJson`/`fallbackDraft`; cross-model matrix passes |
+| ARCH-03 | Phase 8 | LLM intent classifier + score-threshold grounding replace the Vietnamese keyword list; `containsAnyLegalCitation` + keyword list deleted |
+| ARCH-04 | Phase 8 | `GroundingGuardInputAdvisor` + `GroundingGuardOutputAdvisor` pair owns refusal policy and is togglable via config without editing `ChatService` |
+| ARCH-05 | Phase 9 | `[Nguồn n]` citation labels and `ChatAnswerResponse` JSON contract byte-for-byte preserved; v1.0 regression fixtures pass without frontend changes |
+| CACHE-01 | Phase 9 | Static system block carries `cache_control: {"type":"ephemeral","ttl":"1h"}`; integration test asserts `cached_tokens > 0` on second call for an Anthropic-family model |
+| CACHE-02 | Phase 7 | Caffeine embedding cache serves repeat normalized queries; Micrometer hit/miss metrics exposed; dimension-mismatch guard verified |
+| ADMIN-07 | Phase 10 | Admin creates / views / rotates / disables / soft-deletes keys through `/api/admin/api-keys` + Next.js admin page without backend restart |
+| ADMIN-08 | Phase 10 | AES-256-GCM at rest via `BytesEncryptor.stronger()`; CI grep + ArchUnit + Logback masking + gitleaks all green |
+| ADMIN-09 | Phase 10 | UI shows masked preview (first 4 + last 4 + fingerprint); plaintext never retrievable via UI/API after save |
+| ADMIN-10 | Phase 10 | Append-only `api_key_audit` row on every create/rotate/disable/delete with actor, action, TIMESTAMPTZ, fingerprint only |
+| ADMIN-11 | Phase 10 | Rotation takes effect within 60s without restart; `ChatClientRegistry` rebuilds on `ApiKeyRotatedEvent`; in-flight requests complete on old key |
+| ADMIN-12 | Phase 10 | "Test connection" button probes saved key via backend with success/failure indicator, never exposing plaintext |
 
 ---
-*Defined: 2026-04-17*
+*Defined: 2026-04-17 — traceability filled 2026-04-17*

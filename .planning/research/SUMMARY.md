@@ -86,63 +86,48 @@ Full detail in `.planning/research/PITFALLS.md`.
 
 ## Implications for Roadmap
 
-Suggested phases: **7** (6 sequential on chat pipeline + 1 parallel on API-key admin). Phase numbering continues from v1.0 which ended at Phase 6 → v1.1 starts at Phase 7.
+Suggested phases: **4** (3 sequential on chat pipeline + 1 parallel on API-key admin). Phase numbering continues from v1.0 which ended at Phase 6 → v1.1 uses Phases 7–10.
 
-### Phase 7: Foundation & Latency Quick Wins
-**Rationale:** Zero-risk prep unblocks everything downstream. Async chat-log save delivers immediate p95 improvement. Loosening keyword gate behind a flag is precondition for F2.
-**Delivers:** p95 < 2.5s on common lookups, async executor, slim schema `?slim=1` canary, `app.chat.grounding.keywordGate=false` flag, feature-flag infra, refusal-rate baseline snapshot.
-**Addresses:** F1 (PERF-01, PERF-02). **Avoids:** Pitfall 7, Pitfall 9.
+### Phase 7: Chat Latency Foundation
+**Rationale:** Zero-risk prep unblocks everything downstream. Async chat-log save delivers immediate p95 improvement. Loosening keyword gate behind a flag is precondition for Phase 8. Caffeine embedding cache is a transparent decorator independent of advisor work, so it belongs in the same foundation phase.
+**Delivers:** p95 < 2.5s on common lookups, async chat-log executor, slim `LegalAnswerDraft` JSON schema, `app.chat.grounding.keywordGate=false` flag, feature-flag infra, refusal-rate/latency baseline snapshot, `CachingEmbeddingModel` `@Primary` decorator with JHipster-style `CacheConfiguration`, dimension-mismatch guard, Micrometer hit/miss metrics.
+**Uses:** Caffeine 3.2.0, `spring-boot-starter-cache`, existing Spring Boot async executor.
+**Implements:** PERF-01, PERF-02, PERF-03, CACHE-02. **Avoids:** Pitfalls 7 (async race), 8 (cache staleness), 9 (frontend tolerant-render first).
 
-### Phase 8: Embedding Cache (Caffeine)
-**Rationale:** Transparent decorator; independent of advisor work; exercises Spring Cache abstraction on something that can't break grounding.
-**Delivers:** `CachingEmbeddingModel` `@Primary` bean, JHipster-style `CacheConfiguration`, dimension-mismatch guard, Micrometer metrics, model-change invalidation hook.
-**Uses:** Caffeine 3.2.0, `spring-boot-starter-cache`. **Implements:** CACHE-02. **Avoids:** Pitfall 8.
+### Phase 8: Structured Output + GroundingGuardAdvisor
+**Rationale:** `BeanOutputConverter`'s `.entity()` pattern is the smallest isolated advisor work — validating it first lets the LLM intent classifier in the GroundingGuardAdvisor reuse the same pattern. Keyword gate is deleted here (Phase 7 already flag-gated it off). Chitchat short-circuit lands here so it exists before the Phase 9 RAG refactor.
+**Delivers:** `.entity(LegalAnswerDraft.class)` backed by `BeanOutputConverter` replacing `parseDraft` + `extractJson` + `fallbackDraft`; `StructuredOutputValidationAdvisor` with `maxRepeatAttempts=2`; per-model `supportsStructuredOutput` capability flag with cross-model matrix test; `GroundingGuardInputAdvisor` + `GroundingGuardOutputAdvisor` pair (Input = intent classify + chitchat short-circuit; Output = final refusal override); heuristic-first Vietnamese intent classifier on 20-query regression set ≥95%; `MessageChatMemoryAdvisor` moved from per-call to `defaultAdvisors(...)`; deletion of `containsAnyLegalCitation` + keyword list.
+**Implements:** ARCH-02, ARCH-03, ARCH-04. **Avoids:** Pitfalls 1 (advisor order + ChatMemory), 3 (keyword-gate layered defence), 6 (strict schema across providers), 10 (classifier quality).
 
-### Phase 9: Structured Output (BeanOutputConverter)
-**Rationale:** Smallest isolated advisor work; validates `.entity()` + `StructuredOutputValidationAdvisor` before RAG depends on it.
-**Delivers:** `.entity(LegalAnswerDraft.class)` replacing manual parsing, per-model `supportsStructuredOutput` capability flag, cross-model matrix test.
-**Implements:** ARCH-02. **Avoids:** Pitfall 6.
+### Phase 9: Modular RAG + Prompt Caching
+**Rationale:** Centerpiece. Depends on Phase 8 (chitchat must short-circuit before retrieval triggers; `.entity()` baseline is established). Shrinks `ChatService.doAnswer` ~250→70 LOC. Prompt caching is bundled here because `cache_control` breakpoints require the stable system block that only emerges after the RAG migration splits prompt into cacheable system + dynamic user parts.
+**Delivers:** `RetrievalAugmentationAdvisor` with `VectorStoreDocumentRetriever` (inherits `RetrievalPolicy`), `CitationPostProcessor` (preserves `[Nguồn n]` labels), `ContextualQueryAugmenter.allowEmptyContext(true)` with Vietnamese template, `FILTER_EXPRESSION` for `trust_tier IN ('PRIMARY','SECONDARY')` metadata gate, retirement of raw `vectorStore.similaritySearch` in `ChatService`, byte-for-byte preservation of `ChatAnswerResponse` JSON contract; `PromptCachingAdvisor` at order `+500` with `cache_control: {"type":"ephemeral","ttl":"1h"}` via extra-body, provider-aware skip when provider ≠ Anthropic family, `cached_tokens > 0` integration test.
+**Implements:** ARCH-01, ARCH-05, CACHE-01. **Avoids:** Pitfalls 2 (allowEmptyContext), 4 (cache_control silently dropped), 11 (JSON contract drift), 12 (provider-specific caching semantics), 13 (manual-pipeline retirement regressions).
 
-### Phase 10: GroundingGuardAdvisor
-**Rationale:** Depends on Phase 9 (classifier uses `.entity(IntentDecision.class)`) and Phase 7's keyword-gate flag. Unblocks Phase 11 by ensuring chitchat short-circuits before retrieval.
-**Delivers:** `GroundingGuardInputAdvisor` + `GroundingGuardOutputAdvisor` pair, intent classifier (heuristic-first), chitchat canned replies, memory-advisor moved to `defaultAdvisors(...)`.
-**Implements:** ARCH-01 (partial), ARCH-03 (full). **Avoids:** Pitfalls 1, 10, 3.
-
-### Phase 11: Modular RAG Migration
-**Rationale:** Centerpiece. Depends on Phase 10. Shrinks `ChatService.doAnswer` ~250→70 LOC.
-**Delivers:** `RetrievalAugmentationAdvisor` wiring, `CitationPostProcessor`, `ContextualQueryAugmenter.allowEmptyContext(true)` with Vietnamese template, `FILTER_EXPRESSION` for trust-tier, identical output JSON shape, retirement of manual pipeline.
-**Implements:** ARCH-01. **Avoids:** Pitfalls 2, 11, 13.
-
-### Phase 12: Prompt Caching (OpenRouter `cache_control`)
-**Rationale:** Last advisor phase — needs stable system block which doesn't exist until Phase 11. System/user message split in `ChatPromptFactory` is prerequisite.
-**Delivers:** `PromptCachingAdvisor` at +500, `cache_control` via extra-body, provider-aware skip, `cached_tokens > 0` integration test.
-**Implements:** CACHE-01. **Avoids:** Pitfalls 4, 12.
-
-### Phase 13: User-Managed API Key Admin (parallel from Phase 7)
-**Rationale:** Pure platform work; zero coupling to chat pipeline; encryption-from-commit-#1 non-negotiable.
-**Delivers:** `api_key` + `api_key_audit` migrations (TIMESTAMPTZ, soft-delete), `ApiKeyService` + masked display + fingerprint, `ChatClientRegistry` + `@EventListener(ApiKeyRotatedEvent)`, `/api/admin/api-keys` CRUD, "Test connection" action, Next.js admin page, append-only audit role, Logback masking, `gitleaks` pre-commit, CI plaintext-grep gate.
-**Uses:** `spring-security-crypto` 6.5.0, JPA `AttributeConverter`, existing Next.js stack. **Implements:** ADMIN-07. **Avoids:** Pitfalls 5, 14, 15, 16, 17, 18.
+### Phase 10: User-Managed API Key Admin (parallel with Phase 7)
+**Rationale:** Pure platform work; zero coupling to the chat pipeline; encryption-from-commit-#1 is non-negotiable. Can start parallel with Phase 7.
+**Delivers:** `api_key` + `api_key_audit` Liquibase migrations (TIMESTAMPTZ, soft-delete, append-only role), JPA `AttributeConverter` backed by `BytesEncryptor.stronger()` (AES-256-GCM + PBKDF2), `ApiKeyService` with masked display (first4+last4+fingerprint) and "Test connection" probe, `ChatClientRegistry` + `@EventListener(ApiKeyRotatedEvent)` rebuilding the client map atomically, `/api/admin/api-keys` CRUD, Next.js admin page on existing RHF/zod/shadcn stack, Logback masking converter, ArchUnit boundary rules, `gitleaks` pre-commit hook, CI plaintext-grep gate (`sk-[A-Za-z0-9]{20,}`).
+**Uses:** `spring-security-crypto` 6.5.0, existing Next.js 16 / shadcn / react-hook-form 7.72 / zod 4 stack.
+**Implements:** ADMIN-07, ADMIN-08, ADMIN-09, ADMIN-10, ADMIN-11, ADMIN-12. **Avoids:** Pitfalls 5 (plaintext leakage), 14 (rotation race), 15 (audit completeness), 16 (gitleaks / secret detection), 17 (masked display), 18 (cached ChatClient staleness after rotation).
 
 ### Phase Ordering Rationale
 
-- Phase 7 first — feature-flag infra + async executor + baseline snapshot are prerequisites.
-- Phase 8 second — transparent win, de-risks Cache abstraction.
-- Phase 9 before 10 — classifier uses `.entity(IntentDecision.class)`.
-- Phase 10 before 11 — chitchat must short-circuit before retrieval.
-- Phase 11 before 12 — cache breakpoints require stable system block.
-- Phase 13 parallel with Phase 7-8 — zero coupling.
+- Phase 7 first — feature-flag infra + async executor + baseline snapshot + transparent embedding cache are all prerequisites for later work and deliver immediate p95 improvement.
+- Phase 8 before 9 — `.entity()` pattern validated before RAG depends on it; chitchat short-circuit must exist before retrieval refactor.
+- Phase 9 last of the chat pipeline — cache breakpoints require the stable system block that only emerges post-RAG migration.
+- Phase 10 parallel with Phase 7 — zero coupling to chat pipeline; API-key admin is additive.
 
-Highest-risk migration (Phase 11, keyword-gate removal + manual-RAG retirement) lands after Phases 9–10 validate the advisor pattern on lower-stakes surfaces.
+Highest-risk migration (Phase 9, keyword-gate fallout + manual-RAG retirement) lands after Phase 8 validates the advisor pattern and delivers chitchat short-circuit on a lower-stakes surface.
 
 ### Research Flags
 
 **Need deeper research at implementation kickoff:**
-- **Phase 10:** Spring AI M4 `CallAdvisor`/`BaseAdvisor` exact signatures (Context7 at kickoff); Vietnamese chitchat heuristic A/B on 20-query set.
-- **Phase 12:** `cache_control` extra-body serialization on M4 (likely `RestClient` interceptor fallback); verify via OpenRouter `generation`.
-- **Phase 13:** `BytesEncryptor.stronger()` on Spring Security Crypto 6.5.0 + Spring Boot 4 / Java 25; `AttributeConverter` × Hibernate 7 dirty-tracking.
+- **Phase 8:** Spring AI M4 `CallAdvisor`/`BaseAdvisor` exact signatures (Context7 at kickoff); Vietnamese chitchat heuristic A/B on 20-query set; per-model `supportsStructuredOutput` matrix test across 8 OpenRouter models.
+- **Phase 9:** `cache_control` extra-body serialization on M4 (likely `RestClient` interceptor fallback); verify via OpenRouter `generation` endpoint (`cached_tokens > 0`).
+- **Phase 10:** `BytesEncryptor.stronger()` on Spring Security Crypto 6.5.0 + Spring Boot 4 / Java 25; `AttributeConverter` × Hibernate 7 dirty-tracking; OpenRouter sticky-routing × per-credential.
 
 **Standard patterns — skip extra research:**
-- Phase 7 (textbook Spring Boot), Phase 8 (JHipster reference pinned), Phase 9 (`BeanOutputConverter` verified), Phase 11 (all primitives Context7-verified).
+- Phase 7 (textbook Spring Boot `@Async` + Caffeine + JHipster `CacheConfiguration` reference pinned).
 
 ## Confidence Assessment
 
@@ -157,11 +142,11 @@ Highest-risk migration (Phase 11, keyword-gate removal + manual-RAG retirement) 
 
 ### Gaps to Address
 
-- Spring AI M4 `cache_control` wire format — verify Phase 12 early via OpenRouter `cached_tokens`.
-- Per-model `supportsStructuredOutput` matrix — one-time test across 8 cataloged models at Phase 9 kickoff.
+- Spring AI M4 `cache_control` wire format — verify Phase 9 early via OpenRouter `cached_tokens`.
+- Per-model `supportsStructuredOutput` matrix — one-time test across 8 cataloged models at Phase 8 kickoff.
 - Empirical refusal-rate baseline — Phase 7 deliverable (pre/post comparison).
-- Vietnamese chitchat classifier quality — Phase 10 spike on real chat logs.
-- OpenRouter sticky-routing × per-user keys — Phase 13 kickoff via OpenRouter docs.
+- Vietnamese chitchat classifier quality — Phase 8 spike on real chat logs.
+- OpenRouter sticky-routing × per-credential — Phase 10 kickoff via OpenRouter docs.
 
 ## Sources
 
