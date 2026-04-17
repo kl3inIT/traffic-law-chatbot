@@ -4,7 +4,7 @@
 # ============================================================================
 # STAGE 1: Install all deps (needed for build)
 # ============================================================================
-FROM node:22-alpine@sha256:10867d5406692dbcd5cec6fe62cee821f2af771bc4ef24519e843fd6367357f5 AS deps
+FROM node:22-alpine AS deps
 
 RUN apk add --no-cache libc6-compat
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile
 # ============================================================================
 # STAGE 2: Build Next.js app (standalone output)
 # ============================================================================
-FROM node:22-alpine@sha256:10867d5406692dbcd5cec6fe62cee821f2af771bc4ef24519e843fd6367357f5 AS builder
+FROM node:22-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
@@ -32,7 +32,7 @@ RUN pnpm run build
 # ============================================================================
 # STAGE 3: Minimal runtime (standalone mode = no node_modules needed)
 # ============================================================================
-FROM node:22-alpine@sha256:10867d5406692dbcd5cec6fe62cee821f2af771bc4ef24519e843fd6367357f5 AS runner
+FROM node:22-alpine AS runner
 
 RUN apk add --no-cache tini curl && \
     rm -rf /var/cache/apk/*
