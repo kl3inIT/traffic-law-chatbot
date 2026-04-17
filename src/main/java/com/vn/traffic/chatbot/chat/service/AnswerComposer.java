@@ -17,6 +17,33 @@ public class AnswerComposer {
 
     private final AnswerCompositionPolicy policy;
 
+    /**
+     * Compose a canned chitchat/greeting response that bypasses retrieval and LLM (D-02).
+     * Used for one-off greetings like "xin chào" to keep p50 low.
+     */
+    public ChatAnswerResponse composeChitchat() {
+        String canned = "Xin chào! Tôi là trợ lý hỏi đáp pháp luật giao thông Việt Nam. "
+                + "Bạn hãy đặt câu hỏi cụ thể về luật giao thông (ví dụ: mức phạt, thủ tục, giấy tờ) để tôi có thể tra cứu và trả lời kèm nguồn.";
+        return new ChatAnswerResponse(
+                GroundingStatus.GROUNDED,
+                null,
+                ResponseMode.STANDARD,
+                canned,
+                null,
+                policy.getDisclaimer(),
+                null,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                null,
+                List.of(),
+                List.of()
+        );
+    }
+
     public ChatAnswerResponse compose(
             GroundingStatus groundingStatus,
             LegalAnswerDraft draft,

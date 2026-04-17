@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -51,6 +52,17 @@ public class ChatService {
 
     @Value("${app.chat.retrieval.top-k:5}")
     private int retrievalTopK;
+
+    // D-02: chitchat/greeting detection — Vietnamese greetings + short social questions.
+    // Intent is to short-circuit retrieval+LLM for clear one-off greetings to keep p50 low.
+    private static final Pattern CHITCHAT_PATTERN = Pattern.compile(
+            "^(xin\\s*chao|xin\\s*ch[àa]o|chao\\s*b[aạ]n|ch[àa]o\\s*b[aạ]n|hello|hi|hey|"
+                    + "b[aạ]n\\s*kh[oỏ]e\\s*kh[oô]ng|kh[oỏ]e\\s*kh[oô]ng|"
+                    + "ban\\s*ten\\s*gi|b[aạ]n\\s*t[eê]n\\s*g[iì]|"
+                    + "c[aá]m\\s*[oơ]n|cam\\s*on|cảm\\s*ơn|thanks|thank\\s*you|"
+                    + "t[aạ]m\\s*bi[eệ]t|tam\\s*biet|bye|goodbye)"
+                    + "[\\s!?.,…]*$",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     /**
      * Answers a user question with conversation history for multi-turn context.
@@ -92,6 +104,22 @@ public class ChatService {
 
         // Step: user prompt
         logger.accept("User prompt: " + question);
+
+        // D-02: chitchat short-circuit — bypass retrieval and LLM for clear greetings.
+        if (isGreetingOrChitchat(question)) {
+            logger.accept("Path: chitchat short-circuit — greeting/chitchat detected");
+            ChatAnswerResponse chitchat = answerComposer.composeChitchat();
+            try {
+                // D-11: snapshot BEFORE async handoff — prevents ConcurrentModificationException (Pitfall 7)
+                String pipelineLog = String.join("\n", List.copyOf(logMessages));
+                chatLogService.save(question, chitchat, GroundingStatus.GROUNDED, null, 0, 0, 0, pipelineLog);
+                logger.accept("Chat log: chitchat entry saved");
+            } catch (Exception ex) {
+                log.warn("Failed to persist chat log entry for chitchat: {}", ex.getMessage());
+                logger.accept("Chat log: save failed — " + ex.getMessage());
+            }
+            return chitchat;
+        }
 
         // Step: retrieval
         SearchRequest request = retrievalPolicy.buildRequest(question, retrievalTopK);
@@ -310,6 +338,26 @@ public class ChatService {
             return text.substring(start, end + 1);
         }
         return text;
+    }
+
+    /**
+     * D-02: Detects greetings and short chitchat questions that should be answered without
+     * retrieval/LLM. Gate: ≤8 words AND matches the chitchat pattern. Keeps pipeline cost low
+     * and preserves p50 when users open the app with a greeting.
+     */
+    private boolean isGreetingOrChitchat(String question) {
+        if (question == null) {
+            return false;
+        }
+        String trimmed = question.trim();
+        if (trimmed.isEmpty()) {
+            return false;
+        }
+        int wordCount = trimmed.split("\\s+").length;
+        if (wordCount > 8) {
+            return false;
+        }
+        return CHITCHAT_PATTERN.matcher(trimmed).matches();
     }
 
     private LegalAnswerDraft fallbackDraft(
