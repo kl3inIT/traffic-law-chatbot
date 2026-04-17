@@ -121,7 +121,7 @@ ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport \
   -Djava.awt.headless=true"
 
 # Spring Boot default port
-EXPOSE 8080
+EXPOSE 8089
 
 # OCI labels for traceability and compliance
 LABEL org.opencontainers.image.title="Vietnam Traffic Law Chatbot" \
@@ -137,7 +137,7 @@ LABEL org.opencontainers.image.title="Vietnam Traffic Law Chatbot" \
 
 # Health check using Spring Boot Actuator /health endpoint
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
+  CMD curl -f http://localhost:8089/actuator/health || exit 1
 
 # Use tini as init system for proper signal handling
 # Ensures graceful shutdown and zombie process reaping
