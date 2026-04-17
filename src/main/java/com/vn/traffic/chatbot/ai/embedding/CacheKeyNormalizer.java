@@ -1,11 +1,21 @@
 package com.vn.traffic.chatbot.ai.embedding;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
+import java.util.HexFormat;
+import java.util.Locale;
+
 /**
  * Normalization + hashing helper for embedding cache keys (CACHE-02b / D-15).
  *
- * <p>Wave-0 RED stub. Both methods throw {@link UnsupportedOperationException}.
- * Plan 07-02 Task 1 will replace the bodies with the real NFC + lowercase + trim +
- * SHA-256 implementation (diacritics preserved — NO accent stripping).
+ * <p>Normalization = {@link Normalizer.Form#NFC} + {@link String#trim()} +
+ * lowercase via {@link Locale#ROOT}. Vietnamese diacritics are PRESERVED
+ * (no accent stripping) — locked by D-15 because diacritics are semantically
+ * load-bearing for Vietnamese legal retrieval.
+ *
+ * <p>SHA-256 produces a 64-character lowercase hex digest of the UTF-8 bytes.
  */
 public final class CacheKeyNormalizer {
 
@@ -14,23 +24,31 @@ public final class CacheKeyNormalizer {
     }
 
     /**
-     * Normalize cache-key input text: {@code Normalizer.Form.NFC} → lowercase
-     * (Locale.ROOT) → trim. Diacritics are preserved.
+     * Normalize cache-key input text: {@code Normalizer.Form.NFC} → trim →
+     * lowercase (Locale.ROOT). Diacritics are preserved.
      *
-     * @param s raw input text (must be non-null)
+     * @param s raw input text
      * @return normalized form suitable for hashing into a cache key
      */
     public static String normalize(String s) {
-        throw new UnsupportedOperationException("Wave 1 — not implemented");
+        return Normalizer.normalize(s, Normalizer.Form.NFC)
+                .trim()
+                .toLowerCase(Locale.ROOT);
     }
 
     /**
-     * SHA-256 hex digest of the input string.
+     * SHA-256 hex digest of the input string (UTF-8 bytes).
      *
      * @param s input string
      * @return 64-character lowercase hex string
      */
     public static String sha256(String s) {
-        throw new UnsupportedOperationException("Wave 1 — not implemented");
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(s.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 must be available on JDK 25", e);
+        }
     }
 }
