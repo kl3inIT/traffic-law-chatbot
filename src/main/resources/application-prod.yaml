@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    # Production MUST provide DB_URL / DB_USERNAME / DB_PASSWORD via env.
+    # No defaults — fail fast if missing.
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 20000
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    com.vn.traffic.chatbot: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never

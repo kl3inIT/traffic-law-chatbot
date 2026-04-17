@@ -1,6 +1,8 @@
 spring:
   application:
     name: traffic-law-chatbot
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   config:
     import: optional:file:.env[.properties]
   autoconfigure:
@@ -10,14 +12,10 @@ spring:
     compose:
       enabled: false
   datasource:
-    url: ${DB_URL:jdbc:postgresql://10.123.123.174:5432/traffic_law}
-    username: ${DB_USERNAME:traffic_user}
-    password: ${DB_PASSWORD:traffic_pass}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: false
     open-in-view: false
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
@@ -98,7 +96,7 @@ app:
         display-name: "Gemini 3.1 Pro"
         base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
         api-key: ${OPENROUTER_API_KEY:dummy}
-      # --- DeepSeek (rẻ, mạnh cho reasoning) ---
+      # --- DeepSeek ---
       - id: deepseek/deepseek-v3.2
         display-name: "DeepSeek V3.2"
         base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
@@ -120,7 +118,3 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: when-authorized
-
