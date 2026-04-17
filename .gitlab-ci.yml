@@ -3,10 +3,9 @@
 # Repo: https://git.dth.com.vn/jmix-team/research/traffic-law/core
 #
 # Pipeline stages:
-#   test            → backend unit tests + frontend lint/test  (main + MRs)
-#   build           → compile bootJar  (main only)
-#   package         → build & push backend + frontend images  (main only)
-#   deploy          → production auto-deploy  (main only)
+#   test      → backend unit tests + frontend lint/test  (main + MRs)
+#   package   → build & push backend + frontend images  (main only)
+#   deploy    → production auto-deploy  (main only)
 #
 # Required CI/CD Variables (Settings → CI/CD → Variables):
 #   SSH_PRIVATE_KEY   — private key deploy (protected, not masked)
@@ -20,7 +19,6 @@
 
 stages:
   - test
-  - build
   - package
   - deploy
 
@@ -103,35 +101,8 @@ test-frontend:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ============================================================================
-# BUILD — compile bootJar (backend only)
-# ============================================================================
-build:
-  stage: build
-  image: eclipse-temurin:25-jdk-alpine@sha256:6376112b998b14a1ab3ec7f4a47f045a07c021320f1556cd9074d480c6e553b5
-  cache:
-    key:
-      files:
-        - build.gradle
-        - settings.gradle
-    paths:
-      - .gradle/wrapper/
-      - .gradle/caches/
-    policy: pull
-  before_script:
-    - chmod +x gradlew
-  script:
-    - ./gradlew bootJar --no-daemon --console=plain -x test
-  artifacts:
-    paths:
-      - build/libs/*.jar
-    expire_in: 1 day
-  needs:
-    - test-backend
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-
-# ============================================================================
 # PACKAGE — build + push backend và frontend images song song
+# Lưu ý: Dockerfile multi-stage tự compile JAR bên trong, không cần stage build riêng
 # Image paths:
 #   backend:  $CI_REGISTRY_IMAGE/backend:<sha>  :latest
 #   frontend: $CI_REGISTRY_IMAGE/frontend:<sha> :latest
@@ -159,7 +130,7 @@ package-backend:
     - docker push "$SHA_TAG"
     - docker push "$LATEST_TAG"
   needs:
-    - build
+    - test-backend
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
 
