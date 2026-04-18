@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Chat Performance & Spring AI Modular RAG
-current_phase: 07
+current_phase: 08
 status: executing
-last_updated: "2026-04-18T07:27:13.129Z"
-last_activity: 2026-04-18 -- Phase 08 planning complete
+last_updated: "2026-04-18T08:00:00.000Z"
+last_activity: 2026-04-18 -- Phase 08 Plan 01 complete (Wave 0 foundation)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
-  percent: 50
+  completed_plans: 5
+  percent: 62
 ---
 
 # State: Vietnam Traffic Law Chatbot
 
 **Initialized:** 2026-04-07
-**Current phase:** 07
+**Current phase:** 08
 **Project status:** v1.1 roadmap approved (v1.0 MVP shipped 2026-04-15)
 
 ## Current Position
 
-Phase: 07 (chat-latency-foundation) — ALL PLANS COMPLETE (awaiting /gsd-verify-phase 7)
-Plan: 4 of 4 complete
-Status: Ready to execute
-Last activity: 2026-04-18 -- Phase 08 planning complete
+Phase: 08 (structured-output-groundingguardadvisor) — EXECUTING
+Plan: 2 of 4 (08-01 complete, 08-02 next — Wave 1 advisor chain)
+Status: Executing Phase 08
+Last activity: 2026-04-18 -- Phase 08 Plan 01 complete (Wave 0 foundation: ModelEntry 5-arg, spring-ai-test, 4 RED stubs, 20-query fixture, Phase7Baseline NaN)
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-04-17)
 
 **Core value:** Users can describe a Vietnam traffic-law situation in natural language and receive grounded, source-backed guidance that explains the relevant rule, likely penalty, required documents, procedure, and recommended next steps.
-**Current focus:** Phase 07 — chat-latency-foundation
+**Current focus:** Phase 08 — structured-output-groundingguardadvisor
 
 ## Roadmap Snapshot
 

@@ -63,7 +63,7 @@ Plans:
   5. 20-query Vietnamese regression suite passes at ≥95%, refusal rate for canonical legal queries stays within 10% of the Phase-7 baseline, and a two-turn conversation integration test confirms chat memory still works after the advisor chain lands.
 **Plans**: 4 plans
 Plans:
-- [ ] 08-01-PLAN.md — Wave 0: ModelEntry 4→5 arg migration (atomic: record + 9 tests + 3 YAML) + build.gradle spring-ai-test dep + liveTest task + 4 RED test stubs + 20-query VN fixture
+- [x] 08-01-PLAN.md — Wave 0: ModelEntry 4→5 arg migration (atomic: record + 9 tests + 3 YAML) + build.gradle spring-ai-test dep + liveTest task + 4 RED test stubs + 20-query VN fixture
 - [ ] 08-02-PLAN.md — Wave 1: GroundingGuard advisor pair + 3 NoOp placeholders + IntentClassifier service + IntentDecision record + LegalAnswerDraft @JsonClassDescription + ChatClientConfig defaultAdvisors wiring (full P9 chain order)
 - [ ] 08-03-PLAN.md — Wave 2: ChatService.doAnswer rewrite (IntentClassifier dispatch + .entity(LegalAnswerDraft.class) + conditional ENABLE_NATIVE_STRUCTURED_OUTPUT); delete all ARCH-03 targets; AnswerComposer.composeOffTopicRefusal; NoKeywordGateArchTest + ChatServiceDeletionArchTest
 - [ ] 08-04-PLAN.md — Wave 3: VietnameseRegressionIT (≥95% + refusal ±10% + two-turn memory) extending BasicEvaluationTest + StructuredOutputMatrixIT across 8 models + IntentClassifierIT (LEGAL/CHITCHAT/OFF_TOPIC live)
