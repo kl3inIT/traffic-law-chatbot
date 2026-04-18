@@ -7,12 +7,14 @@ import com.vn.traffic.chatbot.chat.advisor.GroundingGuardOutputAdvisor;
 import com.vn.traffic.chatbot.chat.advisor.LegalQueryAugmenter;
 import com.vn.traffic.chatbot.chat.advisor.PolicyAwareDocumentRetriever;
 import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpPromptCacheAdvisor;
-import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpValidationAdvisor;
+import com.vn.traffic.chatbot.chat.service.LegalAnswerDraft;
 import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.StructuredOutputValidationAdvisor;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -51,6 +53,13 @@ import java.util.Map;
  * {@link CitationStashAdvisor} at +310 publishes citations/sources to
  * {@code ChatClientResponse.context()} (Q-01). {@link NoOpPromptCacheAdvisor}
  * at +500 is preserved (D-07). Chain order unchanged from Phase 8.
+ *
+ * <p>Phase 9 PR2 (Plan 09-02): {@code NoOpValidationAdvisor} placeholder
+ * replaced with a real {@link StructuredOutputValidationAdvisor} bean at
+ * {@code HIGHEST_PRECEDENCE + 1000} configured with
+ * {@code outputType(LegalAnswerDraft.class)} and {@code maxRepeatAttempts(1)}
+ * (D-10). Catches rare prompt-instruction-mode JSON-schema failures with a
+ * single bounded retry (Pitfall 6 caps amplification at 2×; T-9-04 accept).
  */
 @Slf4j
 @Configuration
@@ -78,6 +87,22 @@ public class ChatClientConfig {
                 .build();
     }
 
+    /**
+     * Plan 09-02 (D-10): real {@link StructuredOutputValidationAdvisor} replacing
+     * the Phase-8 {@code NoOpValidationAdvisor} placeholder. One bounded retry on
+     * JSON-schema validation failure (Pitfall 6: {@code maxRepeatAttempts=1} means
+     * one ADDITIONAL attempt = 2 total LLM calls worst case). Chain slot preserved
+     * at {@code HIGHEST_PRECEDENCE + 1000} (D-13).
+     */
+    @Bean
+    public Advisor validationAdvisor() {
+        return StructuredOutputValidationAdvisor.builder()
+                .outputType(LegalAnswerDraft.class)
+                .maxRepeatAttempts(1)
+                .advisorOrder(Ordered.HIGHEST_PRECEDENCE + 1000)
+                .build();
+    }
+
     @Bean
     public Map<String, ChatClient> chatClientMap(
             AiModelProperties modelProperties,
@@ -86,7 +111,7 @@ public class ChatClientConfig {
             RetrievalAugmentationAdvisor ragAdvisor,
             CitationStashAdvisor citationStash,
             NoOpPromptCacheAdvisor noOpCache,
-            NoOpValidationAdvisor noOpValidation,
+            Advisor validationAdvisor,
             GroundingGuardOutputAdvisor guardOut) {
         String defaultBaseUrl = modelProperties.baseUrl() != null
                 ? modelProperties.baseUrl()
@@ -133,7 +158,7 @@ public class ChatClientConfig {
                             ragAdvisor,                                           // HIGHEST_PRECEDENCE + 300
                             citationStash,                                        // HIGHEST_PRECEDENCE + 310
                             noOpCache,                                            // HIGHEST_PRECEDENCE + 500
-                            noOpValidation,                                       // HIGHEST_PRECEDENCE + 1000
+                            validationAdvisor,                                    // HIGHEST_PRECEDENCE + 1000
                             guardOut                                              // LOWEST_PRECEDENCE  - 100
                     )
                     .build();
@@ -147,7 +172,7 @@ public class ChatClientConfig {
                 guardIn.getName(),
                 citationStash.getName(),
                 noOpCache.getName(),
-                noOpValidation.getName(),
+                validationAdvisor.getName(),
                 guardOut.getName());
         List<Integer> orders = List.of(
                 guardIn.getOrder(),
@@ -155,7 +180,7 @@ public class ChatClientConfig {
                 ragAdvisor.getOrder(),
                 citationStash.getOrder(),
                 noOpCache.getOrder(),
-                noOpValidation.getOrder(),
+                validationAdvisor.getOrder(),
                 guardOut.getOrder());
         log.info("Advisor orders: {}", orders);
         return Collections.unmodifiableMap(map);
