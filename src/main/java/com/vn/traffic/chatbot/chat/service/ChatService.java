@@ -1,37 +1,43 @@
 package com.vn.traffic.chatbot.chat.service;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
+import com.vn.traffic.chatbot.chat.intent.IntentClassifier;
+import com.vn.traffic.chatbot.chat.intent.IntentDecision;
 import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.AdvisorParams;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.vn.traffic.chatbot.chat.domain.ChatMessage;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * Phase 8 ChatService — native structured output via {@code .entity(LegalAnswerDraft.class)}
+ * (ARCH-02), IntentClassifier-driven dispatch BEFORE the advisor chain (ARCH-03), and
+ * conditional {@link AdvisorParams#ENABLE_NATIVE_STRUCTURED_OUTPUT} wiring per the
+ * per-model {@code supportsStructuredOutput} capability flag (D-03a).
+ *
+ * <p>All P7-era keyword heuristics and manual JSON-parsing stopgaps were removed in
+ * Plan 08-03 (D-07). ArchUnit tests under {@code chat/archunit/} guard against
+ * regressions.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -40,7 +46,6 @@ public class ChatService {
     private final Map<String, ChatClient> chatClientMap;
     private final AiModelProperties aiModelProperties;
     private final VectorStore vectorStore;
-    private final ObjectMapper objectMapper;
     private final RetrievalPolicy retrievalPolicy;
     private final CitationMapper citationMapper;
     private final AnswerComposer answerComposer;
@@ -49,79 +54,64 @@ public class ChatService {
     private final AnswerCompositionPolicy answerCompositionPolicy;
     private final ChatLogService chatLogService;
     private final ChatMemory chatMemory;
+    private final IntentClassifier intentClassifier;
 
     @Value("${app.chat.retrieval.top-k:5}")
     private int retrievalTopK;
 
-    // D-02: chitchat/greeting detection — Vietnamese greetings + short social questions.
-    // Intent is to short-circuit retrieval+LLM for clear one-off greetings to keep p50 low.
-    private static final Pattern CHITCHAT_PATTERN = Pattern.compile(
-            "^(xin\\s*chao|xin\\s*ch[àa]o|chao\\s*b[aạ]n|ch[àa]o\\s*b[aạ]n|hello|hi|hey|"
-                    + "b[aạ]n\\s*kh[oỏ]e\\s*kh[oô]ng|kh[oỏ]e\\s*kh[oô]ng|"
-                    + "ban\\s*ten\\s*gi|b[aạ]n\\s*t[eê]n\\s*g[iì]|"
-                    + "c[aá]m\\s*[oơ]n|cam\\s*on|cảm\\s*ơn|thanks|thank\\s*you|"
-                    + "t[aạ]m\\s*bi[eệ]t|tam\\s*biet|bye|goodbye)"
-                    + "[\\s!?.,…]*$",
-            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
-
     /**
-     * Answers a user question with conversation history for multi-turn context.
-     */
-    public ChatAnswerResponse answer(String question, String modelId, List<ChatMessage> conversationHistory) {
-        return doAnswer(question, modelId, conversationHistory, null);
-    }
-
-    /**
-     * Answers a user question using the specified model (or the default if null/unrecognized).
-     * Single-turn convenience overload (no conversation history).
-     *
-     * @param question the user's question
-     * @param modelId  optional model ID from the request body; null triggers fallback to default
+     * Stateless single-turn entry. conversationId = null triggers an ephemeral UUID
+     * inside {@link #doAnswer(String, String, String)} so JDBC-backed ChatMemory stays
+     * isolated (Pitfall 7 mitigation).
      */
     public ChatAnswerResponse answer(String question, String modelId) {
-        return doAnswer(question, modelId, List.of(), null);
+        return doAnswer(question, modelId, null);
     }
 
     /**
-     * Answers a user question with Spring AI ChatMemory-backed conversation context.
-     * The conversationId is used by {@link MessageChatMemoryAdvisor} to load/store
-     * message history automatically.
-     *
-     * @param question       the user's question
-     * @param modelId        optional model ID; null triggers fallback to default
-     * @param conversationId unique conversation identifier (typically thread UUID)
+     * Multi-turn entry — {@code conversationId} is passed to
+     * {@link MessageChatMemoryAdvisor} via {@link ChatMemory#CONVERSATION_ID} param.
      */
     public ChatAnswerResponse answer(String question, String modelId, String conversationId) {
-        return doAnswer(question, modelId, List.of(), conversationId);
+        return doAnswer(question, modelId, conversationId);
     }
 
-    private ChatAnswerResponse doAnswer(String question, String modelId, List<ChatMessage> conversationHistory, String conversationId) {
+    private ChatAnswerResponse doAnswer(String question, String modelId, String conversationId) {
         List<String> logMessages = new ArrayList<>();
         Consumer<String> logger = msg -> {
             log.info(msg);
             logMessages.add(msg);
         };
+        long startTime = System.currentTimeMillis();
 
-        // Step: user prompt
         logger.accept("User prompt: " + question);
 
-        // D-02: chitchat short-circuit — bypass retrieval and LLM for clear greetings.
-        if (isGreetingOrChitchat(question)) {
-            logger.accept("Path: chitchat short-circuit — greeting/chitchat detected");
-            ChatAnswerResponse chitchat = answerComposer.composeChitchat();
-            try {
-                // D-11: snapshot BEFORE async handoff — prevents ConcurrentModificationException (Pitfall 7)
-                String pipelineLog = String.join("\n", List.copyOf(logMessages));
-                chatLogService.save(question, chitchat, GroundingStatus.GROUNDED, null, 0, 0, 0, pipelineLog);
-                logger.accept("Chat log: chitchat entry saved");
-            } catch (Exception ex) {
-                log.warn("Failed to persist chat log entry for chitchat: {}", ex.getMessage());
-                logger.accept("Chat log: save failed — " + ex.getMessage());
+        // Step 1: Intent classification BEFORE advisor chain (ARCH-03, D-02).
+        IntentDecision decision = intentClassifier.classify(question, modelId);
+        logger.accept(String.format("Intent classified: %s (confidence=%.2f)",
+                decision.intent(), decision.confidence()));
+
+        switch (decision.intent()) {
+            case CHITCHAT -> {
+                ChatAnswerResponse resp = answerComposer.composeChitchat();
+                saveLogAsync(question, resp, GroundingStatus.GROUNDED, conversationId,
+                        0, 0, (int) (System.currentTimeMillis() - startTime),
+                        snapshot(logMessages));
+                return resp;
             }
-            return chitchat;
+            case OFF_TOPIC -> {
+                ChatAnswerResponse resp = answerComposer.composeOffTopicRefusal();
+                saveLogAsync(question, resp, GroundingStatus.REFUSED, conversationId,
+                        0, 0, (int) (System.currentTimeMillis() - startTime),
+                        snapshot(logMessages));
+                return resp;
+            }
+            case LEGAL -> {
+                // fall through to legal path below
+            }
         }
 
-        // Step: retrieval
+        // Step 2: retrieval
         SearchRequest request = retrievalPolicy.buildRequest(question, retrievalTopK);
         double threshold = retrievalPolicy.getSimilarityThreshold();
         logger.accept(String.format(">>> Using vector_store [topK=%d, threshold=%.2f]: %s",
@@ -129,7 +119,6 @@ public class ChatService {
 
         List<Document> documents = safeDocuments(vectorStore.similaritySearch(request));
 
-        // Step: found documents summary
         String docSummary = documents.stream()
                 .map(doc -> {
                     Double score = doc.getScore();
@@ -146,77 +135,79 @@ public class ChatService {
         logger.accept(String.format("Sources mapped: %d source reference(s)", sources.size()));
 
         GroundingStatus groundingStatus = determineGroundingStatus(documents.size());
-
-        // Step: grounding status
         logger.accept(String.format("Grounding: %s (%d docs)", groundingStatus.name(), documents.size()));
 
-        boolean hasLegalCitation = containsAnyLegalCitation(citations);
-        logger.accept(String.format("Legal citation check: %s", hasLegalCitation ? "passed" : "no legal signals found"));
-
-        if (groundingStatus == GroundingStatus.REFUSED || !hasLegalCitation) {
-            logger.accept("Path: refusal — grounding refused or no legal citations");
+        // Plan 08-03: keyword-gate deletion — refusal now gated ONLY on grounding status.
+        if (groundingStatus == GroundingStatus.REFUSED) {
+            logger.accept("Path: refusal — grounding refused (no retrieved documents)");
             chunkInspectionService.getRetrievalReadinessCounts();
             ChatAnswerResponse refused = refusalResponse();
-            try {
-                // D-11: snapshot BEFORE async handoff — prevents ConcurrentModificationException (Pitfall 7)
-                String pipelineLog = String.join("\n", List.copyOf(logMessages));
-                chatLogService.save(question, refused, GroundingStatus.REFUSED, null, 0, 0, 0, pipelineLog);
-                logger.accept("Chat log: refusal entry saved");
-            } catch (Exception ex) {
-                log.warn("Failed to persist chat log entry for refusal: {}", ex.getMessage());
-                logger.accept("Chat log: save failed — " + ex.getMessage());
-            }
+            saveLogAsync(question, refused, GroundingStatus.REFUSED, conversationId,
+                    0, 0, (int) (System.currentTimeMillis() - startTime),
+                    snapshot(logMessages));
             return refused;
         }
 
+        // Step 3: prompt build + structured output via .entity(LegalAnswerDraft.class) (ARCH-02).
         ChatClient client = resolveClient(modelId);
-        long startTime = System.currentTimeMillis();
-        String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations, conversationHistory);
+        AiModelProperties.ModelEntry entry = resolveEntry(modelId);
+        String prompt = chatPromptFactory.buildPrompt(question, groundingStatus, citations);
         logger.accept(String.format("Prompt built: %d chars", prompt.length()));
 
-        logger.accept("LLM call: started");
-        ChatClient.ChatClientRequestSpec requestSpec = client.prompt().user(prompt);
-        if (conversationId != null && !conversationId.isBlank()) {
-            requestSpec = requestSpec.advisors(MessageChatMemoryAdvisor.builder(chatMemory)
-                    .conversationId(conversationId)
-                    .build());
-            logger.accept(String.format("ChatMemory advisor attached for conversationId=%s", conversationId));
-        }
-        ChatResponse chatResponse = requestSpec
-                .call()
-                .chatResponse();
+        // Pitfall 7 — ephemeral UUID when no conversationId so JDBC-backed memory stays isolated.
+        String memConvId = (conversationId != null && !conversationId.isBlank())
+                ? conversationId
+                : "ephemeral-" + UUID.randomUUID();
 
-        String modelPayload = chatResponse.getResult().getOutput().getText();
-        var usage = chatResponse.getMetadata().getUsage();
-        int promptTokens = usage != null ? (int) usage.getPromptTokens() : 0;
-        int completionTokens = usage != null ? (int) usage.getCompletionTokens() : 0;
+        ChatClient.ChatClientRequestSpec spec = client.prompt().user(prompt);
+        if (entry.supportsStructuredOutput()) {
+            spec = spec.advisors(AdvisorParams.ENABLE_NATIVE_STRUCTURED_OUTPUT);
+            logger.accept("Structured output: native JSON schema (response_format)");
+        } else {
+            logger.accept("Structured output: prompt-instruction fallback (BeanOutputConverter)");
+        }
+        // Pitfall 2 — per-call memory via CONVERSATION_ID param ONLY; do NOT re-attach
+        // MessageChatMemoryAdvisor (it is already in defaultAdvisors from ChatClientConfig).
+        spec = spec.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, memConvId));
+
+        logger.accept("LLM call: started");
+        // P8: token counts via Micrometer observation (gen_ai.client.token.usage);
+        // P9 may extract via ChatResponseMetadata if needed in the service layer.
+        LegalAnswerDraft draft;
+        try {
+            draft = spec.call().entity(LegalAnswerDraft.class);
+        } catch (Exception ex) {
+            // D-06 — no runtime fallback drafts. A BeanOutputConverter parse
+            // failure (malformed/non-JSON payload from the model) surfaces as a
+            // grounded-answer failure → refusal. T-08-10 mitigation: exception
+            // stack trace is NOT returned to the user; only the refusal template.
+            log.warn(".entity(LegalAnswerDraft.class) failed ({}); returning grounding refusal", ex.getMessage());
+            logger.accept("LLM entity parse failed: " + ex.getMessage());
+            ChatAnswerResponse refused = refusalResponse();
+            saveLogAsync(question, refused, GroundingStatus.REFUSED, conversationId,
+                    0, 0, (int) (System.currentTimeMillis() - startTime),
+                    snapshot(logMessages));
+            return refused;
+        }
         int responseTime = (int) (System.currentTimeMillis() - startTime);
 
-        // Step: response summary (preview first 120 chars of answer)
-        String answerPreview = modelPayload != null && modelPayload.length() > 120
-                ? modelPayload.substring(0, 120) + "…"
-                : modelPayload;
-        logger.accept(String.format("LLM response in %dms [prompt=%d, completion=%d]: %s",
-                responseTime, promptTokens, completionTokens, answerPreview));
+        if (draft == null) {
+            // D-06 — no runtime fallback. A null draft is a grounded-answer failure → refusal.
+            logger.accept("LLM returned null draft; falling back to grounding refusal (D-06)");
+            ChatAnswerResponse refused = refusalResponse();
+            saveLogAsync(question, refused, GroundingStatus.REFUSED, conversationId,
+                    0, 0, responseTime, snapshot(logMessages));
+            return refused;
+        }
 
-        LegalAnswerDraft draft = parseDraft(modelPayload, groundingStatus, citations, sources);
         logger.accept(String.format("Draft parsed: conclusion=%s",
-                draft.conclusion() != null ? "present" : "absent (fallback)"));
+                draft.conclusion() != null ? "present" : "absent"));
 
         ChatAnswerResponse response = answerComposer.compose(groundingStatus, draft, citations, sources);
         logger.accept("Answer composed: done");
 
-        try {
-            // D-11: snapshot BEFORE async handoff — prevents ConcurrentModificationException (Pitfall 7)
-            String pipelineLog = String.join("\n", List.copyOf(logMessages));
-            chatLogService.save(question, response, groundingStatus, null,
-                    promptTokens, completionTokens, responseTime, pipelineLog);
-            logger.accept("Chat log: entry saved");
-        } catch (Exception ex) {
-            log.warn("Failed to persist chat log entry: {}", ex.getMessage());
-            logger.accept("Chat log: save failed — " + ex.getMessage());
-        }
-
+        saveLogAsync(question, response, groundingStatus, conversationId,
+                0, 0, responseTime, snapshot(logMessages));
         return response;
     }
 
@@ -250,6 +241,28 @@ public class ChatService {
         return fallback;
     }
 
+    /**
+     * Resolves the {@link AiModelProperties.ModelEntry} for the given modelId, mirroring
+     * {@link #resolveClient(String)} fallback chain. Used to read the per-model
+     * {@code supportsStructuredOutput} capability flag (D-03a).
+     */
+    private AiModelProperties.ModelEntry resolveEntry(String requestedModelId) {
+        String resolved = (requestedModelId != null && !requestedModelId.isBlank())
+                ? requestedModelId
+                : aiModelProperties.chatModel();
+        return aiModelProperties.models().stream()
+                .filter(m -> m.id().equals(resolved))
+                .findFirst()
+                .orElseGet(() -> {
+                    List<AiModelProperties.ModelEntry> all = aiModelProperties.models();
+                    if (all == null || all.isEmpty()) {
+                        throw new IllegalStateException(
+                                "No ModelEntry available — check app.ai.models configuration");
+                    }
+                    return all.get(0);
+                });
+    }
+
     private GroundingStatus determineGroundingStatus(int documentCount) {
         return documentCount <= 0 ? GroundingStatus.REFUSED : GroundingStatus.GROUNDED;
     }
@@ -258,132 +271,32 @@ public class ChatService {
         return documents == null ? List.of() : documents;
     }
 
-    private boolean containsAnyLegalCitation(List<CitationResponse> citations) {
-        return safeCitations(citations).stream().anyMatch(this::looksLikeLegalCitation);
-    }
-
     private List<CitationResponse> safeCitations(List<CitationResponse> citations) {
         return citations == null ? List.of() : citations;
     }
 
-    private boolean looksLikeLegalCitation(CitationResponse citation) {
-        if (citation == null) {
-            return false;
-        }
-        return containsLegalSignal(citation.sourceTitle())
-                || containsLegalSignal(citation.origin())
-                || containsLegalSignal(citation.sectionRef())
-                || containsLegalSignal(citation.excerpt());
-    }
-
-    private boolean containsLegalSignal(String value) {
-        if (value == null || value.isBlank()) {
-            return false;
-        }
-        String normalized = value.toLowerCase(Locale.ROOT);
-        return normalized.contains("nghị định")
-                || normalized.contains("luật")
-                || normalized.contains("thông tư")
-                || normalized.contains("nghị quyết")
-                || normalized.contains("quy chuẩn")
-                || normalized.contains("quy định")
-                || normalized.contains("điều ")
-                || normalized.contains("khoản ")
-                || normalized.contains("điểm ")
-                || normalized.contains("xử phạt")
-                || normalized.contains("giao thông")
-                || normalized.contains("đường bộ")
-                || normalized.contains("biển số")
-                || normalized.contains("giấy phép lái xe")
-                || normalized.contains("đăng ký xe");
-    }
-
-    private LegalAnswerDraft parseDraft(
-            String modelPayload,
-            GroundingStatus groundingStatus,
-            List<CitationResponse> citations,
-            List<SourceReferenceResponse> sources
-    ) {
-        try {
-            ObjectMapper lenient = objectMapper.copy()
-                    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
-                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            return lenient.readValue(extractJson(modelPayload), LegalAnswerDraft.class);
-        } catch (Exception ex) {
-            log.warn("parseDraft failed ({}), raw payload: {}", ex.getMessage(), modelPayload);
-            return fallbackDraft(groundingStatus, citations, sources);
-        }
-    }
-
-    private String extractJson(String payload) {
-        if (payload == null || payload.isBlank()) {
-            return "";
-        }
-        String text = payload.trim();
-        // Strip markdown code block wrapper (```json ... ``` or ``` ... ```)
-        if (text.startsWith("```")) {
-            int firstNewline = text.indexOf('\n');
-            if (firstNewline >= 0) {
-                text = text.substring(firstNewline + 1).trim();
-            }
-            int lastFence = text.lastIndexOf("```");
-            if (lastFence >= 0) {
-                text = text.substring(0, lastFence).trim();
-            }
-        }
-        // Extract JSON object from potentially mixed content
-        int start = text.indexOf('{');
-        int end = text.lastIndexOf('}');
-        if (start >= 0 && end > start) {
-            return text.substring(start, end + 1);
-        }
-        return text;
+    private LegalAnswerDraft emptyDraft() {
+        return new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     /**
-     * D-02: Detects greetings and short chitchat questions that should be answered without
-     * retrieval/LLM. Gate: ≤8 words AND matches the chitchat pattern. Keeps pipeline cost low
-     * and preserves p50 when users open the app with a greeting.
+     * Async chat-log save wrapper that snapshots {@code logMessages} BEFORE
+     * handoff (Pitfall 7 — prevents ConcurrentModificationException if the
+     * caller mutates the list after this returns).
      */
-    private boolean isGreetingOrChitchat(String question) {
-        if (question == null) {
-            return false;
+    private void saveLogAsync(String question, ChatAnswerResponse response,
+                              GroundingStatus groundingStatus, String conversationId,
+                              int promptTokens, int completionTokens, int responseTime,
+                              String pipelineLog) {
+        try {
+            chatLogService.save(question, response, groundingStatus, conversationId,
+                    promptTokens, completionTokens, responseTime, pipelineLog);
+        } catch (Exception ex) {
+            log.warn("Failed to persist chat log entry: {}", ex.getMessage());
         }
-        String trimmed = question.trim();
-        if (trimmed.isEmpty()) {
-            return false;
-        }
-        int wordCount = trimmed.split("\\s+").length;
-        if (wordCount > 8) {
-            return false;
-        }
-        return CHITCHAT_PATTERN.matcher(trimmed).matches();
     }
 
-    private LegalAnswerDraft fallbackDraft(
-            GroundingStatus groundingStatus,
-            List<CitationResponse> citations,
-            List<SourceReferenceResponse> sources
-    ) {
-        String conclusion = "Chưa thể tổng hợp đầy đủ nội dung trả lời theo định dạng chuẩn; vui lòng tham khảo các căn cứ hiển thị và diễn đạt lại câu hỏi cụ thể hơn.";
-        String uncertaintyNotice = "Phản hồi từ mô hình không đúng định dạng mong đợi, nên hệ thống chỉ trả về phần thông tin đã truy xuất được một cách an toàn.";
-        List<String> legalBasis = citations.isEmpty() && sources.isEmpty()
-                ? List.of()
-                : List.of("Đối chiếu các nguồn trích dẫn bên dưới để xác minh căn cứ pháp lý phù hợp với tình huống cụ thể.");
-        List<String> nextSteps = answerCompositionPolicy.getRefusalNextSteps();
-        return new LegalAnswerDraft(
-                conclusion,
-                "",
-                uncertaintyNotice,
-                legalBasis,
-                List.of(),
-                List.of(),
-                List.of(),
-                nextSteps
-        );
-    }
-
-    private LegalAnswerDraft emptyDraft() {
-        return new LegalAnswerDraft(null, null, null, List.of(), List.of(), List.of(), List.of(), List.of());
+    private String snapshot(List<String> logMessages) {
+        return String.join("\n", List.copyOf(logMessages));
     }
 }

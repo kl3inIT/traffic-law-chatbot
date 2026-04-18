@@ -1,13 +1,14 @@
 package com.vn.traffic.chatbot.chat.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.api.dto.CitationResponse;
 import com.vn.traffic.chatbot.chat.api.dto.SourceReferenceResponse;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
+import com.vn.traffic.chatbot.chat.intent.IntentClassifier;
+import com.vn.traffic.chatbot.chat.intent.IntentDecision;
 import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
+import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,11 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.metadata.ChatResponseMetadata;
-import org.springframework.ai.chat.metadata.Usage;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -27,10 +23,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -51,12 +48,8 @@ class ChatServiceTest {
     @Mock private AnswerCompositionPolicy answerCompositionPolicy;
     @Mock private ChatLogService chatLogService;
     @Mock private org.springframework.ai.chat.memory.ChatMemory chatMemory;
-    @Mock private ChatResponse aiChatResponse;
-    @Mock private Generation generation;
-    @Mock private ChatResponseMetadata chatResponseMetadata;
-    @Mock private Usage usage;
+    @Mock private IntentClassifier intentClassifier;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private AiModelProperties aiModelProperties;
     private Map<String, ChatClient> chatClientMap;
     private ChatService chatService;
@@ -80,7 +73,6 @@ class ChatServiceTest {
                 chatClientMap,
                 aiModelProperties,
                 vectorStore,
-                objectMapper,
                 retrievalPolicy,
                 citationMapper,
                 answerComposer,
@@ -88,173 +80,138 @@ class ChatServiceTest {
                 chunkInspectionService,
                 answerCompositionPolicy,
                 chatLogService,
-                chatMemory
+                chatMemory,
+                intentClassifier
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
     }
 
+    private void stubLegalIntent() {
+        when(intentClassifier.classify(anyString(), any()))
+                .thenReturn(new IntentDecision(IntentDecision.Intent.LEGAL, 0.95));
+    }
+
     @Test
-    void answerUsesRetrievalPolicyAndReturnsGroundedWhenThreeOrMoreDocumentsExist() {
+    void answerUsesRetrievalPolicyAndReturnsGroundedWhenDocumentsExist() {
+        stubLegalIntent();
         String question = "Vượt đèn đỏ bị phạt thế nào?";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
         List<Document> documents = List.of(document("1"), document("2"), document("3"));
-        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Nghị định 100", "https://vbpl.vn/nd100", 4, "Điều 6", "excerpt"));
-        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 100", "https://vbpl.vn/nd100", 4, "Điều 6"));
+        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Source A", "https://example.com/a", 4, "section", "excerpt"));
+        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Source A", "https://example.com/a", 4, "section"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
 
-        String jsonPayload = """
-                {
-                  "conclusion": "Kết luận [Nguồn 1].",
-                  "answer": "unused",
-                  "uncertaintyNotice": null,
-                  "legalBasis": ["Điều 6 [Nguồn 1]"],
-                  "penalties": ["Phạt tiền [Nguồn 1]"],
-                  "requiredDocuments": ["GPLX"],
-                  "procedureSteps": ["Làm việc với cơ quan chức năng"],
-                  "nextSteps": ["Kiểm tra biên bản"]
-                }
-                """;
+        LegalAnswerDraft draft = new LegalAnswerDraft(
+                "Kết luận", "unused", null,
+                List.of("basis-1"), List.of("penalty-1"),
+                List.of("doc-1"), List.of("step-1"), List.of("next-1"));
 
         when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt-body");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations)))
+                .thenReturn("prompt-body");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("prompt-body")).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.advisors(any(Consumer.class))).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
-        stubChatResponse(jsonPayload);
+        when(callResponseSpec.entity(LegalAnswerDraft.class)).thenReturn(draft);
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
 
         ChatAnswerResponse response = chatService.answer(question, null);
 
         assertThat(response).isSameAs(expected);
         verify(retrievalPolicy).buildRequest(question, 5);
-        verify(chatPromptFactory).buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList());
+        verify(chatPromptFactory).buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations));
+        verify(callResponseSpec).entity(LegalAnswerDraft.class);
         verify(answerComposer).compose(any(), any(), any(), any());
     }
 
     @Test
     void answerWithKnownModelIdUsesCorrectClient() {
+        stubLegalIntent();
         String question = "Vượt đèn đỏ bị phạt thế nào?";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
-        List<Document> documents = List.of(document("1"), document("2"), document("3"));
-        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Nghị định 100", "https://vbpl.vn/nd100", 4, "Điều 6", "excerpt"));
-        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 100", "https://vbpl.vn/nd100", 4, "Điều 6"));
+        List<Document> documents = List.of(document("1"));
+        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Source A", "https://example.com/a", 4, "section", "excerpt"));
+        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Source A", "https://example.com/a", 4, "section"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
-        String jsonPayload = "{\"conclusion\":\"ok [Nguồn 1]\",\"answer\":\"\",\"uncertaintyNotice\":null,\"legalBasis\":[\"Điều 6 [Nguồn 1]\"],\"penalties\":[],\"requiredDocuments\":[],\"procedureSteps\":[],\"nextSteps\":[]}";
+        LegalAnswerDraft draft = new LegalAnswerDraft("ok", "", null, List.of(), List.of(), List.of(), List.of(), List.of());
 
         when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations))).thenReturn("prompt");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("prompt")).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.advisors(any(Consumer.class))).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
-        stubChatResponse(jsonPayload);
+        when(callResponseSpec.entity(LegalAnswerDraft.class)).thenReturn(draft);
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
 
-        // Use explicit model ID
         ChatAnswerResponse response = chatService.answer(question, "claude-sonnet-4-6");
         assertThat(response).isSameAs(expected);
     }
 
     @Test
     void answerWithNullModelIdFallsBackToDefaultModel() {
+        stubLegalIntent();
         String question = "Quên mang đăng ký xe thì sao?";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
-        List<Document> documents = List.of(document("1"), document("2"), document("3"));
-        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "excerpt"));
-        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"));
+        List<Document> documents = List.of(document("1"));
+        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Source A", "https://example.com/a", 4, "section", "excerpt"));
+        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Source A", "https://example.com/a", 4, "section"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
-        String jsonPayload = "{\"conclusion\":\"ok [Nguồn 1]\",\"answer\":\"\",\"uncertaintyNotice\":null,\"legalBasis\":[\"Điều 7 [Nguồn 1]\"],\"penalties\":[],\"requiredDocuments\":[],\"procedureSteps\":[],\"nextSteps\":[]}";
+        LegalAnswerDraft draft = new LegalAnswerDraft("ok", "", null, List.of(), List.of(), List.of(), List.of(), List.of());
 
         when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations))).thenReturn("prompt");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("prompt")).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.advisors(any(Consumer.class))).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
-        stubChatResponse(jsonPayload);
+        when(callResponseSpec.entity(LegalAnswerDraft.class)).thenReturn(draft);
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
 
-        // null modelId must fall back to default without throwing
         ChatAnswerResponse response = chatService.answer(question, null);
         assertThat(response).isSameAs(expected);
     }
 
     @Test
     void answerWithUnknownModelIdFallsBackWithoutException() {
+        stubLegalIntent();
         String question = "Quên mang đăng ký xe thì sao?";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
-        List<Document> documents = List.of(document("1"), document("2"), document("3"));
-        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7", "excerpt"));
-        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 4, "Điều 7"));
+        List<Document> documents = List.of(document("1"));
+        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Source A", "https://example.com/a", 4, "section", "excerpt"));
+        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Source A", "https://example.com/a", 4, "section"));
         ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
-        String jsonPayload = "{\"conclusion\":\"ok [Nguồn 1]\",\"answer\":\"\",\"uncertaintyNotice\":null,\"legalBasis\":[\"Điều 7 [Nguồn 1]\"],\"penalties\":[],\"requiredDocuments\":[],\"procedureSteps\":[],\"nextSteps\":[]}";
+        LegalAnswerDraft draft = new LegalAnswerDraft("ok", "", null, List.of(), List.of(), List.of(), List.of(), List.of());
 
         when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
         when(vectorStore.similaritySearch(request)).thenReturn(documents);
         when(citationMapper.toCitations(documents)).thenReturn(citations);
         when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt");
+        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations))).thenReturn("prompt");
         when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.user("prompt")).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.advisors(any(Consumer.class))).thenReturn(chatClientRequestSpec);
         when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
-        stubChatResponse(jsonPayload);
+        when(callResponseSpec.entity(LegalAnswerDraft.class)).thenReturn(draft);
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
 
-        // Unknown model ID: must NOT throw, must fall back to default
         ChatAnswerResponse response = chatService.answer(question, "unknown-model-xyz");
         assertThat(response).isSameAs(expected);
     }
 
     @Test
-    void answerParsesModelResponseWrappedInMarkdownCodeBlock() {
-        String question = "Vượt đèn đỏ bị phạt thế nào?";
-        SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
-        List<Document> documents = List.of(document("1"), document("2"), document("3"));
-        List<CitationResponse> citations = List.of(new CitationResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 7, "Điều 7", "excerpt"));
-        List<SourceReferenceResponse> sources = List.of(new SourceReferenceResponse("Nguồn 1", "source-1", "version-1", "Nghị định 168", "https://vbpl.vn/nd168", 7, "Điều 7"));
-        ChatAnswerResponse expected = standardResponse(GroundingStatus.GROUNDED, citations, sources);
-
-        String jsonPayload = """
-                ```json
-                {
-                  "conclusion": "Kết luận [Nguồn 1].",
-                  "answer": "unused",
-                  "uncertaintyNotice": null,
-                  "legalBasis": ["Điều 7 [Nguồn 1]"],
-                  "penalties": ["Phạt tiền [Nguồn 1]"],
-                  "requiredDocuments": [],
-                  "procedureSteps": [],
-                  "nextSteps": []
-                }
-                ```""";
-
-        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
-        when(vectorStore.similaritySearch(request)).thenReturn(documents);
-        when(citationMapper.toCitations(documents)).thenReturn(citations);
-        when(citationMapper.toSources(citations)).thenReturn(sources);
-        when(chatPromptFactory.buildPrompt(eq(question), eq(GroundingStatus.GROUNDED), eq(citations), anyList())).thenReturn("prompt-body");
-        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.user("prompt-body")).thenReturn(chatClientRequestSpec);
-        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
-        stubChatResponse(jsonPayload);
-        when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
-
-        ChatAnswerResponse response = chatService.answer(question, null);
-
-        assertThat(response).isSameAs(expected);
-        verify(answerComposer).compose(any(), any(), any(), any());
-        verify(chatClient).prompt();
-    }
-
-    @Test
     void answerReturnsRefusedWithoutModelCallWhenNoDocumentsExistAndCollectsReadinessDiagnostics() {
+        stubLegalIntent();
         String question = "Tình huống không có căn cứ";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
         ChatAnswerResponse expected = refusedResponse();
@@ -272,39 +229,12 @@ class ChatServiceTest {
         assertThat(response).isSameAs(expected);
         verify(chunkInspectionService).getRetrievalReadinessCounts();
         verify(chatClient, never()).prompt();
-        verify(chatPromptFactory, never()).buildPrompt(any(), any(), any(), anyList());
-    }
-
-    @Test
-    void answerRefusesIrrelevantApprovedContentWithoutCallingModel() {
-        String question = "Xe máy vượt đèn đỏ bị phạt thế nào?";
-        SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
-        List<Document> documents = List.of(document("1"), document("2"), document("3"));
-        List<CitationResponse> irrelevantCitations = List.of(
-                new CitationResponse("Nguồn 1", "source-1", "version-1", "Chapter 1", null, 12, "page-12", "The Evolution of Database Systems"),
-                new CitationResponse("Nguồn 2", "source-2", "version-2", "Chapter 1", null, 8, "page-8", "Relational Database Systems"),
-                new CitationResponse("Nguồn 3", "source-3", "version-3", "Chapter 1", null, 4, "page-4", "Overview of DBMS")
-        );
-        ChatAnswerResponse expected = refusedResponse();
-
-        when(retrievalPolicy.buildRequest(question, 5)).thenReturn(request);
-        when(vectorStore.similaritySearch(request)).thenReturn(documents);
-        when(citationMapper.toCitations(documents)).thenReturn(irrelevantCitations);
-        when(citationMapper.toSources(irrelevantCitations)).thenReturn(List.of());
-        when(chunkInspectionService.getRetrievalReadinessCounts())
-                .thenReturn(new ChunkInspectionService.RetrievalReadinessCounts(3L, 3L, 3L, 3L));
-        when(answerComposer.compose(any(), any(), any(), any())).thenReturn(expected);
-
-        ChatAnswerResponse response = chatService.answer(question, null);
-
-        assertThat(response).isSameAs(expected);
-        verify(chunkInspectionService).getRetrievalReadinessCounts();
-        verify(chatClient, never()).prompt();
-        verify(chatPromptFactory, never()).buildPrompt(any(), any(), any(), anyList());
+        verify(chatPromptFactory, never()).buildPrompt(any(), any(), any());
     }
 
     @Test
     void answerTreatsNullSimilaritySearchResultsAsHandledRefusalInsteadOfThrowing() {
+        stubLegalIntent();
         String question = "Không có dữ liệu đủ điều kiện";
         SearchRequest request = SearchRequest.builder().query(question).topK(5).build();
         ChatAnswerResponse expected = refusedResponse();
@@ -324,18 +254,6 @@ class ChatServiceTest {
         verify(chatClient, never()).prompt();
     }
 
-    // Helper to stub the chatResponse() call chain
-    private void stubChatResponse(String textPayload) {
-        AssistantMessage assistantMsg = new AssistantMessage(textPayload);
-        Generation gen = new Generation(assistantMsg);
-        when(aiChatResponse.getResult()).thenReturn(gen);
-        when(aiChatResponse.getMetadata()).thenReturn(chatResponseMetadata);
-        when(chatResponseMetadata.getUsage()).thenReturn(usage);
-        when(usage.getPromptTokens()).thenReturn(100);
-        when(usage.getCompletionTokens()).thenReturn(200);
-        when(callResponseSpec.chatResponse()).thenReturn(aiChatResponse);
-    }
-
     private ChatAnswerResponse standardResponse(
             GroundingStatus groundingStatus,
             List<CitationResponse> citations,
@@ -349,11 +267,11 @@ class ChatServiceTest {
                 "Kết luận [Nguồn 1].",
                 AnswerCompositionPolicy.DEFAULT_DISCLAIMER,
                 null,
-                List.of("Điều 6 [Nguồn 1]"),
-                List.of("Phạt tiền [Nguồn 1]"),
-                List.of("GPLX"),
-                List.of("Làm việc với cơ quan chức năng"),
-                List.of("Kiểm tra biên bản"),
+                List.of("basis-1"),
+                List.of("penalty-1"),
+                List.of("doc-1"),
+                List.of("step-1"),
+                List.of("next-1"),
                 List.of(),
                 null,
                 citations,
@@ -390,7 +308,7 @@ class ChatServiceTest {
         return new Document("Tài liệu " + suffix, Map.of(
                 "sourceId", "source-" + suffix,
                 "sourceVersionId", "version-" + suffix,
-                "origin", "https://vbpl.vn/doc-" + suffix
+                "origin", "https://example.com/doc-" + suffix
         ));
     }
 }

@@ -6,6 +6,8 @@ import com.vn.traffic.chatbot.chat.api.PublicChatController;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
 import com.vn.traffic.chatbot.chat.service.AnswerComposer;
 import com.vn.traffic.chatbot.chat.service.AnswerCompositionPolicy;
+import com.vn.traffic.chatbot.chat.intent.IntentClassifier;
+import com.vn.traffic.chatbot.chat.intent.IntentDecision;
 import com.vn.traffic.chatbot.chat.service.ChatPromptFactory;
 import com.vn.traffic.chatbot.chat.service.ChatService;
 import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
@@ -94,11 +96,15 @@ class ChatFlowIntegrationTest {
         ChatPromptFactory chatPromptFactory = new ChatPromptFactory(paramProvider);
         RetrievalPolicy retrievalPolicy = new RetrievalPolicy(paramProvider);
 
+        IntentClassifier intentClassifier = org.mockito.Mockito.mock(IntentClassifier.class);
+        org.mockito.Mockito.when(intentClassifier.classify(org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new IntentDecision(IntentDecision.Intent.LEGAL, 0.9));
+
         ChatService chatService = new ChatService(
                 chatClientMap,
                 aiModelProperties,
                 vectorStore,
-                objectMapper,
                 retrievalPolicy,
                 citationMapper,
                 answerComposer,
@@ -106,7 +112,8 @@ class ChatFlowIntegrationTest {
                 chunkInspectionService,
                 compositionPolicy,
                 chatLogService,
-                chatMemory
+                chatMemory,
+                intentClassifier
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
 
@@ -200,31 +207,19 @@ class ChatFlowIntegrationTest {
     }
 
     @Test
-    void malformedModelPayloadReturnsStructuredResponseInsteadOf500() throws Exception {
+    void malformedModelPayloadReturnsRefusalInsteadOf500() throws Exception {
+        // Plan 08-03 / D-06: manual JSON-parse fallback deleted. A malformed / non-JSON
+        // model payload now fails inside .entity(LegalAnswerDraft.class); ChatService
+        // catches the exception and routes to the grounding-refusal path instead of
+        // propagating a 500. Previously (P7) this was papered over by fallbackDraft().
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(
-                new org.springframework.ai.document.Document("Điều 7 quy định xử phạt vượt đèn đỏ", Map.of(
+                new org.springframework.ai.document.Document("Doc 1", Map.of(
                         "sourceId", "source-1",
                         "sourceVersionId", "version-1",
-                        "sourceTitle", "Nghị định 168",
-                        "origin", "https://vbpl.vn/nd168",
+                        "sourceTitle", "Source A",
+                        "origin", "https://example.com/a",
                         "pageNumber", 4,
-                        "sectionRef", "Điều 7"
-                )),
-                new org.springframework.ai.document.Document("Căn cứ pháp lý bổ sung", Map.of(
-                        "sourceId", "source-2",
-                        "sourceVersionId", "version-2",
-                        "sourceTitle", "Luật Trật tự, an toàn giao thông đường bộ",
-                        "origin", "https://vbpl.vn/law-2",
-                        "pageNumber", 12,
-                        "sectionRef", "Khoản 3 Điều 11"
-                )),
-                new org.springframework.ai.document.Document("Hướng dẫn xử lý", Map.of(
-                        "sourceId", "source-3",
-                        "sourceVersionId", "version-3",
-                        "sourceTitle", "Văn bản hướng dẫn",
-                        "origin", "https://vbpl.vn/guide-3",
-                        "pageNumber", 2,
-                        "sectionRef", "Mục 1"
+                        "sectionRef", "section-1"
                 ))
         ));
         when(chatModel.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(new AssistantMessage("không phải json")))));
@@ -232,15 +227,10 @@ class ChatFlowIntegrationTest {
         mockMvc.perform(post("/api/v1/chat")
                         .contentType("application/json")
                         .content("""
-                                {"question":"Cho tôi căn cứ pháp lý về lỗi vượt đèn đỏ xe máy."}
+                                {"question":"Cho tôi câu trả lời với payload hỏng."}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.groundingStatus").value("GROUNDED"))
-                .andExpect(jsonPath("$.data.disclaimer").isNotEmpty())
-                .andExpect(jsonPath("$.data.uncertaintyNotice").isNotEmpty())
-                .andExpect(jsonPath("$.data.legalBasis[0]").exists())
-                .andExpect(jsonPath("$.data.nextSteps[0]").isNotEmpty())
-                .andExpect(jsonPath("$.data.citations[0].inlineLabel").value("Nguồn 1"))
-                .andExpect(jsonPath("$.data.sources[0].sourceId").value("source-1"));
+                .andExpect(jsonPath("$.data.groundingStatus").value("REFUSED"))
+                .andExpect(jsonPath("$.data.disclaimer").isNotEmpty());
     }
 }

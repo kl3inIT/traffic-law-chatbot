@@ -1,8 +1,9 @@
 package com.vn.traffic.chatbot.chat.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
+import com.vn.traffic.chatbot.chat.intent.IntentClassifier;
+import com.vn.traffic.chatbot.chat.intent.IntentDecision;
 import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
 import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.common.config.AiModelProperties;
@@ -22,16 +23,21 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * D-02: chitchat/greeting short-circuit tests. Verifies that clear greetings bypass
- * the retrieval pipeline and LLM entirely — keeps p50 low for trivial intents.
+ * Plan 08-03: IntentClassifier-driven short-circuit tests.
+ *
+ * <p>Replaces the P7 regex-gate test: asserts that CHITCHAT / OFF_TOPIC intents
+ * bypass retrieval + LLM entirely and that LEGAL intent proceeds through the
+ * retrieval pipeline. No CHITCHAT_PATTERN regex remains in production code
+ * (ARCH-03); the {@link IntentClassifier} now owns dispatch.
  */
 @ExtendWith(MockitoExtension.class)
 class ChatServiceChitchatTest {
@@ -46,8 +52,8 @@ class ChatServiceChitchatTest {
     @Mock private AnswerCompositionPolicy answerCompositionPolicy;
     @Mock private ChatLogService chatLogService;
     @Mock private ChatMemory chatMemory;
+    @Mock private IntentClassifier intentClassifier;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private ChatService chatService;
 
     @BeforeEach
@@ -69,7 +75,6 @@ class ChatServiceChitchatTest {
                 chatClientMap,
                 aiModelProperties,
                 vectorStore,
-                objectMapper,
                 retrievalPolicy,
                 citationMapper,
                 answerComposer,
@@ -77,26 +82,24 @@ class ChatServiceChitchatTest {
                 chunkInspectionService,
                 answerCompositionPolicy,
                 chatLogService,
-                chatMemory
+                chatMemory,
+                intentClassifier
         );
         ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
     }
 
     @Test
-    void shortGreetingShortCircuitsBeforeRetrieval() {
-        ChatAnswerResponse canned = new ChatAnswerResponse(
-                GroundingStatus.GROUNDED, null, null,
-                "Xin chào!", null, "disclaimer", null,
-                List.of(), List.of(), List.of(), List.of(), List.of(),
-                List.of(), null, List.of(), List.of()
-        );
+    void chitchatIntentShortCircuitsBeforeRetrieval() {
+        ChatAnswerResponse canned = cannedResponse();
+        when(intentClassifier.classify(eq("Xin chào"), any()))
+                .thenReturn(new IntentDecision(IntentDecision.Intent.CHITCHAT, 0.98));
         when(answerComposer.composeChitchat()).thenReturn(canned);
 
         ChatAnswerResponse response = chatService.answer("Xin chào", null);
 
         assertThat(response).isSameAs(canned);
         verify(answerComposer).composeChitchat();
-        // D-02: retrieval + LLM must NOT be invoked for greetings
+        // D-02 + ARCH-03: retrieval + LLM must NOT be invoked for CHITCHAT intent
         verifyNoInteractions(vectorStore);
         verifyNoInteractions(retrievalPolicy);
         verifyNoInteractions(citationMapper);
@@ -108,52 +111,37 @@ class ChatServiceChitchatTest {
     }
 
     @Test
-    void thankYouShortCircuits() {
+    void offTopicIntentShortCircuitsWithDistinctRefusal() {
         ChatAnswerResponse canned = cannedResponse();
-        when(answerComposer.composeChitchat()).thenReturn(canned);
+        when(intentClassifier.classify(eq("Tin tức bóng đá hôm nay?"), any()))
+                .thenReturn(new IntentDecision(IntentDecision.Intent.OFF_TOPIC, 0.92));
+        when(answerComposer.composeOffTopicRefusal()).thenReturn(canned);
 
-        ChatAnswerResponse response = chatService.answer("cảm ơn", null);
+        ChatAnswerResponse response = chatService.answer("Tin tức bóng đá hôm nay?", null);
 
         assertThat(response).isSameAs(canned);
-        verifyNoInteractions(vectorStore, retrievalPolicy, chatClient);
+        verify(answerComposer).composeOffTopicRefusal();
+        // D-09: OFF_TOPIC uses distinct template, not composeChitchat
+        verify(answerComposer, never()).composeChitchat();
+        verifyNoInteractions(vectorStore);
+        verifyNoInteractions(retrievalPolicy);
+        verifyNoInteractions(chatClient);
+        verify(chatLogService).save(anyString(), eq(canned), eq(GroundingStatus.REFUSED),
+                any(), anyInt(), anyInt(), anyInt(), anyString());
     }
 
     @Test
-    void englishHelloShortCircuits() {
-        ChatAnswerResponse canned = cannedResponse();
-        when(answerComposer.composeChitchat()).thenReturn(canned);
-
-        ChatAnswerResponse response = chatService.answer("hello", null);
-
-        assertThat(response).isSameAs(canned);
-        verifyNoInteractions(vectorStore, retrievalPolicy, chatClient);
-    }
-
-    @Test
-    void longLegalQuestionDoesNotShortCircuit() {
-        // Real legal question, > 8 words, not a chitchat match — must go through retrieval pipeline.
-        // We don't stub the downstream pipeline (retrieval returns empty by default) so this will
-        // exercise the refusal path. The critical assertion is that composeChitchat was NOT called.
+    void legalIntentGoesThroughRetrievalPipeline() {
+        when(intentClassifier.classify(anyString(), any()))
+                .thenReturn(new IntentDecision(IntentDecision.Intent.LEGAL, 0.9));
         when(retrievalPolicy.buildRequest(anyString(), anyInt())).thenReturn(null);
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(cannedResponse());
 
-        chatService.answer("Vượt đèn đỏ với xe máy thì bị phạt bao nhiêu tiền theo quy định mới nhất?", null);
+        chatService.answer("Vượt đèn đỏ với xe máy thì bị phạt bao nhiêu tiền?", null);
 
         verify(retrievalPolicy).buildRequest(anyString(), anyInt());
-        // composeChitchat must NOT be called for real legal questions
-        org.mockito.Mockito.verify(answerComposer, org.mockito.Mockito.never()).composeChitchat();
-    }
-
-    @Test
-    void blankQuestionDoesNotShortCircuitAsChitchat() {
-        // Edge case: empty/blank strings should not hit the chitchat path (they should go through
-        // normal pipeline so refusal logic applies).
-        when(retrievalPolicy.buildRequest(anyString(), anyInt())).thenReturn(null);
-        when(answerComposer.compose(any(), any(), any(), any())).thenReturn(cannedResponse());
-
-        chatService.answer("", null);
-
-        org.mockito.Mockito.verify(answerComposer, org.mockito.Mockito.never()).composeChitchat();
+        verify(answerComposer, never()).composeChitchat();
+        verify(answerComposer, never()).composeOffTopicRefusal();
     }
 
     private ChatAnswerResponse cannedResponse() {
