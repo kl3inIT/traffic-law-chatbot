@@ -3,7 +3,7 @@ status: failed
 phase: 09-modular-rag-prompt-caching
 source: [09-VERIFICATION.md]
 started: 2026-04-18T21:47:35+07:00
-updated: 2026-04-18T22:20:00+07:00
+updated: 2026-04-18T22:55:00+07:00
 ---
 
 ## Current Test
@@ -83,6 +83,24 @@ Fix: strengthen `buildPromptTemplate` (`LegalQueryAugmenter.java:69`) to state t
 
 With G1+G2 making every first attempt invalid, one retry is not enough. Once G1/G2 are fixed, current value of 1 is likely fine (T-9-04 monitor retry rate before tightening to 0).
 
+### G4 — SPRING_AI_CHAT_MEMORY.conversation_id VARCHAR(36) overflow (NEW — surfaced 2026-04-18 by Plan 09-03 live re-run)
+
+`ChatService.java:80-81` builds `"ephemeral-" + UUID.randomUUID()` = 46 chars when caller passes `conversationId == null`. Column `SPRING_AI_CHAT_MEMORY.conversation_id` is `VARCHAR(36)`, so every memory INSERT throws PSQL `value too long for type character varying(36)`, ChatService catches it and returns `GroundingStatus.REFUSED`. This explains the 0/20 pass rate in `twentyQueryRegressionSuiteAtLeast95Percent` (test calls `chatService.answer(..., null)`). `twoTurnConversationMemoryWorks` passes a 36-char UUID directly so it fits and the test stays GREEN.
+
+Fix candidates:
+  - (A) Drop the `"ephemeral-"` prefix and use the bare UUID (36 chars) — 1-line change, no migration.
+  - (B) Liquibase changeset to widen the column to `VARCHAR(64)` — preserves the prefix as a debug signal.
+
+G1/G2 root cause is fully resolved at the prompt level (LLM JSON in the live log conforms to the 8-key LegalAnswerDraft schema with arrays). G4 is the new blocker for the 95% gate.
+
+### G5 — IntentClassifier receives LegalAnswerDraft JSON instead of IntentDecision (NEW — surfaced 2026-04-18)
+
+Every test request logs `BeanOutputConverter could not parse … into class IntentDecision` because the JSON it receives is a LegalAnswerDraft (8 keys, no `confidence`). IntentClassifier falls back to `LEGAL` per D-02, so it does NOT break tests, but it spams an error per request and wastes one LLM call. Likely cause: misrouted ChatClient or shared converter between the intent and answer chains. Lower priority than G4 — investigate after G4 fix.
+
+### G6 — Phase7Baseline.REFUSAL_RATE_PERCENT = NaN (PRE-EXISTING from Plan 08-01)
+
+`refusalRateWithinTenPercentOfPhase7Baseline` fails with `NaN` because `Phase7Baseline.REFUSAL_RATE_PERCENT` was never backfilled. Plan 08-01 documented this as a TODO and Phase7Baseline.java still has the placeholder. Out of scope for Phase 9 gap closure but blocks the test from going GREEN.
+
 ### Recommended next step
 
-`/gsd-plan-phase 09 --gaps` — create a gap-closure plan that (a) inspects/updates the DB systemPrompt if present, (b) tightens `LegalQueryAugmenter` prompt to forbid extra fields and require arrays, (c) re-runs `liveTest` until ≥95% pass rate.
+`/gsd-plan-phase 09 --gaps` — create a gap-closure plan that (a) fixes G4 (Bug A: ephemeral conversationId overflow), (b) optionally addresses G5 (IntentClassifier misroute), (c) re-runs `liveTest *VietnameseRegressionIT *CitationFormatRegressionIT *EmptyContextRefusalIT` to verify ≥95% pass rate. G6 stays deferred until Phase 7 baseline backfill.
