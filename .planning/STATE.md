@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Chat Performance & Spring AI Modular RAG
-current_phase: 09
-status: phase-08-complete
-last_updated: "2026-04-18T08:35:00.000Z"
-last_activity: 2026-04-18 -- Phase 08 complete (live run 5/7 pass; 2 regression tests deferred to Phase 9 — NoOpRetrievalAdvisor scope-correct refusal)
+current_phase: 08
+status: Phase 08 goal achieved (20/20 code-level must-haves + live run 5/7 pass)
+last_updated: "2026-04-18T12:55:25.651Z"
+last_activity: 2026-04-18 -- Phase 08 verification passed; 2 regression tests deferred to Phase 9 (NoOpRetrievalAdvisor → 100% refusal is scope-correct)
 progress:
   total_phases: 4
   completed_phases: 2
