@@ -13,6 +13,10 @@ import java.util.Objects;
 @Component
 public class CitationMapper {
 
+
+    /** Inline-label prefix for Vietnamese [Nguồn n] format — Pitfall 4 defense. */
+    public static final String INLINE_LABEL_PREFIX = "Nguồn ";
+
     private static final int EXCERPT_LIMIT = 280;
 
     public List<CitationResponse> toCitations(List<Document> documents) {
@@ -58,7 +62,7 @@ public class CitationMapper {
         Map<String, Object> metadata = document.getMetadata();
         String origin = stringValue(metadata.get("origin"));
         return new CitationResponse(
-                "Nguồn " + labelNumber,
+                INLINE_LABEL_PREFIX + labelNumber,
                 stringValue(metadata.get("sourceId")),
                 stringValue(metadata.get("sourceVersionId")),
                 resolveSourceTitle(metadata, origin),
