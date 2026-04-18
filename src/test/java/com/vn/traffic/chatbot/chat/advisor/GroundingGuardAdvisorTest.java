@@ -1,7 +1,6 @@
 package com.vn.traffic.chatbot.chat.advisor;
 
 import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpPromptCacheAdvisor;
-import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpRetrievalAdvisor;
 import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpValidationAdvisor;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -40,13 +39,6 @@ class GroundingGuardAdvisorTest {
         assertThat(advisor.getName()).isEqualTo("GroundingGuardOutputAdvisor");
         assertThat(GroundingGuardOutputAdvisor.REFUSAL_TEMPLATE)
                 .contains("luật giao thông Việt Nam");
-    }
-
-    @Test
-    void noOpRetrievalAdvisorDelegatesToChain() {
-        NoOpRetrievalAdvisor advisor = new NoOpRetrievalAdvisor();
-        assertThat(advisor.getOrder()).isEqualTo(Ordered.HIGHEST_PRECEDENCE + 300);
-        assertDelegatesUnchanged(advisor::adviseCall);
     }
 
     @Test
