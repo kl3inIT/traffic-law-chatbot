@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: — Chat Performance & Spring AI Modular RAG
 current_phase: 08
 status: executing
-last_updated: "2026-04-18T08:30:00.000Z"
-last_activity: 2026-04-18 -- Phase 08 Plan 02 complete (Wave 1 advisor chain + IntentClassifier)
+last_updated: "2026-04-18T15:05:00.000Z"
+last_activity: 2026-04-18 -- Phase 08 Plan 03 complete (Wave 2 ChatService rewrite + .entity structured output + P7 deletion guards)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
-  percent: 75
+  completed_plans: 7
+  percent: 87
 ---
 
 # State: Vietnam Traffic Law Chatbot
@@ -23,9 +23,9 @@ progress:
 ## Current Position
 
 Phase: 08 (structured-output-groundingguardadvisor) — EXECUTING
-Plan: 3 of 4 (08-01, 08-02 complete; 08-03 next — Wave 2 ChatService rewrite)
+Plan: 4 of 4 (08-01, 08-02, 08-03 complete; 08-04 next — Wave 3 verification/baseline close-out)
 Status: Executing Phase 08
-Last activity: 2026-04-18 -- Phase 08 Plan 02 complete (Wave 1: GroundingGuard advisor pair, 3 NoOp P9 placeholders, IntentClassifier + IntentDecision, LegalAnswerDraft @JsonClassDescription, ChatClientConfig defaultAdvisors wiring with full 6-advisor chain)
+Last activity: 2026-04-18 -- Phase 08 Plan 03 complete (Wave 2: ChatService.doAnswer rewritten with IntentClassifier dispatch + .entity(LegalAnswerDraft.class) native structured output; 9 P7 identifiers deleted; AnswerComposer.composeOffTopicRefusal added; 2 ArchUnit guard tests in place; ARCH-02/03/04 closed)
 
 ## Project Reference
 
