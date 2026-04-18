@@ -14,6 +14,13 @@ package com.vn.traffic.chatbot.chat.regression;
  * (commit {@code HEAD^} on merge), OR redefine the ±10% parity check as "refusal rate is
  * within [0%, 40%]" (absolute band, not drift).
  *
+ * <p>TODO (Plan 09-04): Phase-9 gap-closure intentionally does NOT backfill this
+ * baseline — G6 in 09-HUMAN-UAT.md is explicitly out of scope per the UAT
+ * recommended-next-step. The NaN placeholder remains until the Plan 08-04 Task 1
+ * backfill ships. Do NOT treat the refusalRateWithinTenPercentOfPhase7Baseline
+ * failure as a Phase-9 regression — it predates Phase 9 and is tracked
+ * separately.
+ *
  * <p>Using {@link Double#NaN} here so any comparison ({@code Math.abs(rate - NaN)} → NaN,
  * which is never {@code <= 10}) FAILS LOUD rather than passes vacuously. This preserves the
  * SC5 parity-check contract without inventing a fake baseline.

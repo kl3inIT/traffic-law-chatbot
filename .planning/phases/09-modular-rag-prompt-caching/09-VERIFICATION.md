@@ -162,6 +162,17 @@ No code-level gaps. Phase 9 implementation is structurally complete and idiomati
 
 **Escalation note for CACHE-01:** The requirement is documented as deferred (D-07, user-approved 2026-04-18), but no successor phase in ROADMAP currently claims it. Phase 10 scope is ADMIN-* only. Milestone v1.1 will not fully close without a follow-up plan or an explicit roll-to-v1.2 decision. Recommend the user either (a) schedule a late-v1.1 "CACHE-01 close-out" phase, or (b) move CACHE-01 to the v1.2 deferred list in REQUIREMENTS.md.
 
+### Live-Run UAT Gaps (amended 2026-04-18)
+
+| Gap | Disposition | Evidence |
+|-----|-------------|----------|
+| G1 (extra top-level fields `confidence`/`intent`/`note`) | CLOSED under Plan 09-03 | Prompt-side fix in `LegalQueryAugmenter.buildPromptTemplate` (commit `45baf54`); DB `ai_parameter_set.system_prompt` audit 2026-04-18 — clean, no extra-field instructions. |
+| G2 (list fields returned as bare strings) | CLOSED under Plan 09-03 | Same commit adds `phải là mảng JSON` rule + one-shot example enforcing JSON arrays for `legalBasis`, `penalties`, `requiredDocuments`, `procedureSteps`, `nextSteps`. |
+| G3 (retry budget insufficient) | CLOSED indirectly | Closure of G1/G2 means first-attempt responses validate; `maxRepeatAttempts=1` remains per D-10. |
+| G4 (`SPRING_AI_CHAT_MEMORY.conversation_id` VARCHAR(36) overflow) | CLOSED under Plan 09-04 | `ChatService.buildMemoryConversationId` now returns bare 36-char `UUID.randomUUID().toString()`; regression test `ChatServiceEphemeralConversationIdTest` guards against re-introduction; `PITFALLS.md` Pitfall 10 updated. |
+| G5 (IntentClassifier misroute via shared advisor chain) | DEFERRED to Plan 09-05 | Root cause confirmed in `ChatClientConfig.java:154-164`: every `chatClientMap` entry carries `validationAdvisor` bound to `LegalAnswerDraft`; `IntentClassifier.classify(...).entity(IntentDecision.class)` fails `BeanOutputConverter` → `catch` falls back to `LEGAL` per D-02. Fix scope ~30–50 LOC across `ChatClientConfig` + `IntentClassifier` (sibling `intentChatClientMap` without default advisors); exceeds Plan 09-04 Task 2 scope budget (>1 file). Functional correctness preserved via D-02 fallback; user impact is latency/cost on chitchat paths, not refusal behaviour. |
+| G6 (`Phase7Baseline.REFUSAL_RATE_PERCENT = NaN`) | DEFERRED under Plan 09-04 — Phase7Baseline.REFUSAL_RATE_PERCENT stays NaN pending Plan 08-04 Task 1 backfill. `refusalRateWithinTenPercentOfPhase7Baseline` is expected-RED in the live re-run and is NOT a Phase-9 blocker. See `Phase7Baseline.java` Javadoc "Plan 09-04" TODO for the code-side cross-reference. |
+
 ---
 
 _Verified: 2026-04-18_
