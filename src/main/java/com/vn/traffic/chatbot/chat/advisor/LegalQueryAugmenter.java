@@ -27,14 +27,14 @@ import java.util.stream.Collectors;
 public final class LegalQueryAugmenter implements QueryAugmenter {
 
     static final String SYSTEM_CONTEXT_FALLBACK =
-            "Ban la tro ly hoi dap phap luat giao thong Viet Nam.\n" +
-            "Hay tra loi bang tieng Viet voi giong dieu ro rang.";
+            "Bạn là trợ lý hỏi đáp pháp luật giao thông Việt Nam.\n" +
+            "Hãy trả lời bằng tiếng Việt với giọng điệu rõ ràng.";
 
     private static final String LABEL_RULE =
             "Mọi nhận định có căn cứ phải gắn nhãn trích dẫn nội dòng đúng định dạng [Nguồn n]; tuyệt đối không tự tạo nhãn ngoài danh sách được cung cấp.";
 
     private static final PromptTemplate EMPTY_CONTEXT_TEMPLATE = new PromptTemplate(
-            "Khong co ngu canh phap luat lien quan duoc truy xuat cho cau hoi nay.");
+            "Không có ngữ cảnh pháp luật liên quan được truy xuất cho câu hỏi này.");
 
     private final ActiveParameterSetProvider paramProvider;
 
@@ -76,26 +76,26 @@ public final class LegalQueryAugmenter implements QueryAugmenter {
         // PromptAssert.templateHasRequiredPlaceholders check is a substring scan and
         // accepts either delimiter style.
         String template = systemPrompt + "\n"
-                + "Chi bao gom cac muc lien quan theo danh sach: " + String.join(", ", PromptSectionRules.SECTION_ORDER) + ".\n"
-                + "Cac phan noi dung duoc phep dien la: " + String.join(", ", PromptSectionRules.SUPPORTED_SECTION_NAMES) + ".\n"
+                + "Chỉ bao gồm các mục liên quan theo danh sách: " + String.join(", ", PromptSectionRules.SECTION_ORDER) + ".\n"
+                + "Các phần nội dung được phép điền là: " + String.join(", ", PromptSectionRules.SUPPORTED_SECTION_NAMES) + ".\n"
                 + LABEL_RULE + "\n"
-                + "Chi tra ve duy nhat mot object JSON hop le, khong dung markdown, khong them giai thich.\n"
-                + "Tat ca cac khoa conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phai luon xuat hien trong JSON.\n"
-                + "Cac truong legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phai la mang JSON cua cac chuoi (JSON array of strings), khong duoc tra ve dang chuoi don.\n"
-                + "Khong them confidence, intent, note, hoac bat ky khoa top-level nao khac khong nam trong 8 khoa: conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps.\n"
-                + "Vi du dung dinh dang (one-shot):\n"
+                + "Chỉ trả về duy nhất một object JSON hợp lệ, không dùng markdown, không thêm giải thích.\n"
+                + "Tất cả các khóa conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phải luôn xuất hiện trong JSON.\n"
+                + "Các trường legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phải là mảng JSON của các chuỗi (JSON array of strings), không được trả về dạng chuỗi đơn.\n"
+                + "Không thêm confidence, intent, note, hoặc bất kỳ khóa top-level nào khác không nằm trong 8 khóa: conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps.\n"
+                + "Ví dụ đúng định dạng (one-shot):\n"
                 + "{\n"
                 + "  \"conclusion\": \"...\",\n"
                 + "  \"answer\": \"...\",\n"
                 + "  \"uncertaintyNotice\": \"\",\n"
-                + "  \"legalBasis\": [\"Dieu 6 Nghi dinh 100/2019/ND-CP\"],\n"
-                + "  \"penalties\": [\"Phat tien tu 800.000 den 1.000.000 dong\"],\n"
+                + "  \"legalBasis\": [\"Điều 6 Nghị định 100/2019/NĐ-CP\"],\n"
+                + "  \"penalties\": [\"Phạt tiền từ 800.000 đến 1.000.000 đồng\"],\n"
                 + "  \"requiredDocuments\": [],\n"
                 + "  \"procedureSteps\": [],\n"
                 + "  \"nextSteps\": []\n"
                 + "}\n"
-                + "Cau hoi nguoi dung: <query>\n"
-                + "Danh sach trich dan duoc phep dung:\n"
+                + "Câu hỏi người dùng: <query>\n"
+                + "Danh sách trích dẫn được phép dùng:\n"
                 + "<context>";
         return PromptTemplate.builder()
                 .template(template)
@@ -111,7 +111,7 @@ public final class LegalQueryAugmenter implements QueryAugmenter {
         @Override
         public String apply(List<Document> documents) {
             if (documents == null || documents.isEmpty()) {
-                return "- Khong co trich dan kha dung";
+                return "- Không có trích dẫn khả dụng";
             }
             return documents.stream()
                     .map(LegalCitationBlockFormatter::formatDoc)

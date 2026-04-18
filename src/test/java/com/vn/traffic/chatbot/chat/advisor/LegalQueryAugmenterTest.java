@@ -30,11 +30,11 @@ class LegalQueryAugmenterTest {
         LegalQueryAugmenter augmenter = new LegalQueryAugmenter(paramProvider);
 
         List<Document> labeledDocs = List.of(
-                buildDoc(1, "Luat Giao thong", "https://vbpl.vn/doc-1", 42,
+                buildDoc(1, "Luật Giao thông", "https://vbpl.vn/doc-1", 42,
                         "Section-6", "excerpt-alpha"),
-                buildDoc(2, "Nghi dinh 100", "https://vbpl.vn/doc-2", null,
+                buildDoc(2, "Nghị định 100", "https://vbpl.vn/doc-2", null,
                         "Section-5", "excerpt-beta"),
-                buildDoc(3, "Thong tu 65", "https://vbpl.vn/doc-3", 7,
+                buildDoc(3, "Thông tư 65", "https://vbpl.vn/doc-3", 7,
                         "Section-3", "excerpt-gamma")
         );
 
@@ -42,9 +42,9 @@ class LegalQueryAugmenterTest {
         String text = augmented.text();
 
         String labelPrefix = CitationMapper.INLINE_LABEL_PREFIX;
-        assertThat(text).contains("- [" + labelPrefix + "1] Luat Giao thong | origin=https://vbpl.vn/doc-1 | page=42 | section=Section-6 | excerpt=excerpt-alpha");
-        assertThat(text).contains("- [" + labelPrefix + "2] Nghi dinh 100 | origin=https://vbpl.vn/doc-2 | page=null | section=Section-5 | excerpt=excerpt-beta");
-        assertThat(text).contains("- [" + labelPrefix + "3] Thong tu 65 | origin=https://vbpl.vn/doc-3 | page=7 | section=Section-3 | excerpt=excerpt-gamma");
+        assertThat(text).contains("- [" + labelPrefix + "1] Luật Giao thông | origin=https://vbpl.vn/doc-1 | page=42 | section=Section-6 | excerpt=excerpt-alpha");
+        assertThat(text).contains("- [" + labelPrefix + "2] Nghị định 100 | origin=https://vbpl.vn/doc-2 | page=null | section=Section-5 | excerpt=excerpt-beta");
+        assertThat(text).contains("- [" + labelPrefix + "3] Thông tư 65 | origin=https://vbpl.vn/doc-3 | page=7 | section=Section-3 | excerpt=excerpt-gamma");
     }
 
     @Test
@@ -64,15 +64,15 @@ class LegalQueryAugmenterTest {
     void promptTemplateForbidsExtraTopLevelFieldsConfidence() {
         PromptTemplate template = LegalQueryAugmenter.buildPromptTemplate("S");
         String text = template.getTemplate();
-        assertThat(text).contains("Khong them confidence");
+        assertThat(text).contains("Không thêm confidence");
     }
 
     @Test
     void promptTemplateMentionsForbiddenIntentAndNoteFields() {
         PromptTemplate template = LegalQueryAugmenter.buildPromptTemplate("S");
         String text = template.getTemplate();
-        // intent and note must appear inside the forbidden-fields rule (which begins with "Khong them")
-        assertThat(text).contains("Khong them");
+        // intent and note must appear inside the forbidden-fields rule (which begins with "Không thêm")
+        assertThat(text).contains("Không thêm");
         assertThat(text).contains("intent");
         assertThat(text).contains("note");
     }
@@ -81,7 +81,7 @@ class LegalQueryAugmenterTest {
     void promptTemplateMandatesJsonArraysForListTypedFields() {
         PromptTemplate template = LegalQueryAugmenter.buildPromptTemplate("S");
         String text = template.getTemplate();
-        assertThat(text).contains("phai la mang JSON");
+        assertThat(text).contains("phải là mảng JSON");
         assertThat(text).contains("legalBasis");
         assertThat(text).contains("penalties");
         assertThat(text).contains("requiredDocuments");
@@ -104,7 +104,7 @@ class LegalQueryAugmenterTest {
         // Existing LABEL_RULE byte-for-byte parity (citations gating) — must still be present.
         assertThat(text).contains("[Nguồn n]");
         // Existing "all 8 keys must appear" clause unchanged.
-        assertThat(text).contains("conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phai luon xuat hien");
+        assertThat(text).contains("conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phải luôn xuất hiện");
     }
 
     private static Document buildDoc(int labelNumber, String sourceTitle, String origin,
