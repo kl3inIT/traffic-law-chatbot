@@ -24,9 +24,9 @@ class ChatClientConfigTest {
                 "claude-sonnet-4-6",
                 "claude-haiku-4-5-20251001",
                 List.of(
-                        new AiModelProperties.ModelEntry("gpt-5.4", "GPT-5.4", "", ""),
-                        new AiModelProperties.ModelEntry("claude-sonnet-4-6", "Claude Sonnet 4.6", "", ""),
-                        new AiModelProperties.ModelEntry("claude-haiku-4-5-20251001", "Claude Haiku 4.5", "", "")
+                        new AiModelProperties.ModelEntry("gpt-5.4", "GPT-5.4", null, null),
+                        new AiModelProperties.ModelEntry("claude-sonnet-4-6", "Claude Sonnet 4.6", null, null),
+                        new AiModelProperties.ModelEntry("claude-haiku-4-5-20251001", "Claude Haiku 4.5", null, null)
                 )
         );
     }
