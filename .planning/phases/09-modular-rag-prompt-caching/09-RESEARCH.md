@@ -520,22 +520,22 @@ chatClient.prompt()
 | A4 | Spring AI 2.0.0-M4 `DocumentPostProcessor.process(Query, List<Document>)` signature matches context7 descriptions | Pattern 3 | LOW — context7 confirms interface exists; signature may have minor variants. Confirm during planning by reading compiled class from Gradle classpath or ctx7 query on exact signature. |
 | A5 | `StructuredOutputValidationAdvisor` works in tandem with `BeanOutputConverter`-driven `.entity(LegalAnswerDraft.class)` — i.e., the advisor intercepts the `BeanOutputConverter` parse failure path and re-invokes the chain | Pattern 4, Pitfall 6 | MEDIUM — if the advisor runs BEFORE `BeanOutputConverter` (i.e., before `.entity()` resolution), it cannot see parse failures. Context7 description "validates the structured JSON output against a generated JSON schema and retries" suggests it sees the text and schema-checks itself. Verify with an integration test that deliberately injects malformed JSON (mock chat model). |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Q-01: How does `CitationPostProcessor` publish to `ChatClientResponse.context()`?**
    - What we know: `DocumentPostProcessor.process(Query, List<Document>)` has no direct context handle; advisor context lives on `ChatClientRequest`/`ChatClientResponse`.
    - What's unclear: Whether Spring AI 2.0.0-M4 exposes a context hook inside `process()`, or whether the idiomatic pattern is a wrapping `CallAdvisor` that reads `DOCUMENT_CONTEXT` from response metadata and runs `CitationMapper` there.
-   - Recommendation: Plan for the **wrapping `CallAdvisor` approach** (Pitfall 3). This is the pattern context7 §api/testing demonstrates for reading retrieved documents post-call. If a more direct hook is discovered during planning, simplify.
+   - **RESOLVED:** Use the wrapping `CallAdvisor` approach — `CitationStashAdvisor` at `HIGHEST_PRECEDENCE + 310` reads `RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT` from response metadata and publishes `List<CitationResponse>` / `List<SourceReferenceResponse>` to `ChatClientResponse.context()`. Implemented in **09-01-PLAN.md Task 2**. `CitationPostProcessor` stays pure (assigns `labelNumber` metadata only).
 
 2. **Q-02: Can `VectorStoreDocumentRetriever.Builder` accept a `Supplier<>` for all three dynamic properties (`similarityThreshold`, `topK`, `filterExpression`), or only for `filterExpression`?**
    - What we know: context7 confirms `FILTER_EXPRESSION` context-param per-request override. The Supplier pattern on the builder for threshold + topK is not explicitly shown in fetched snippets.
    - What's unclear: Whether the builder has `similarityThreshold(Supplier<Double>)` / `topK(Supplier<Integer>)` overloads in 2.0.0-M4.
-   - Recommendation: During planning, run `ctx7 docs '/spring-projects/spring-ai' "VectorStoreDocumentRetriever Builder method signatures"` and inspect the Gradle-resolved class via `javap`. If no Supplier overloads exist, use the per-call `FILTER_EXPRESSION` context-param + rebuild a fresh `VectorStoreDocumentRetriever` per request inside a thin wrapping `DocumentRetriever`. This preserves D-02 intent.
+   - **RESOLVED:** Prefer method-reference `Supplier` on `VectorStoreDocumentRetriever.Builder` — `.similarityThreshold(retrievalPolicy::getSimilarityThreshold)` + `.topK(retrievalPolicy::getTopK)`. Fallback (Pitfall 5): rebuild a fresh `SearchRequest` per call from `RetrievalPolicy.buildRequest(...)` inside a thin decorating `DocumentRetriever`. Fallback path is explicitly called out in **09-01-PLAN.md Task 3** action block.
 
 3. **Q-03: Does `StructuredOutputValidationAdvisor` successfully retry when the failure comes from `BeanOutputConverter` inside `.entity(Class)`?**
    - What we know: Advisor auto-generates JSON schema from `outputType`; retries on validation failure.
    - What's unclear: Exact position in the call pipeline — does it intercept `ChatResponse.text` before `BeanOutputConverter.convert()`, or does it wrap the converter itself?
-   - Recommendation: Integration test in PR2 uses a mock `ChatModel` that returns malformed JSON on first call, valid JSON on second; assert the advisor retried exactly once and the final entity is valid.
+   - **RESOLVED:** Verified via mock-ChatModel retry IT in **09-02-PLAN.md Task 1** — `StructuredOutputValidationAdvisorIT` stubs `CallAdvisorChain.nextCall(...)` with bad-JSON then good-JSON; asserts `verify(chain, times(2)).nextCall(...)` (exactly one additional call = `maxRepeatAttempts=1`).
 
 ## Environment Availability
 
