@@ -75,8 +75,8 @@ class ChatFlowIntegrationTest {
                 "claude-sonnet-4-6",
                 "claude-haiku-4-5-20251001",
                 List.of(
-                        new AiModelProperties.ModelEntry("claude-sonnet-4-6", "Claude Sonnet 4.6"),
-                        new AiModelProperties.ModelEntry("claude-haiku-4-5-20251001", "Claude Haiku 4.5")
+                        new AiModelProperties.ModelEntry("claude-sonnet-4-6", "Claude Sonnet 4.6", "", ""),
+                        new AiModelProperties.ModelEntry("claude-haiku-4-5-20251001", "Claude Haiku 4.5", "", "")
                 )
         );
         Map<String, ChatClient> chatClientMap = Map.of(
@@ -157,11 +157,7 @@ class ChatFlowIntegrationTest {
                   "penalties": ["Phạt tiền từ 4.000.000 đồng đến 6.000.000 đồng [Nguồn 1]"],
                   "requiredDocuments": ["Giấy phép lái xe"],
                   "procedureSteps": ["Làm việc với cơ quan có thẩm quyền khi được yêu cầu"],
-                  "nextSteps": ["Đối chiếu biên bản với tình tiết thực tế"],
-                  "scenarioFacts": [],
-                  "scenarioRule": [],
-                  "scenarioOutcome": [],
-                  "scenarioActions": []
+                  "nextSteps": ["Đối chiếu biên bản với tình tiết thực tế"]
                 }
                 """)))));
 

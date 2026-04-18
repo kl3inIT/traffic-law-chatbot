@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.retry.RetryTemplate;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
@@ -52,12 +51,8 @@ public class ChatClientConfig {
         requestFactory.setConnectTimeout(Duration.ofMinutes(10));
         requestFactory.setReadTimeout(Duration.ofMinutes(10));
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.ACCEPT_ENCODING, "gzip, deflate");
-
         RestClient.Builder restClientBuilder = RestClient.builder()
-                .requestFactory(requestFactory)
-                .defaultHeaders(h -> h.addAll(headers));
+                .requestFactory(requestFactory);
 
         Map<String, ChatClient> map = new LinkedHashMap<>();
         for (AiModelProperties.ModelEntry entry : modelProperties.models()) {

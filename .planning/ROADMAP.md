@@ -39,12 +39,17 @@
 **Depends on**: Nothing (first v1.1 phase).
 **Requirements**: PERF-01, PERF-02, PERF-03, CACHE-02.
 **Success Criteria** (what must be TRUE):
-  1. User receives chat answers for the top-20 canonical Vietnamese legal lookups in under 2.5s p95 end-to-end at the API layer (baseline snapshot captured pre-change, post-change measurement documented).
+  1. User receives chat answers for the top-20 canonical Vietnamese legal lookups in under 2.5s p95 end-to-end at the API layer (informal manual smoke per CONTEXT.md D-06 — baseline snapshot SUPERSEDED by solo-dev decision 2026-04-17).
   2. HTTP response for a chat request returns before the `chat_log` row write completes, and count(HTTP 200) equals count(chat_log rows) within ≤0.1% gap in a 1000-request load test.
-  3. User greetings and non-legal small talk route through the loosened grounding path (`app.chat.grounding.keywordGate=false`) without triggering the refusal template; refusal-rate baseline vs. new rate captured in an ADMIN-observable report.
+  3. User greetings and non-legal small talk short-circuit past the grounding gate via direct code (`isGreetingOrChitchat` in ChatService) without triggering the refusal template; manual smoke confirms conversational reply (keyword-flag SUPERSEDED by CONTEXT.md D-02).
   4. Repeat embedding requests for the same normalized query text are served from an in-process Caffeine cache; hit/miss counters are exposed via Micrometer and the cache invalidates on embedding-model change (dimension-mismatch guard proven in a test).
-  5. Feature-flag infrastructure (`app.chat.v11.*`) is live and togglable without redeploy for every subsequent v1.1 advisor, with rollback verified by flipping a flag.
-**Plans**: TBD
+  5. ~~Feature-flag infrastructure (`app.chat.v11.*`)~~ **SUPERSEDED by CONTEXT.md D-01 (solo-dev 2026-04-17): no feature-flag layer; rollback = `git revert`. Criterion dropped.**
+**Plans**: 4 plans
+Plans:
+- [x] 07-01-PLAN.md — Wave 0: expose /actuator/prometheus, add Caffeine + cache-starter + prometheus-registry deps, author 4 Nyquist RED test scaffolds + CacheKeyNormalizer stub
+- [x] 07-02-PLAN.md — Caffeine embedding cache: CachingEmbeddingModel @Primary decorator, EmbeddingCacheConfig (JHipster pattern, .recordStats()), EmbeddingModelChangedEvent + listener, dimension-mismatch guard
+- [x] 07-03-PLAN.md — ChatService trio: ChatLogAsyncConfig + @Async @Transactional(REQUIRES_NEW) on ChatLogService.save + List.copyOf snapshots; LegalAnswerDraft slim schema (12→8 fields) + prompt trim + AnswerComposer update + frontend branch removal; Vietnamese chitchat short-circuit
+- [x] 07-04-PLAN.md — Wave 2: manual smoke (curl loop + /actuator/prometheus scrape) + human-verify checkpoint; produces 07-SMOKE-REPORT.md per CONTEXT.md D-06
 
 ### Phase 8: Structured Output + GroundingGuardAdvisor
 **Goal**: Chat responses use native structured output and refusal/chitchat policy is encapsulated in an advisor pair; no hardcoded Vietnamese keyword heuristic drives grounding decisions.
@@ -96,7 +101,7 @@
 | 5. Quality Operations & Evaluation | v1.0 | 4/4 | Complete | 2026-04-13 |
 | 6. Audit, Real-Data Validation & Stabilization | v1.0 | 6/6 | Complete | 2026-04-14 |
 | 06.1. Multi-Provider AI Model Selection | v1.0 | 2/2 | Complete | 2026-04-15 |
-| 7. Chat Latency Foundation | v1.1 | 0/0 | Not started | — |
+| 7. Chat Latency Foundation | v1.1 | 4/4 | Awaiting verification | — |
 | 8. Structured Output + GroundingGuardAdvisor | v1.1 | 0/0 | Not started | — |
 | 9. Modular RAG + Prompt Caching | v1.1 | 0/0 | Not started | — |
 | 10. User-Managed API Key Admin | v1.1 | 0/0 | Not started | — |
