@@ -14,6 +14,7 @@ import org.springframework.ai.chat.client.AdvisorParams;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Service;
@@ -53,6 +54,11 @@ public class ChatService {
     private static final BeanOutputConverter<LegalAnswerDraft> DRAFT_CONVERTER =
             new BeanOutputConverter<>(LegalAnswerDraft.class);
 
+    // Low-confidence intent falls through to LEGAL RAG — grounding gate will refuse
+    // if no citations, which is safer than mis-routing an ambiguous question to
+    // CHITCHAT/OFF_TOPIC.
+    static final double INTENT_CONFIDENCE_THRESHOLD = 0.6;
+
     private final Map<String, ChatClient> chatClientMap;
     private final AiModelProperties aiModelProperties;
     private final AnswerComposer answerComposer;
@@ -71,9 +77,14 @@ public class ChatService {
     private ChatAnswerResponse doAnswer(String question, String modelId, String conversationId) {
         long t0 = System.currentTimeMillis();
         IntentDecision decision = intentClassifier.classify(question, modelId);
-        switch (decision.intent()) {
-            case CHITCHAT -> { return persisted(question, answerComposer.composeChitchat(), GroundingStatus.GROUNDED, conversationId, t0); }
-            case OFF_TOPIC -> { return persisted(question, answerComposer.composeOffTopicRefusal(), GroundingStatus.REFUSED, conversationId, t0); }
+        IntentDecision.Intent effective = decision.confidence() < INTENT_CONFIDENCE_THRESHOLD
+                ? IntentDecision.Intent.LEGAL
+                : decision.intent();
+        log.info("Intent classify: raw={} confidence={} effective={}",
+                decision.intent(), decision.confidence(), effective);
+        switch (effective) {
+            case CHITCHAT -> { return persisted(question, answerComposer.composeChitchat(), GroundingStatus.GROUNDED, conversationId, t0, null); }
+            case OFF_TOPIC -> { return persisted(question, answerComposer.composeOffTopicRefusal(), GroundingStatus.REFUSED, conversationId, t0, null); }
             case LEGAL -> { /* fall through */ }
         }
         AiModelProperties.ModelEntry entry = resolveEntry(modelId);
@@ -85,16 +96,17 @@ public class ChatService {
         try { resp = spec.call().chatClientResponse(); }
         catch (Exception ex) {
             log.warn("ChatClient call failed ({}); returning grounding refusal", ex.getMessage());
-            return persisted(question, refusalResponse(), GroundingStatus.REFUSED, conversationId, t0);
+            return persisted(question, refusalResponse(), GroundingStatus.REFUSED, conversationId, t0, null);
         }
+        ChatResponse chatResponse = resp.chatResponse();
         List<CitationResponse> citations = readList(resp, ChatAdvisorContextKeys.CITATIONS_KEY);
         List<SourceReferenceResponse> sources = readList(resp, ChatAdvisorContextKeys.SOURCES_KEY);
         GroundingStatus status = citations.isEmpty() ? GroundingStatus.REFUSED : GroundingStatus.GROUNDED;
-        LegalAnswerDraft draft = convertDraft(resp.chatResponse());
+        LegalAnswerDraft draft = convertDraft(chatResponse);
         if (draft == null || status == GroundingStatus.REFUSED) {
-            return persisted(question, refusalResponse(), GroundingStatus.REFUSED, conversationId, t0);
+            return persisted(question, refusalResponse(), GroundingStatus.REFUSED, conversationId, t0, chatResponse);
         }
-        return persisted(question, answerComposer.compose(status, draft, citations, sources), status, conversationId, t0);
+        return persisted(question, answerComposer.compose(status, draft, citations, sources), status, conversationId, t0, chatResponse);
     }
 
     static String buildMemoryConversationId(String callerConversationId) {
@@ -103,8 +115,9 @@ public class ChatService {
     }
 
     private ChatAnswerResponse persisted(String question, ChatAnswerResponse response,
-                                         GroundingStatus status, String conversationId, long t0) {
-        persist(question, response, status, conversationId, t0);
+                                         GroundingStatus status, String conversationId, long t0,
+                                         ChatResponse chatResponse) {
+        persist(question, response, status, conversationId, t0, chatResponse);
         return response;
     }
 
@@ -176,12 +189,23 @@ public class ChatService {
     }
 
     private void persist(String question, ChatAnswerResponse response,
-                         GroundingStatus status, String conversationId, long startTime) {
+                         GroundingStatus status, String conversationId, long startTime,
+                         ChatResponse chatResponse) {
         try {
+            int[] tokens = extractTokens(chatResponse);
             chatLogService.save(question, response, status, conversationId,
-                    0, 0, (int) (System.currentTimeMillis() - startTime), "");
+                    tokens[0], tokens[1], (int) (System.currentTimeMillis() - startTime), "");
         } catch (Exception ex) {
             log.warn("Failed to persist chat log entry: {}", ex.getMessage());
         }
+    }
+
+    private static int[] extractTokens(ChatResponse chatResponse) {
+        if (chatResponse == null || chatResponse.getMetadata() == null) return new int[]{0, 0};
+        Usage usage = chatResponse.getMetadata().getUsage();
+        if (usage == null) return new int[]{0, 0};
+        Integer p = usage.getPromptTokens();
+        Integer c = usage.getCompletionTokens();
+        return new int[]{p != null ? p : 0, c != null ? c : 0};
     }
 }
