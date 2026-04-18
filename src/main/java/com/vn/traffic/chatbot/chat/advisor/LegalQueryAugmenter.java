@@ -11,6 +11,8 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.rag.Query;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.generation.augmentation.QueryAugmenter;
+import org.springframework.ai.template.ValidationMode;
+import org.springframework.ai.template.st.StTemplateRenderer;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -67,16 +69,42 @@ public final class LegalQueryAugmenter implements QueryAugmenter {
     }
 
     static PromptTemplate buildPromptTemplate(String systemPrompt) {
+        // Use angle-bracket delimiters so the literal { } braces in the one-shot JSON
+        // example are passed through verbatim by StringTemplate (the default { }
+        // delimiters would treat the JSON braces as variable expressions and fail to
+        // compile). Variable placeholders therefore use <query> and <context>; the
+        // PromptAssert.templateHasRequiredPlaceholders check is a substring scan and
+        // accepts either delimiter style.
         String template = systemPrompt + "\n"
                 + "Chi bao gom cac muc lien quan theo danh sach: " + String.join(", ", PromptSectionRules.SECTION_ORDER) + ".\n"
                 + "Cac phan noi dung duoc phep dien la: " + String.join(", ", PromptSectionRules.SUPPORTED_SECTION_NAMES) + ".\n"
                 + LABEL_RULE + "\n"
                 + "Chi tra ve duy nhat mot object JSON hop le, khong dung markdown, khong them giai thich.\n"
                 + "Tat ca cac khoa conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phai luon xuat hien trong JSON.\n"
-                + "Cau hoi nguoi dung: {query}\n"
+                + "Cac truong legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phai la mang JSON cua cac chuoi (JSON array of strings), khong duoc tra ve dang chuoi don.\n"
+                + "Khong them confidence, intent, note, hoac bat ky khoa top-level nao khac khong nam trong 8 khoa: conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps.\n"
+                + "Vi du dung dinh dang (one-shot):\n"
+                + "{\n"
+                + "  \"conclusion\": \"...\",\n"
+                + "  \"answer\": \"...\",\n"
+                + "  \"uncertaintyNotice\": \"\",\n"
+                + "  \"legalBasis\": [\"Dieu 6 Nghi dinh 100/2019/ND-CP\"],\n"
+                + "  \"penalties\": [\"Phat tien tu 800.000 den 1.000.000 dong\"],\n"
+                + "  \"requiredDocuments\": [],\n"
+                + "  \"procedureSteps\": [],\n"
+                + "  \"nextSteps\": []\n"
+                + "}\n"
+                + "Cau hoi nguoi dung: <query>\n"
                 + "Danh sach trich dan duoc phep dung:\n"
-                + "{context}";
-        return new PromptTemplate(template);
+                + "<context>";
+        return PromptTemplate.builder()
+                .template(template)
+                .renderer(StTemplateRenderer.builder()
+                        .startDelimiterToken('<')
+                        .endDelimiterToken('>')
+                        .validationMode(ValidationMode.THROW)
+                        .build())
+                .build();
     }
 
     static final class LegalCitationBlockFormatter implements Function<List<Document>, String> {
