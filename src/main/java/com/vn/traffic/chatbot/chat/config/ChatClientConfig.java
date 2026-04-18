@@ -1,9 +1,16 @@
 package com.vn.traffic.chatbot.chat.config;
 
+import com.vn.traffic.chatbot.chat.advisor.GroundingGuardInputAdvisor;
+import com.vn.traffic.chatbot.chat.advisor.GroundingGuardOutputAdvisor;
+import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpPromptCacheAdvisor;
+import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpRetrievalAdvisor;
+import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpValidationAdvisor;
 import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
@@ -42,7 +49,14 @@ public class ChatClientConfig {
     private RetryTemplate retryTemplate;
 
     @Bean
-    public Map<String, ChatClient> chatClientMap(AiModelProperties modelProperties) {
+    public Map<String, ChatClient> chatClientMap(
+            AiModelProperties modelProperties,
+            ChatMemory chatMemory,
+            GroundingGuardInputAdvisor guardIn,
+            NoOpRetrievalAdvisor noOpRag,
+            NoOpPromptCacheAdvisor noOpCache,
+            NoOpValidationAdvisor noOpValidation,
+            GroundingGuardOutputAdvisor guardOut) {
         String defaultBaseUrl = modelProperties.baseUrl() != null
                 ? modelProperties.baseUrl()
                 : "https://openrouter.ai/api/v1";
@@ -81,12 +95,28 @@ public class ChatClientConfig {
             }
 
             OpenAiChatModel chatModel = modelBuilder.build();
-            map.put(entry.id(), ChatClient.builder(chatModel).build());
+            ChatClient client = ChatClient.builder(chatModel)
+                    .defaultAdvisors(
+                            guardIn,                                              // HIGHEST_PRECEDENCE + 100
+                            MessageChatMemoryAdvisor.builder(chatMemory).build(), // HIGHEST_PRECEDENCE + 200
+                            noOpRag,                                              // HIGHEST_PRECEDENCE + 300
+                            noOpCache,                                            // HIGHEST_PRECEDENCE + 500
+                            noOpValidation,                                       // HIGHEST_PRECEDENCE + 1000
+                            guardOut                                              // LOWEST_PRECEDENCE  - 100
+                    )
+                    .build();
+            map.put(entry.id(), client);
             log.info("Registered ChatClient model={} baseUrl={}", entry.id(), modelBaseUrl);
         }
         if (map.isEmpty()) {
             log.warn("ChatClientMap is empty — check app.ai.models configuration");
         }
+        log.info("Advisor chain order: {} → Memory(HIGHEST_PRECEDENCE+200) → {} → {} → {} → {}",
+                guardIn.getName(),
+                noOpRag.getName(),
+                noOpCache.getName(),
+                noOpValidation.getName(),
+                guardOut.getName());
         return Collections.unmodifiableMap(map);
     }
 }
