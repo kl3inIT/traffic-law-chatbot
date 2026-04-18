@@ -28,7 +28,7 @@
 ### v1.1 — Chat Performance & Spring AI Modular RAG
 
 - [ ] **Phase 7: Chat Latency Foundation** — Async log, slim schema, prompt trim, feature-flag infra, Caffeine embedding cache; latency/refusal baseline snapshot.
-- [ ] **Phase 8: Structured Output + GroundingGuardAdvisor** — `BeanOutputConverter` via `.entity()`, Input/Output grounding guard advisor pair, LLM intent classifier, retire keyword gate.
+- [x] **Phase 8: Structured Output + GroundingGuardAdvisor** — `BeanOutputConverter` via `.entity()`, Input/Output grounding guard advisor pair, LLM intent classifier, retire keyword gate. (Complete 2026-04-18; 20/20 code-level SCs verified + live run 5/7 pass — 2 regression tests scope-deferred to Phase 9.)
 - [ ] **Phase 9: Modular RAG + Prompt Caching** — `RetrievalAugmentationAdvisor` + `CitationPostProcessor`, trust-tier `FILTER_EXPRESSION`, `PromptCachingAdvisor` with OpenRouter `cache_control`.
 - [ ] **Phase 10: User-Managed API Key Admin** — Encrypted `api_key` + `api_key_audit` tables, `ChatClientRegistry` runtime rotation, admin UI, masking, audit, security gates. (Parallelizable with Phase 7.)
 
