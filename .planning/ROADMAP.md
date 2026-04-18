@@ -66,7 +66,7 @@ Plans:
 - [x] 08-01-PLAN.md — Wave 0: ModelEntry 4→5 arg migration (atomic: record + 9 tests + 3 YAML) + build.gradle spring-ai-test dep + liveTest task + 4 RED test stubs + 20-query VN fixture
 - [x] 08-02-PLAN.md — Wave 1: GroundingGuard advisor pair + 3 NoOp placeholders + IntentClassifier service + IntentDecision record + LegalAnswerDraft @JsonClassDescription + ChatClientConfig defaultAdvisors wiring (full P9 chain order)
 - [x] 08-03-PLAN.md — Wave 2: ChatService.doAnswer rewrite (IntentClassifier dispatch + .entity(LegalAnswerDraft.class) + conditional ENABLE_NATIVE_STRUCTURED_OUTPUT); delete all ARCH-03 targets; AnswerComposer.composeOffTopicRefusal; NoKeywordGateArchTest + ChatServiceDeletionArchTest
-- [ ] 08-04-PLAN.md — Wave 3: VietnameseRegressionIT (≥95% + refusal ±10% + two-turn memory) extending BasicEvaluationTest + StructuredOutputMatrixIT across 8 models + IntentClassifierIT (LEGAL/CHITCHAT/OFF_TOPIC live)
+- [x] 08-04-PLAN.md — Wave 3: VietnameseRegressionIT (≥95% + refusal ±10% + two-turn memory) using RelevancyEvaluator + FactCheckingEvaluator directly (BasicEvaluationTest absent in 2.0.0-M4) + StructuredOutputMatrixIT across 8 models + IntentClassifierIT (LEGAL/CHITCHAT/OFF_TOPIC live) — code complete, live execution awaits OPENROUTER_API_KEY
 
 ### Phase 9: Modular RAG + Prompt Caching
 **Goal**: User-visible answer shape is identical to v1.0 (same `[Nguồn n]` citations, same `ChatAnswerResponse` JSON) but produced through the Spring AI modular RAG advisor chain, with the static system block marked for OpenRouter prompt caching.

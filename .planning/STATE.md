@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Chat Performance & Spring AI Modular RAG
 current_phase: 08
-status: executing
-last_updated: "2026-04-18T15:05:00.000Z"
-last_activity: 2026-04-18 -- Phase 08 Plan 03 complete (Wave 2 ChatService rewrite + .entity structured output + P7 deletion guards)
+status: ready-for-verification
+last_updated: "2026-04-18T15:15:00.000Z"
+last_activity: 2026-04-18 -- Phase 08 Plan 04 complete (Wave 3 live ITs implemented; OPENROUTER_API_KEY gate for live execution)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 7
-  percent: 87
+  completed_plans: 8
+  percent: 100
 ---
 
 # State: Vietnam Traffic Law Chatbot
@@ -22,10 +22,22 @@ progress:
 
 ## Current Position
 
-Phase: 08 (structured-output-groundingguardadvisor) — EXECUTING
-Plan: 4 of 4 (08-01, 08-02, 08-03 complete; 08-04 next — Wave 3 verification/baseline close-out)
-Status: Executing Phase 08
-Last activity: 2026-04-18 -- Phase 08 Plan 03 complete (Wave 2: ChatService.doAnswer rewritten with IntentClassifier dispatch + .entity(LegalAnswerDraft.class) native structured output; 9 P7 identifiers deleted; AnswerComposer.composeOffTopicRefusal added; 2 ArchUnit guard tests in place; ARCH-02/03/04 closed)
+Phase: 08 (structured-output-groundingguardadvisor) — READY FOR VERIFICATION
+Plan: 4 of 4 (all plans complete: 08-01, 08-02, 08-03, 08-04)
+Status: Phase 08 ready for /gsd-verify-phase 8
+Last activity: 2026-04-18 -- Phase 08 Plan 04 complete (Wave 3: VietnameseRegressionIT + StructuredOutputMatrixIT + IntentClassifierIT upgraded from RED stubs to GREEN-ready live ITs; evaluator isolation via nested @TestConfiguration; EvaluationRequest API corrected to List<Document>; non-live ./gradlew test green; live execution awaits OPENROUTER_API_KEY)
+
+## Phase 8 Verification Gate (Human Action Required)
+
+Before `/gsd-verify-phase 8` can validate SC5, run:
+
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+./gradlew liveTest --tests "com.vn.traffic.chatbot.chat.regression.*" \
+                   --tests "com.vn.traffic.chatbot.chat.intent.IntentClassifierIT"
+```
+
+Expected: 7 GREEN (3 regression + 1 cross-model matrix + 3 intent classifier). `refusalRateWithinTenPercentOfPhase7Baseline` will fail loud on Phase7Baseline.REFUSAL_RATE_PERCENT == NaN (Plan 08-01 Case B contract) — backfill the baseline OR redefine as absolute band before verification declares SC5 satisfied.
 
 ## Project Reference
 
