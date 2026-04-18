@@ -78,10 +78,11 @@ Plans:
   3. Empty-context behavior is handled by `ContextualQueryAugmenter.allowEmptyContext(true)` plus the Phase-8 guard; `FILTER_EXPRESSION` enforces `trust_tier IN (PRIMARY, SECONDARY)` + active-source gating, with a sample of 50 post-deploy chat logs showing zero citations to non-legal / untrusted sources in legal answers.
   4. The static system block is marked with `cache_control: {"type":"ephemeral","ttl":"1h"}`; an integration test against the OpenRouter `generation` endpoint asserts `cached_tokens > 0` on the second call for an Anthropic-family model, and the advisor safely skips for non-Anthropic providers.
   5. Advisor chain ordering is explicit and documented (`GuardIn → Memory → RAG → Cache → Validation → GuardOut`); a two-turn integration test shows chat memory is preserved and roles alternate correctly.
-**Plans**: 2 plans
+**Plans**: 3 plans
 Plans:
 - [ ] 09-01-PLAN.md — PR1: RetrievalAugmentationAdvisor + LegalQueryAugmenter + CitationPostProcessor + CitationStashAdvisor + FILTER_EXPRESSION wiring; ChatService shrink ≥60%; 20-query regression + refusal-parity + two-turn memory + CitationFormat byte-for-byte
-- [ ] 09-02-PLAN.md — PR2: StructuredOutputValidationAdvisor swap (maxRepeatAttempts=1); delete NoOpValidationAdvisor; retry IT
+- [x] 09-02-PLAN.md — PR2: StructuredOutputValidationAdvisor swap (maxRepeatAttempts=1); delete NoOpValidationAdvisor; retry IT
+- [ ] 09-03-PLAN.md — Gap closure: tighten LegalQueryAugmenter prompt to forbid extra JSON fields and mandate arrays; DB systemPrompt audit; live-test gate (closes UAT G1/G2/G3)
 
 ### Phase 10: User-Managed API Key Admin
 **Goal**: An operator can create, rotate, disable, test, and audit per-provider API keys through the admin UI at runtime, with keys encrypted at rest and plaintext never leaking. (Independent of Phases 7–9; can run in parallel with Phase 7.)
