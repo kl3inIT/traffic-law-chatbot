@@ -4,6 +4,7 @@ import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -29,6 +30,7 @@ public class IntentClassifier {
             Trả lời theo JSON schema đã cho. Gán confidence trong [0.0, 1.0]; dùng 0.0 nếu không chắc chắn.
             """;
 
+    @Qualifier("intentChatClientMap")
     private final Map<String, ChatClient> chatClientMap;
     private final AiModelProperties aiModelProperties;
 

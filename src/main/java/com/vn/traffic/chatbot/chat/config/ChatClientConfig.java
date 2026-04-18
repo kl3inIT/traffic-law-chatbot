@@ -113,44 +113,9 @@ public class ChatClientConfig {
             NoOpPromptCacheAdvisor noOpCache,
             Advisor validationAdvisor,
             GroundingGuardOutputAdvisor guardOut) {
-        String defaultBaseUrl = modelProperties.baseUrl() != null
-                ? modelProperties.baseUrl()
-                : "https://openrouter.ai/api/v1";
-
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(Duration.ofMinutes(10));
-        requestFactory.setReadTimeout(Duration.ofMinutes(10));
-
-        RestClient.Builder restClientBuilder = RestClient.builder()
-                .requestFactory(requestFactory);
-
         Map<String, ChatClient> map = new LinkedHashMap<>();
         for (AiModelProperties.ModelEntry entry : modelProperties.models()) {
-            String modelBaseUrl = entry.baseUrl() != null ? entry.baseUrl() : defaultBaseUrl;
-            String modelApiKey = entry.apiKey() != null ? entry.apiKey() : apiKey;
-
-            OpenAiApi api = OpenAiApi.builder()
-                    .baseUrl(modelBaseUrl)
-                    .apiKey(modelApiKey)
-                    .restClientBuilder(restClientBuilder)
-                    .build();
-
-            OpenAiChatOptions options = OpenAiChatOptions.builder()
-                    .model(entry.id())
-                    .build();
-
-            OpenAiChatModel.Builder modelBuilder = OpenAiChatModel.builder()
-                    .openAiApi(api)
-                    .defaultOptions(options);
-
-            if (retryTemplate != null) {
-                modelBuilder.retryTemplate(retryTemplate);
-            }
-            if (observationRegistry != null) {
-                modelBuilder.observationRegistry(observationRegistry);
-            }
-
-            OpenAiChatModel chatModel = modelBuilder.build();
+            OpenAiChatModel chatModel = buildChatModel(entry, modelProperties);
             ChatClient client = ChatClient.builder(chatModel)
                     .defaultAdvisors(
                             guardIn,                                              // HIGHEST_PRECEDENCE + 100
@@ -163,7 +128,7 @@ public class ChatClientConfig {
                     )
                     .build();
             map.put(entry.id(), client);
-            log.info("Registered ChatClient model={} baseUrl={}", entry.id(), modelBaseUrl);
+            log.info("Registered ChatClient model={}", entry.id());
         }
         if (map.isEmpty()) {
             log.warn("ChatClientMap is empty — check app.ai.models configuration");
@@ -184,5 +149,65 @@ public class ChatClientConfig {
                 guardOut.getOrder());
         log.info("Advisor orders: {}", orders);
         return Collections.unmodifiableMap(map);
+    }
+
+    /**
+     * Plan 09-05 (G5 close-out): sibling ChatClient map used ONLY by
+     * {@link com.vn.traffic.chatbot.chat.intent.IntentClassifier}. Built from the
+     * same {@link OpenAiChatModel} instances as {@link #chatClientMap} but with
+     * NO {@code defaultAdvisors(...)} — the main chain's
+     * {@link StructuredOutputValidationAdvisor} is bound to
+     * {@link LegalAnswerDraft} and would coerce {@code IntentDecision} responses
+     * through the wrong schema, triggering {@code BeanOutputConverter} failure
+     * and the D-02 silent fallback to {@code LEGAL}. Routing intent classification
+     * through a plain client avoids that misroute.
+     */
+    @Bean("intentChatClientMap")
+    public Map<String, ChatClient> intentChatClientMap(AiModelProperties modelProperties) {
+        Map<String, ChatClient> map = new LinkedHashMap<>();
+        for (AiModelProperties.ModelEntry entry : modelProperties.models()) {
+            OpenAiChatModel chatModel = buildChatModel(entry, modelProperties);
+            map.put(entry.id(), ChatClient.builder(chatModel).build());
+        }
+        return Collections.unmodifiableMap(map);
+    }
+
+    private OpenAiChatModel buildChatModel(
+            AiModelProperties.ModelEntry entry,
+            AiModelProperties modelProperties) {
+        String defaultBaseUrl = modelProperties.baseUrl() != null
+                ? modelProperties.baseUrl()
+                : "https://openrouter.ai/api/v1";
+        String modelBaseUrl = entry.baseUrl() != null ? entry.baseUrl() : defaultBaseUrl;
+        String modelApiKey = entry.apiKey() != null ? entry.apiKey() : apiKey;
+
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofMinutes(10));
+        requestFactory.setReadTimeout(Duration.ofMinutes(10));
+
+        RestClient.Builder restClientBuilder = RestClient.builder()
+                .requestFactory(requestFactory);
+
+        OpenAiApi api = OpenAiApi.builder()
+                .baseUrl(modelBaseUrl)
+                .apiKey(modelApiKey)
+                .restClientBuilder(restClientBuilder)
+                .build();
+
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(entry.id())
+                .build();
+
+        OpenAiChatModel.Builder modelBuilder = OpenAiChatModel.builder()
+                .openAiApi(api)
+                .defaultOptions(options);
+
+        if (retryTemplate != null) {
+            modelBuilder.retryTemplate(retryTemplate);
+        }
+        if (observationRegistry != null) {
+            modelBuilder.observationRegistry(observationRegistry);
+        }
+        return modelBuilder.build();
     }
 }
