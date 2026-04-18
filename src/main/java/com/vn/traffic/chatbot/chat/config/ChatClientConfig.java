@@ -103,9 +103,24 @@ public class ChatClientConfig {
                 .build();
     }
 
+    /**
+     * Plan 09-05 (WR-02): shared {@link OpenAiChatModel} registry keyed by model id,
+     * built once and reused by {@link #chatClientMap} and {@link #intentChatClientMap}.
+     * Avoids double-building HTTP clients + observation-registered models (2N → N).
+     */
+    @Bean
+    public Map<String, OpenAiChatModel> openAiChatModelMap(AiModelProperties modelProperties) {
+        Map<String, OpenAiChatModel> map = new LinkedHashMap<>();
+        for (AiModelProperties.ModelEntry entry : modelProperties.models()) {
+            map.put(entry.id(), buildChatModel(entry, modelProperties));
+        }
+        return Collections.unmodifiableMap(map);
+    }
+
     @Bean
     public Map<String, ChatClient> chatClientMap(
             AiModelProperties modelProperties,
+            Map<String, OpenAiChatModel> openAiChatModelMap,
             ChatMemory chatMemory,
             GroundingGuardInputAdvisor guardIn,
             RetrievalAugmentationAdvisor ragAdvisor,
@@ -115,7 +130,7 @@ public class ChatClientConfig {
             GroundingGuardOutputAdvisor guardOut) {
         Map<String, ChatClient> map = new LinkedHashMap<>();
         for (AiModelProperties.ModelEntry entry : modelProperties.models()) {
-            OpenAiChatModel chatModel = buildChatModel(entry, modelProperties);
+            OpenAiChatModel chatModel = openAiChatModelMap.get(entry.id());
             ChatClient client = ChatClient.builder(chatModel)
                     .defaultAdvisors(
                             guardIn,                                              // HIGHEST_PRECEDENCE + 100
@@ -163,10 +178,12 @@ public class ChatClientConfig {
      * through a plain client avoids that misroute.
      */
     @Bean("intentChatClientMap")
-    public Map<String, ChatClient> intentChatClientMap(AiModelProperties modelProperties) {
+    public Map<String, ChatClient> intentChatClientMap(
+            AiModelProperties modelProperties,
+            Map<String, OpenAiChatModel> openAiChatModelMap) {
         Map<String, ChatClient> map = new LinkedHashMap<>();
         for (AiModelProperties.ModelEntry entry : modelProperties.models()) {
-            OpenAiChatModel chatModel = buildChatModel(entry, modelProperties);
+            OpenAiChatModel chatModel = openAiChatModelMap.get(entry.id());
             map.put(entry.id(), ChatClient.builder(chatModel).build());
         }
         return Collections.unmodifiableMap(map);
