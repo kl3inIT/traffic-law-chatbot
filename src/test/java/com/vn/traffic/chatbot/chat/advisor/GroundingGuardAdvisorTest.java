@@ -1,7 +1,6 @@
 package com.vn.traffic.chatbot.chat.advisor;
 
 import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpPromptCacheAdvisor;
-import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpValidationAdvisor;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
@@ -48,12 +47,9 @@ class GroundingGuardAdvisorTest {
         assertDelegatesUnchanged(advisor::adviseCall);
     }
 
-    @Test
-    void noOpValidationAdvisorDelegatesToChain() {
-        NoOpValidationAdvisor advisor = new NoOpValidationAdvisor();
-        assertThat(advisor.getOrder()).isEqualTo(Ordered.HIGHEST_PRECEDENCE + 1000);
-        assertDelegatesUnchanged(advisor::adviseCall);
-    }
+    // Plan 09-02: NoOpValidationAdvisor has been deleted and replaced by the real
+    // StructuredOutputValidationAdvisor at HIGHEST_PRECEDENCE + 1000. Retry semantics
+    // covered by StructuredOutputValidationAdvisorIT (Wave 4).
 
     // --- helpers ---
 

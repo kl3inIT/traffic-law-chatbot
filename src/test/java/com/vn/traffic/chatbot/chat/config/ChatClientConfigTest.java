@@ -61,4 +61,27 @@ class ChatClientConfigTest {
                 .as("NoOpPromptCacheAdvisor must remain (D-07)")
                 .isTrue();
     }
+
+    @Test
+    void beanGraphWiresStructuredOutputValidationAdvisorAndDropsNoOpValidation() throws Exception {
+        // Plan 09-02 (PR2): real StructuredOutputValidationAdvisor replaces the
+        // Phase-8 NoOpValidationAdvisor placeholder at HIGHEST_PRECEDENCE + 1000.
+        Class<?> validationType = Class.forName(
+                "org.springframework.ai.chat.client.advisor.StructuredOutputValidationAdvisor");
+        assertThat(ctx.getBeansOfType(validationType))
+                .as("StructuredOutputValidationAdvisor bean must be registered (D-10)")
+                .isNotEmpty();
+        Object advisor = ctx.getBeansOfType(validationType).values().iterator().next();
+        int order = (int) advisor.getClass().getMethod("getOrder").invoke(advisor);
+        assertThat(order)
+                .as("Validation advisor order slot must equal HIGHEST_PRECEDENCE + 1000 (D-13)")
+                .isEqualTo(Integer.MIN_VALUE + 1000);
+
+        assertThat(ctx.containsBean("noOpValidationAdvisor"))
+                .as("NoOpValidationAdvisor bean must be deleted in P9 PR2")
+                .isFalse();
+        assertThat(ctx.containsBean("noOpPromptCacheAdvisor"))
+                .as("NoOpPromptCacheAdvisor must remain (D-07) — prompt caching deferred")
+                .isTrue();
+    }
 }
