@@ -4,6 +4,7 @@ import com.vn.traffic.chatbot.chat.advisor.context.ChatAdvisorContextKeys;
 import com.vn.traffic.chatbot.chat.citation.CitationMapper;
 import com.vn.traffic.chatbot.parameter.service.ActiveParameterSetProvider;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.rag.Query;
 
@@ -57,6 +58,53 @@ class LegalQueryAugmenterTest {
         Query augmented = augmenter.augment(original, List.of());
 
         assertThat(augmented).isSameAs(original);
+    }
+
+    @Test
+    void promptTemplateForbidsExtraTopLevelFieldsConfidence() {
+        PromptTemplate template = LegalQueryAugmenter.buildPromptTemplate("S");
+        String text = template.getTemplate();
+        assertThat(text).contains("Khong them confidence");
+    }
+
+    @Test
+    void promptTemplateMentionsForbiddenIntentAndNoteFields() {
+        PromptTemplate template = LegalQueryAugmenter.buildPromptTemplate("S");
+        String text = template.getTemplate();
+        // intent and note must appear inside the forbidden-fields rule (which begins with "Khong them")
+        assertThat(text).contains("Khong them");
+        assertThat(text).contains("intent");
+        assertThat(text).contains("note");
+    }
+
+    @Test
+    void promptTemplateMandatesJsonArraysForListTypedFields() {
+        PromptTemplate template = LegalQueryAugmenter.buildPromptTemplate("S");
+        String text = template.getTemplate();
+        assertThat(text).contains("phai la mang JSON");
+        assertThat(text).contains("legalBasis");
+        assertThat(text).contains("penalties");
+        assertThat(text).contains("requiredDocuments");
+        assertThat(text).contains("procedureSteps");
+        assertThat(text).contains("nextSteps");
+    }
+
+    @Test
+    void promptTemplateContainsOneShotExampleWithJsonArray() {
+        PromptTemplate template = LegalQueryAugmenter.buildPromptTemplate("S");
+        String text = template.getTemplate();
+        // One-shot example must show legalBasis as a JSON array literal.
+        assertThat(text).contains("\"legalBasis\": [");
+    }
+
+    @Test
+    void promptTemplatePreservesByteForByteLabelRuleAndAllKeysClause() {
+        PromptTemplate template = LegalQueryAugmenter.buildPromptTemplate("S");
+        String text = template.getTemplate();
+        // Existing LABEL_RULE byte-for-byte parity (citations gating) — must still be present.
+        assertThat(text).contains("[Nguồn n]");
+        // Existing "all 8 keys must appear" clause unchanged.
+        assertThat(text).contains("conclusion, answer, uncertaintyNotice, legalBasis, penalties, requiredDocuments, procedureSteps, nextSteps phai luon xuat hien");
     }
 
     private static Document buildDoc(int labelNumber, String sourceTitle, String origin,
