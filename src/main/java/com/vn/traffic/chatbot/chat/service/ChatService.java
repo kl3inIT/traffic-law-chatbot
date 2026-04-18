@@ -77,8 +77,7 @@ public class ChatService {
             case LEGAL -> { /* fall through */ }
         }
         AiModelProperties.ModelEntry entry = resolveEntry(modelId);
-        String memConvId = (conversationId != null && !conversationId.isBlank())
-                ? conversationId : "ephemeral-" + UUID.randomUUID();
+        String memConvId = buildMemoryConversationId(conversationId);
         ChatClient.ChatClientRequestSpec spec = resolveClient(modelId).prompt().user(question);
         if (entry.supportsStructuredOutput()) spec = spec.advisors(AdvisorParams.ENABLE_NATIVE_STRUCTURED_OUTPUT);
         spec = spec.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, memConvId));
@@ -96,6 +95,11 @@ public class ChatService {
             return persisted(question, refusalResponse(), GroundingStatus.REFUSED, conversationId, t0);
         }
         return persisted(question, answerComposer.compose(status, draft, citations, sources), status, conversationId, t0);
+    }
+
+    static String buildMemoryConversationId(String callerConversationId) {
+        return (callerConversationId != null && !callerConversationId.isBlank())
+                ? callerConversationId : UUID.randomUUID().toString();
     }
 
     private ChatAnswerResponse persisted(String question, ChatAnswerResponse response,
