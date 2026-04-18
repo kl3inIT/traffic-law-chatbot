@@ -44,6 +44,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    // --- v1.1 P8 (08-01 Task 2): Spring AI evaluation harness (D-05)
+    // Version resolved via spring-ai-bom — DO NOT hardcode.
+    testImplementation 'org.springframework.ai:spring-ai-test'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
@@ -71,8 +74,23 @@ dependencies {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        // Exclude @Tag("live") tests from the default fast suite; they require OPENROUTER_API_KEY.
+        excludeTags 'live'
+    }
     jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('liveTest', Test) {
+    description = 'Run @Tag("live") integration tests (require OPENROUTER_API_KEY).'
+    group = 'verification'
+    useJUnitPlatform {
+        includeTags 'live'
+    }
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    shouldRunAfter tasks.named('test')
 }
 
 tasks.named('bootRun') {
