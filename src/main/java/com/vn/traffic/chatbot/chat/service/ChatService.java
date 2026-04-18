@@ -145,19 +145,23 @@ public class ChatService {
     }
 
     private AiModelProperties.ModelEntry resolveEntry(String requestedModelId) {
-        String resolved = (requestedModelId != null && !requestedModelId.isBlank())
-                ? requestedModelId : aiModelProperties.chatModel();
+        // WR-03: mirror resolveClient's fallback precedence exactly so
+        // supportsStructuredOutput() matches the ChatClient actually dispatched.
+        String resolved;
+        if (requestedModelId != null && chatClientMap.containsKey(requestedModelId)) {
+            resolved = requestedModelId;
+        } else if (chatClientMap.containsKey(aiModelProperties.chatModel())) {
+            resolved = aiModelProperties.chatModel();
+        } else {
+            resolved = chatClientMap.keySet().stream().findFirst().orElseThrow(
+                    () -> new IllegalStateException(
+                            "No ChatClient available — check app.ai.models configuration"));
+        }
         return aiModelProperties.models().stream()
                 .filter(m -> m.id().equals(resolved))
                 .findFirst()
-                .orElseGet(() -> {
-                    List<AiModelProperties.ModelEntry> all = aiModelProperties.models();
-                    if (all == null || all.isEmpty()) {
-                        throw new IllegalStateException(
-                                "No ModelEntry available — check app.ai.models configuration");
-                    }
-                    return all.get(0);
-                });
+                .orElseThrow(() -> new IllegalStateException(
+                        "ModelEntry for resolved id '" + resolved + "' missing — config drift"));
     }
 
     @SuppressWarnings("unchecked")
