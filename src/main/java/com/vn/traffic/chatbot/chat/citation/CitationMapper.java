@@ -86,7 +86,11 @@ public class CitationMapper {
             return number.intValue();
         }
         if (value instanceof String text && !text.isBlank()) {
-            return Integer.valueOf(text.trim());
+            try {
+                return Integer.valueOf(text.trim());
+            } catch (NumberFormatException e) {
+                return null;
+            }
         }
         return null;
     }
