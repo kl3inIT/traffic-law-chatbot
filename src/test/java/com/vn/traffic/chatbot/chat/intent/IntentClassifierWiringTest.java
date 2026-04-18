@@ -5,7 +5,8 @@ import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 
-import java.lang.reflect.Field;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Parameter;
 import java.util.List;
 import java.util.Map;
 
@@ -24,12 +25,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class IntentClassifierWiringTest {
 
     @Test
-    void chatClientMapFieldIsQualifiedForIntentMap() throws NoSuchFieldException {
-        Field field = IntentClassifier.class.getDeclaredField("chatClientMap");
+    void constructorChatClientMapParamIsQualifiedForIntentMap() throws NoSuchMethodException {
+        Constructor<IntentClassifier> ctor = IntentClassifier.class.getDeclaredConstructor(
+                Map.class, AiModelProperties.class);
+        Parameter mapParam = ctor.getParameters()[0];
         org.springframework.beans.factory.annotation.Qualifier qualifier =
-                field.getAnnotation(org.springframework.beans.factory.annotation.Qualifier.class);
+                mapParam.getAnnotation(org.springframework.beans.factory.annotation.Qualifier.class);
         assertThat(qualifier)
-                .as("IntentClassifier.chatClientMap must carry @Qualifier to avoid routing through the LegalAnswerDraft-bound main chain")
+                .as("IntentClassifier constructor param `chatClientMap` must carry @Qualifier so Spring injects the intent-only map, not the LegalAnswerDraft-bound main chain")
                 .isNotNull();
         assertThat(qualifier.value()).isEqualTo("intentChatClientMap");
     }

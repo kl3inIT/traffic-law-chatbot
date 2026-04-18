@@ -1,7 +1,6 @@
 package com.vn.traffic.chatbot.chat.intent;
 
 import com.vn.traffic.chatbot.common.config.AiModelProperties;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,7 +18,6 @@ import java.util.Map;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class IntentClassifier {
 
     static final String INTENT_SYSTEM_VI = """
@@ -30,9 +28,15 @@ public class IntentClassifier {
             Trả lời theo JSON schema đã cho. Gán confidence trong [0.0, 1.0]; dùng 0.0 nếu không chắc chắn.
             """;
 
-    @Qualifier("intentChatClientMap")
     private final Map<String, ChatClient> chatClientMap;
     private final AiModelProperties aiModelProperties;
+
+    public IntentClassifier(
+            @Qualifier("intentChatClientMap") Map<String, ChatClient> chatClientMap,
+            AiModelProperties aiModelProperties) {
+        this.chatClientMap = chatClientMap;
+        this.aiModelProperties = aiModelProperties;
+    }
 
     /**
      * Classify the user's question. Never throws: on any failure returns
