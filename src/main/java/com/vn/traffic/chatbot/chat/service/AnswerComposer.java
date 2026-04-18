@@ -15,6 +15,17 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class AnswerComposer {
 
+    /**
+     * D-09: OFF_TOPIC canned Vietnamese refusal template — distinct from
+     * both {@link #composeChitchat()} and the grounding-refusal template
+     * composed by {@link #compose(GroundingStatus, LegalAnswerDraft, List, List)}.
+     * Returned when {@code IntentClassifier} classifies a question as OFF_TOPIC
+     * (unrelated domain: news, sports, technology, finance, health, …).
+     */
+    static final String OFF_TOPIC_TEMPLATE =
+            "Câu hỏi này nằm ngoài phạm vi luật giao thông Việt Nam. "
+            + "Vui lòng hỏi về luật giao thông để tôi có thể hỗ trợ.";
+
     private final AnswerCompositionPolicy policy;
 
     /**
@@ -37,6 +48,34 @@ public class AnswerComposer {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
+                null,
+                List.of(),
+                List.of()
+        );
+    }
+
+    /**
+     * D-09: Compose a canned OFF_TOPIC refusal response distinct from
+     * {@link #composeChitchat()} (greeting/social) and the grounding-refusal
+     * template (no citations available). Returned when {@code IntentClassifier}
+     * classifies a question as {@code OFF_TOPIC}.
+     */
+    public ChatAnswerResponse composeOffTopicRefusal() {
+        List<String> nextSteps = policy.getRefusalNextSteps();
+        return new ChatAnswerResponse(
+                GroundingStatus.REFUSED,
+                null,
+                ResponseMode.STANDARD,
+                OFF_TOPIC_TEMPLATE,
+                null,
+                policy.getDisclaimer(),
+                null,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                nextSteps,
                 List.of(),
                 null,
                 List.of(),

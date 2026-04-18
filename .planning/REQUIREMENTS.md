@@ -15,9 +15,9 @@
 ### Architecture (ARCH)
 
 - [ ] **ARCH-01**: Chat pipeline uses Spring AI idiomatic advisors — the chat flow is orchestrated through the Spring AI advisor chain (modular RAG via `RetrievalAugmentationAdvisor` plus custom `CallAdvisor` components) rather than manual orchestration inside `ChatService`
-- [ ] **ARCH-02**: Structured output is produced via `BeanOutputConverter` through `.entity(LegalAnswerDraft.class)`; manual JSON extraction, markdown-fence stripping, and lenient Jackson fallback are removed from `ChatService`
-- [ ] **ARCH-03**: No hardcoded keyword-matching heuristics drive chat grounding decisions; classification relies on similarity scores, document metadata, or LLM-based judgment
-- [ ] **ARCH-04**: Refusal policy is encapsulated in a dedicated `GroundingGuardAdvisor` component (Input + Output pair) that can be tuned, disabled, or replaced via configuration without editing `ChatService`
+- [x] **ARCH-02**: Structured output is produced via `BeanOutputConverter` through `.entity(LegalAnswerDraft.class)`; manual JSON extraction, markdown-fence stripping, and lenient Jackson fallback are removed from `ChatService`
+- [x] **ARCH-03**: No hardcoded keyword-matching heuristics drive chat grounding decisions; classification relies on similarity scores, document metadata, or LLM-based judgment
+- [x] **ARCH-04**: Refusal policy is encapsulated in a dedicated `GroundingGuardAdvisor` component (Input + Output pair) that can be tuned, disabled, or replaced via configuration without editing `ChatService`
 - [ ] **ARCH-05**: Citation mapping and `[Nguồn n]` labeling are preserved during the modular RAG migration with no change to the response JSON contract consumed by the frontend
 
 ### Caching (CACHE)

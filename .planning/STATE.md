@@ -2,37 +2,52 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Chat Performance & Spring AI Modular RAG
-current_phase: 07
-status: executing
-last_updated: "2026-04-18T07:27:13.129Z"
-last_activity: 2026-04-18 -- Phase 08 planning complete
+current_phase: 9
+status: code_complete_carryovers_open
+last_updated: "2026-04-18T23:59:00.000Z"
+last_activity: 2026-04-18 -- Phase 09 code-complete for original scope; G5/G7/CACHE-01 carry-overs
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 8
-  completed_plans: 4
-  percent: 50
+  completed_phases: 2
+  total_plans: 13
+  completed_plans: 13
+  percent: 95
 ---
 
 # State: Vietnam Traffic Law Chatbot
 
 **Initialized:** 2026-04-07
-**Current phase:** 07
+**Current phase:** 9
 **Project status:** v1.1 roadmap approved (v1.0 MVP shipped 2026-04-15)
 
 ## Current Position
 
-Phase: 07 (chat-latency-foundation) — ALL PLANS COMPLETE (awaiting /gsd-verify-phase 7)
-Plan: 4 of 4 complete
-Status: Ready to execute
-Last activity: 2026-04-18 -- Phase 08 planning complete
+Phase: 9 (modular-rag-prompt-caching) — CODE-COMPLETE (original scope); carry-overs open
+Plans executed: 09-01, 09-02, 09-03, 09-04 (G4 closed)
+Plans pending: 09-05 (G5 — IntentClassifier dedicated ChatClient wiring), possible 09-06 (G7 — retrieval/grounding quality)
+Status: Ready for next plan (09-05) OR roll carry-overs to v1.2
+Last activity: 2026-04-18 -- Phase 09 live re-run; 3 GREEN, G7 identified, G5/G6/CACHE-01 deferred
+
+## Phase 9 Live Run Result (2026-04-18)
+
+- ✓ `twoTurnConversationMemoryWorks` — GREEN (G4 VARCHAR(36) fix validated)
+- ✓ `CitationFormatRegressionIT` — GREEN (ARCH-05 byte-for-byte parity)
+- ✓ `EmptyContextRefusalIT` — GREEN (T-9-02 / SC 3)
+- ✗ `refusalRateWithinTenPercentOfPhase7Baseline` — RED-as-expected (G6, NaN baseline, NOT a blocker)
+- ✗ `twentyQueryRegressionSuiteAtLeast95Percent` — 4/20 → NEW GAP G7 (retrieval/grounding quality, orthogonal to modular-RAG wiring)
+
+## Phase 9 Carry-Overs
+
+- **G5** — IntentClassifier misroute via shared advisor chain → Plan 09-05 created
+- **G7** — 16/20 fact-check fails (retrieval quality / judge strictness / KB coverage) → needs dedicated investigation (tentative Plan 09-06)
+- **CACHE-01** — prompt-caching requirement; no successor phase claims it (ROADMAP Phase 10 = ADMIN-* only); user decision needed (schedule late-v1.1 close-out OR roll to v1.2)
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-04-17)
 
 **Core value:** Users can describe a Vietnam traffic-law situation in natural language and receive grounded, source-backed guidance that explains the relevant rule, likely penalty, required documents, procedure, and recommended next steps.
-**Current focus:** Phase 07 — chat-latency-foundation
+**Current focus:** Phase 9 — modular-rag-prompt-caching
 
 ## Roadmap Snapshot
 
@@ -55,8 +70,8 @@ v1.1 (Planned):
 | Phase | Name | Status |
 |------|------|--------|
 | 7 | Chat Latency Foundation | Not started |
-| 8 | Structured Output + GroundingGuardAdvisor | Not started |
-| 9 | Modular RAG + Prompt Caching | Not started |
+| 8 | Structured Output + GroundingGuardAdvisor | Complete |
+| 9 | Modular RAG + Prompt Caching | Code-complete (original scope); G5/G7/CACHE-01 carry-overs |
 | 10 | User-Managed API Key Admin | Not started (parallelizable with Phase 7) |
 
 ## Accumulated Context
@@ -81,4 +96,4 @@ v1.1 (Planned):
 - Nyquist validation: enabled
 
 ---
-*Last updated: 2026-04-17 — v1.1 roadmap created*
+*Last updated: 2026-04-18 — Phase 09 code-complete (carry-overs: G5, G7, CACHE-01)*

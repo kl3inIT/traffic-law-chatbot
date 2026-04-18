@@ -262,7 +262,7 @@ Phase 3 (Chat performance) — coordinate with Phase 4 (frontend admin changes).
 Current code attaches `MessageChatMemoryAdvisor` only when `conversationId != null` (line 150-154). In the new modular-RAG advisor chain, the `ChatClient` bean will likely have default advisors. Attaching memory **again** per-call duplicates it → messages are appended twice; or missing it when `conversationId` is null silently bypasses the chain.
 
 **How to avoid:**
-Always attach `MessageChatMemoryAdvisor` as a default advisor on the client bean. When `conversationId` is null, pass a sentinel conversation ID (e.g. `"ephemeral-" + UUID`) or use a no-op `ChatMemory` bean. Never call `.advisors(...)` on a per-request basis for memory.
+Always attach `MessageChatMemoryAdvisor` as a default advisor on the client bean. When `conversationId` is null, use the bare 36-char UUID (`UUID.randomUUID().toString()`) — `SPRING_AI_CHAT_MEMORY.conversation_id` is `VARCHAR(36)`; prefixes overflow. See plan 09-04 G4 resolution. Never call `.advisors(...)` on a per-request basis for memory.
 
 **Phase to address:** Phase 2.
 

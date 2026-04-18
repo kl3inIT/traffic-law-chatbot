@@ -1,0 +1,66 @@
+# 20 canonical Vietnamese traffic-law regression queries (D-05 — seed set).
+# Plan 08-04 refines wording against the live RelevancyEvaluator / FactCheckingEvaluator runs.
+#
+# Topic spread: red-light, alcohol, helmet, license, registration, speeding, right-of-way,
+# parking, lane violation, signaling, accident procedure, overloading, seat belt.
+queries:
+  - id: Q01
+    question: "Vượt đèn đỏ phạt bao nhiêu với xe máy?"
+    expected_citation_hint: "nghị định 100/2019"
+  - id: Q02
+    question: "Không có giấy phép lái xe bị phạt thế nào?"
+    expected_citation_hint: "điều 21"
+  - id: Q03
+    question: "Nồng độ cồn trong máu bao nhiêu thì bị phạt khi lái xe máy?"
+    expected_citation_hint: "nghị định 100/2019 điều 6"
+  - id: Q04
+    question: "Không đội mũ bảo hiểm khi đi xe máy phạt bao nhiêu tiền?"
+    expected_citation_hint: "điều 6"
+  - id: Q05
+    question: "Ô tô vượt đèn đỏ bị xử phạt như thế nào?"
+    expected_citation_hint: "nghị định 100/2019 điều 5"
+  - id: Q06
+    question: "Đi sai làn đường trên cao tốc bị phạt bao nhiêu?"
+    expected_citation_hint: "điều 5"
+  - id: Q07
+    question: "Không thắt dây an toàn khi ngồi ghế trước ô tô phạt bao nhiêu?"
+    expected_citation_hint: "điều 5"
+  - id: Q08
+    question: "Chạy quá tốc độ 20km/h trên đường quốc lộ xử phạt ra sao?"
+    expected_citation_hint: "điều 5 hoặc điều 6"
+  - id: Q09
+    question: "Không mang theo giấy đăng ký xe khi tham gia giao thông bị phạt bao nhiêu?"
+    expected_citation_hint: "điều 21"
+  - id: Q10
+    question: "Đi xe máy ngược chiều trên đường một chiều phạt bao nhiêu?"
+    expected_citation_hint: "điều 6"
+  - id: Q11
+    question: "Dừng đỗ xe sai quy định trên đường phố bị phạt thế nào?"
+    expected_citation_hint: "điều 5 hoặc điều 6"
+  - id: Q12
+    question: "Không bật xi nhan khi chuyển làn bị phạt bao nhiêu?"
+    expected_citation_hint: "điều 5 hoặc điều 6"
+  - id: Q13
+    question: "Trường hợp gây tai nạn giao thông rồi bỏ trốn bị xử lý thế nào?"
+    expected_citation_hint: "điều 260 bộ luật hình sự"
+  - id: Q14
+    question: "Xe tải chở quá tải trọng bị phạt bao nhiêu?"
+    expected_citation_hint: "điều 24"
+  - id: Q15
+    question: "Các hạng giấy phép lái xe tại Việt Nam bao gồm những gì?"
+    expected_citation_hint: "luật giao thông đường bộ điều 59"
+  - id: Q16
+    question: "Quyền ưu tiên tại giao lộ không có đèn tín hiệu được quy định thế nào?"
+    expected_citation_hint: "luật giao thông đường bộ điều 24"
+  - id: Q17
+    question: "Sử dụng điện thoại khi lái xe ô tô phạt bao nhiêu?"
+    expected_citation_hint: "điều 5"
+  - id: Q18
+    question: "Không có bảo hiểm trách nhiệm dân sự xe máy phạt bao nhiêu?"
+    expected_citation_hint: "điều 21"
+  - id: Q19
+    question: "Thủ tục khi xảy ra tai nạn giao thông gồm những bước gì?"
+    expected_citation_hint: "luật giao thông đường bộ điều 38"
+  - id: Q20
+    question: "Đăng ký xe máy mới cần những giấy tờ gì?"
+    expected_citation_hint: "thông tư 24/2023"

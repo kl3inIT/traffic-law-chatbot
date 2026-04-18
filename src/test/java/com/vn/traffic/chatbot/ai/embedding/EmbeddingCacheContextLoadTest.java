@@ -117,7 +117,7 @@ class EmbeddingCacheContextLoadTest {
                     "test-chat-model",
                     "test-evaluator-model",
                     List.of(new AiModelProperties.ModelEntry(
-                            "test-embed-model", "Test Embed", "https://example.com", "test-key"))
+                            "test-embed-model", "Test Embed", "https://example.com", "test-key", true))
             );
         }
     }
