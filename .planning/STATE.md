@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Chat Performance & Spring AI Modular RAG
 current_phase: 9
-status: executing
-last_updated: "2026-04-18T16:14:51.621Z"
-last_activity: 2026-04-18 -- Phase 09 planning complete
+status: code_complete_carryovers_open
+last_updated: "2026-04-18T23:59:00.000Z"
+last_activity: 2026-04-18 -- Phase 09 code-complete for original scope; G5/G7/CACHE-01 carry-overs
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 12
-  completed_plans: 10
-  percent: 83
+  total_plans: 13
+  completed_plans: 13
+  percent: 95
 ---
 
 # State: Vietnam Traffic Law Chatbot
@@ -22,18 +22,25 @@ progress:
 
 ## Current Position
 
-Phase: 9 (modular-rag-prompt-caching) — EXECUTING
-Plan: 3 of 3 (gap-closure) — paused at Task 2 checkpoint (DB audit)
-Status: Ready to execute
-Last activity: 2026-04-18 -- Phase 09 planning complete
+Phase: 9 (modular-rag-prompt-caching) — CODE-COMPLETE (original scope); carry-overs open
+Plans executed: 09-01, 09-02, 09-03, 09-04 (G4 closed)
+Plans pending: 09-05 (G5 — IntentClassifier dedicated ChatClient wiring), possible 09-06 (G7 — retrieval/grounding quality)
+Status: Ready for next plan (09-05) OR roll carry-overs to v1.2
+Last activity: 2026-04-18 -- Phase 09 live re-run; 3 GREEN, G7 identified, G5/G6/CACHE-01 deferred
 
-## Phase 8 Live Run Result (2026-04-18)
+## Phase 9 Live Run Result (2026-04-18)
 
-- ✓ StructuredOutputMatrixIT (all 8 models, no schema 400s)
-- ✓ IntentClassifierIT (LEGAL/CHITCHAT/OFF_TOPIC live)
-- ✓ twoTurnConversationMemoryWorks
-- Deferred → Phase 9: twentyQueryRegressionSuiteAtLeast95Percent (0/20 — NoOpRetrievalAdvisor, no real retrieval yet)
-- Deferred → Phase 9: refusalRateWithinTenPercentOfPhase7Baseline (100% refusal; same root cause; re-run with RAG + Phase7Baseline backfill)
+- ✓ `twoTurnConversationMemoryWorks` — GREEN (G4 VARCHAR(36) fix validated)
+- ✓ `CitationFormatRegressionIT` — GREEN (ARCH-05 byte-for-byte parity)
+- ✓ `EmptyContextRefusalIT` — GREEN (T-9-02 / SC 3)
+- ✗ `refusalRateWithinTenPercentOfPhase7Baseline` — RED-as-expected (G6, NaN baseline, NOT a blocker)
+- ✗ `twentyQueryRegressionSuiteAtLeast95Percent` — 4/20 → NEW GAP G7 (retrieval/grounding quality, orthogonal to modular-RAG wiring)
+
+## Phase 9 Carry-Overs
+
+- **G5** — IntentClassifier misroute via shared advisor chain → Plan 09-05 created
+- **G7** — 16/20 fact-check fails (retrieval quality / judge strictness / KB coverage) → needs dedicated investigation (tentative Plan 09-06)
+- **CACHE-01** — prompt-caching requirement; no successor phase claims it (ROADMAP Phase 10 = ADMIN-* only); user decision needed (schedule late-v1.1 close-out OR roll to v1.2)
 
 ## Project Reference
 
@@ -64,7 +71,7 @@ v1.1 (Planned):
 |------|------|--------|
 | 7 | Chat Latency Foundation | Not started |
 | 8 | Structured Output + GroundingGuardAdvisor | Complete |
-| 9 | Modular RAG + Prompt Caching | Not started |
+| 9 | Modular RAG + Prompt Caching | Code-complete (original scope); G5/G7/CACHE-01 carry-overs |
 | 10 | User-Managed API Key Admin | Not started (parallelizable with Phase 7) |
 
 ## Accumulated Context
@@ -89,4 +96,4 @@ v1.1 (Planned):
 - Nyquist validation: enabled
 
 ---
-*Last updated: 2026-04-18 — Phase 08 complete*
+*Last updated: 2026-04-18 — Phase 09 code-complete (carry-overs: G5, G7, CACHE-01)*

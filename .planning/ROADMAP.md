@@ -29,7 +29,7 @@
 
 - [ ] **Phase 7: Chat Latency Foundation** — Async log, slim schema, prompt trim, feature-flag infra, Caffeine embedding cache; latency/refusal baseline snapshot.
 - [x] **Phase 8: Structured Output + GroundingGuardAdvisor** — `BeanOutputConverter` via `.entity()`, Input/Output grounding guard advisor pair, LLM intent classifier, retire keyword gate. (Complete 2026-04-18; 20/20 code-level SCs verified + live run 5/7 pass — 2 regression tests scope-deferred to Phase 9.)
-- [ ] **Phase 9: Modular RAG + Prompt Caching** — `RetrievalAugmentationAdvisor` + `CitationPostProcessor`, trust-tier `FILTER_EXPRESSION`, `PromptCachingAdvisor` with OpenRouter `cache_control`.
+- [~] **Phase 9: Modular RAG + Prompt Caching** — code-complete for original scope (ARCH-01, ARCH-05 SATISFIED live 2026-04-18: CitationFormat GREEN, EmptyContextRefusal GREEN, two-turn memory GREEN). Carry-overs: **G5** IntentClassifier wiring → Plan 09-05; **G7** 16/20 fact-check quality → tentative Plan 09-06; **CACHE-01** prompt-caching → unassigned (needs late-v1.1 plan OR roll to v1.2); **G6** Phase7Baseline NaN → owned by Plan 08-04 Task 1.
 - [ ] **Phase 10: User-Managed API Key Admin** — Encrypted `api_key` + `api_key_audit` tables, `ChatClientRegistry` runtime rotation, admin UI, masking, audit, security gates. (Parallelizable with Phase 7.)
 
 ## Phase Details
@@ -78,11 +78,14 @@ Plans:
   3. Empty-context behavior is handled by `ContextualQueryAugmenter.allowEmptyContext(true)` plus the Phase-8 guard; `FILTER_EXPRESSION` enforces `trust_tier IN (PRIMARY, SECONDARY)` + active-source gating, with a sample of 50 post-deploy chat logs showing zero citations to non-legal / untrusted sources in legal answers.
   4. The static system block is marked with `cache_control: {"type":"ephemeral","ttl":"1h"}`; an integration test against the OpenRouter `generation` endpoint asserts `cached_tokens > 0` on the second call for an Anthropic-family model, and the advisor safely skips for non-Anthropic providers.
   5. Advisor chain ordering is explicit and documented (`GuardIn → Memory → RAG → Cache → Validation → GuardOut`); a two-turn integration test shows chat memory is preserved and roles alternate correctly.
-**Plans**: 3 plans
+**Plans**: 5 plans (4 complete, 1 pending; G7 plan TBD)
 Plans:
-- [ ] 09-01-PLAN.md — PR1: RetrievalAugmentationAdvisor + LegalQueryAugmenter + CitationPostProcessor + CitationStashAdvisor + FILTER_EXPRESSION wiring; ChatService shrink ≥60%; 20-query regression + refusal-parity + two-turn memory + CitationFormat byte-for-byte
+- [x] 09-01-PLAN.md — PR1: RetrievalAugmentationAdvisor + LegalQueryAugmenter + CitationPostProcessor + CitationStashAdvisor + FILTER_EXPRESSION wiring; ChatService shrink ≥60%; 20-query regression + refusal-parity + two-turn memory + CitationFormat byte-for-byte
 - [x] 09-02-PLAN.md — PR2: StructuredOutputValidationAdvisor swap (maxRepeatAttempts=1); delete NoOpValidationAdvisor; retry IT
-- [ ] 09-03-PLAN.md — Gap closure: tighten LegalQueryAugmenter prompt to forbid extra JSON fields and mandate arrays; DB systemPrompt audit; live-test gate (closes UAT G1/G2/G3)
+- [x] 09-03-PLAN.md — Gap closure: tighten LegalQueryAugmenter prompt to forbid extra JSON fields and mandate arrays; DB systemPrompt audit; live-test gate (closes UAT G1/G2/G3)
+- [x] 09-04-PLAN.md — Gap closure: G4 VARCHAR(36) overflow fix (bare UUID); G5 investigated → deferred to 09-05; G6 documented; 09-03 diacritic resync
+- [ ] 09-05-PLAN.md — G5 close-out: IntentClassifier dedicated ChatClient wiring (sibling intentChatClientMap, no defaultAdvisors)
+- [ ] 09-06-PLAN.md (TBD) — G7 investigation: retrieval/grounding quality — 16/20 VN regression fact=false (topK / similarityThreshold / judge-prompt / KB coverage)
 
 ### Phase 10: User-Managed API Key Admin
 **Goal**: An operator can create, rotate, disable, test, and audit per-provider API keys through the admin UI at runtime, with keys encrypted at rest and plaintext never leaking. (Independent of Phases 7–9; can run in parallel with Phase 7.)
@@ -112,7 +115,7 @@ Plans:
 | 06.1. Multi-Provider AI Model Selection | v1.0 | 2/2 | Complete | 2026-04-15 |
 | 7. Chat Latency Foundation | v1.1 | 4/4 | Awaiting verification | — |
 | 8. Structured Output + GroundingGuardAdvisor | v1.1 | 3/4 | Executing | — |
-| 9. Modular RAG + Prompt Caching | v1.1 | 0/2 | Planned | — |
+| 9. Modular RAG + Prompt Caching | v1.1 | 4/5 | Code-complete (original scope); G5/G7/CACHE-01 open | 2026-04-18 (partial) |
 | 10. User-Managed API Key Admin | v1.1 | 0/0 | Not started | — |
 
 ## Dependencies (v1.1)
@@ -157,4 +160,4 @@ Informed by `.planning/research/SUMMARY.md` and `.planning/research/PITFALLS.md`
 **Unmapped requirements:** 0 ✓
 
 ---
-*Last updated: 2026-04-17 — v1.1 roadmap created*
+*Last updated: 2026-04-18 — Phase 9 code-complete for original scope; carry-overs G5, G7, CACHE-01*

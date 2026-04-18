@@ -172,6 +172,17 @@ No code-level gaps. Phase 9 implementation is structurally complete and idiomati
 | G4 (`SPRING_AI_CHAT_MEMORY.conversation_id` VARCHAR(36) overflow) | CLOSED under Plan 09-04 | `ChatService.buildMemoryConversationId` now returns bare 36-char `UUID.randomUUID().toString()`; regression test `ChatServiceEphemeralConversationIdTest` guards against re-introduction; `PITFALLS.md` Pitfall 10 updated. |
 | G5 (IntentClassifier misroute via shared advisor chain) | DEFERRED to Plan 09-05 | Root cause confirmed in `ChatClientConfig.java:154-164`: every `chatClientMap` entry carries `validationAdvisor` bound to `LegalAnswerDraft`; `IntentClassifier.classify(...).entity(IntentDecision.class)` fails `BeanOutputConverter` → `catch` falls back to `LEGAL` per D-02. Fix scope ~30–50 LOC across `ChatClientConfig` + `IntentClassifier` (sibling `intentChatClientMap` without default advisors); exceeds Plan 09-04 Task 2 scope budget (>1 file). Functional correctness preserved via D-02 fallback; user impact is latency/cost on chitchat paths, not refusal behaviour. |
 | G6 (`Phase7Baseline.REFUSAL_RATE_PERCENT = NaN`) | DEFERRED under Plan 09-04 — Phase7Baseline.REFUSAL_RATE_PERCENT stays NaN pending Plan 08-04 Task 1 backfill. `refusalRateWithinTenPercentOfPhase7Baseline` is expected-RED in the live re-run and is NOT a Phase-9 blocker. See `Phase7Baseline.java` Javadoc "Plan 09-04" TODO for the code-side cross-reference. |
+| G7 (retrieval/grounding quality — 16/20 VN regression `fact=false`) | OPEN — NEW carry-over identified in live re-run 2026-04-18 | Live `twentyQueryRegressionSuiteAtLeast95Percent` returned 4/20. Failure distribution: 13× `relevancy=true fact=false` (LLM answers with retrieved context but fact-check judge rejects), 1× `relevancy=false fact=true` (Q11), 2× `relevancy=false fact=false` (Q15, Q18). Orthogonal to modular-RAG refactor (ARCH-01/ARCH-05 wiring is correct) — likely root causes: (a) retrieval quality (topK=5, similarityThreshold=0.25 too loose/too strict), (b) judge prompt over-strict vs real legal wording, (c) KB coverage gaps for specific Q-statements. Requires dedicated investigation plan (tentative 09-06). NOT a Phase-9 code-correctness blocker but blocks SC 5 (≥95% pass rate). |
+
+### Live Run Results (2026-04-18)
+
+| Test | Result | Notes |
+|------|--------|-------|
+| `twoTurnConversationMemoryWorks` | GREEN | G4 VARCHAR(36) fix validated live |
+| `CitationFormatRegressionIT` | GREEN | ARCH-05 byte-for-byte JSON parity confirmed |
+| `EmptyContextRefusalIT` | GREEN | T-9-02 / SC 3 verbatim refusal confirmed |
+| `refusalRateWithinTenPercentOfPhase7Baseline` | RED-as-expected | NaN baseline; G6 deferred; NOT a blocker |
+| `twentyQueryRegressionSuiteAtLeast95Percent` | 4/20 | New gap G7 — retrieval/grounding quality, not modular-RAG wiring |
 
 ---
 
