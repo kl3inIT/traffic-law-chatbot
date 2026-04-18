@@ -1,25 +1,27 @@
 package com.vn.traffic.chatbot.chat.service;
 
+import com.vn.traffic.chatbot.chat.advisor.context.ChatAdvisorContextKeys;
 import com.vn.traffic.chatbot.chat.api.dto.ChatAnswerResponse;
-import com.vn.traffic.chatbot.chat.citation.CitationMapper;
 import com.vn.traffic.chatbot.chat.intent.IntentClassifier;
 import com.vn.traffic.chatbot.chat.intent.IntentDecision;
 import com.vn.traffic.chatbot.chatlog.service.ChatLogService;
-import com.vn.traffic.chatbot.chunk.service.ChunkInspectionService;
 import com.vn.traffic.chatbot.common.config.AiModelProperties;
-import com.vn.traffic.chatbot.retrieval.RetrievalPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,24 +34,18 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Plan 08-03: IntentClassifier-driven short-circuit tests.
- *
- * <p>Replaces the P7 regex-gate test: asserts that CHITCHAT / OFF_TOPIC intents
- * bypass retrieval + LLM entirely and that LEGAL intent proceeds through the
- * retrieval pipeline. No CHITCHAT_PATTERN regex remains in production code
- * (ARCH-03); the {@link IntentClassifier} now owns dispatch.
+ * Phase 9 IntentClassifier-driven short-circuit tests. CHITCHAT / OFF_TOPIC
+ * intents bypass the advisor chain entirely; LEGAL intent flows through
+ * {@link ChatClient} (retrieval + prompt augmentation now live inside the
+ * RAG advisor chain — ChatService no longer touches VectorStore / CitationMapper).
  */
 @ExtendWith(MockitoExtension.class)
 class ChatServiceChitchatTest {
 
     @Mock private ChatClient chatClient;
-    @Mock private VectorStore vectorStore;
-    @Mock private RetrievalPolicy retrievalPolicy;
-    @Mock private CitationMapper citationMapper;
+    @Mock private ChatClient.ChatClientRequestSpec chatClientRequestSpec;
+    @Mock private ChatClient.CallResponseSpec callResponseSpec;
     @Mock private AnswerComposer answerComposer;
-    @Mock private ChatPromptFactory chatPromptFactory;
-    @Mock private ChunkInspectionService chunkInspectionService;
-    @Mock private AnswerCompositionPolicy answerCompositionPolicy;
     @Mock private ChatLogService chatLogService;
     @Mock private ChatMemory chatMemory;
     @Mock private IntentClassifier intentClassifier;
@@ -74,22 +70,15 @@ class ChatServiceChitchatTest {
         chatService = new ChatService(
                 chatClientMap,
                 aiModelProperties,
-                vectorStore,
-                retrievalPolicy,
-                citationMapper,
                 answerComposer,
-                chatPromptFactory,
-                chunkInspectionService,
-                answerCompositionPolicy,
                 chatLogService,
                 chatMemory,
                 intentClassifier
         );
-        ReflectionTestUtils.setField(chatService, "retrievalTopK", 5);
     }
 
     @Test
-    void chitchatIntentShortCircuitsBeforeRetrieval() {
+    void chitchatIntentShortCircuitsBeforeAdvisorChain() {
         ChatAnswerResponse canned = cannedResponse();
         when(intentClassifier.classify(eq("Xin chào"), any()))
                 .thenReturn(new IntentDecision(IntentDecision.Intent.CHITCHAT, 0.98));
@@ -99,13 +88,7 @@ class ChatServiceChitchatTest {
 
         assertThat(response).isSameAs(canned);
         verify(answerComposer).composeChitchat();
-        // D-02 + ARCH-03: retrieval + LLM must NOT be invoked for CHITCHAT intent
-        verifyNoInteractions(vectorStore);
-        verifyNoInteractions(retrievalPolicy);
-        verifyNoInteractions(citationMapper);
-        verifyNoInteractions(chatPromptFactory);
         verifyNoInteractions(chatClient);
-        // chat log should still be written (async)
         verify(chatLogService).save(eq("Xin chào"), eq(canned), eq(GroundingStatus.GROUNDED),
                 any(), anyInt(), anyInt(), anyInt(), anyString());
     }
@@ -121,25 +104,38 @@ class ChatServiceChitchatTest {
 
         assertThat(response).isSameAs(canned);
         verify(answerComposer).composeOffTopicRefusal();
-        // D-09: OFF_TOPIC uses distinct template, not composeChitchat
         verify(answerComposer, never()).composeChitchat();
-        verifyNoInteractions(vectorStore);
-        verifyNoInteractions(retrievalPolicy);
         verifyNoInteractions(chatClient);
         verify(chatLogService).save(anyString(), eq(canned), eq(GroundingStatus.REFUSED),
                 any(), anyInt(), anyInt(), anyInt(), anyString());
     }
 
     @Test
-    void legalIntentGoesThroughRetrievalPipeline() {
+    @SuppressWarnings("unchecked")
+    void legalIntentFlowsThroughChatClientAdvisorChain() {
         when(intentClassifier.classify(anyString(), any()))
                 .thenReturn(new IntentDecision(IntentDecision.Intent.LEGAL, 0.9));
-        when(retrievalPolicy.buildRequest(anyString(), anyInt())).thenReturn(null);
+        AssistantMessage msg = new AssistantMessage(
+                "{\"conclusion\":\"ok\",\"answer\":\"\",\"uncertaintyNotice\":null,"
+                        + "\"legalBasis\":[],\"penalties\":[],\"requiredDocuments\":[],"
+                        + "\"procedureSteps\":[],\"nextSteps\":[]}");
+        Map<String, Object> ctx = new HashMap<>();
+        ctx.put(ChatAdvisorContextKeys.CITATIONS_KEY, List.of());
+        ctx.put(ChatAdvisorContextKeys.SOURCES_KEY, List.of());
+        ChatClientResponse resp = ChatClientResponse.builder()
+                .chatResponse(new ChatResponse(List.of(new Generation(msg))))
+                .context(ctx).build();
+
+        when(chatClient.prompt()).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.user(anyString())).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.advisors(any(Consumer.class))).thenReturn(chatClientRequestSpec);
+        when(chatClientRequestSpec.call()).thenReturn(callResponseSpec);
+        when(callResponseSpec.chatClientResponse()).thenReturn(resp);
         when(answerComposer.compose(any(), any(), any(), any())).thenReturn(cannedResponse());
 
         chatService.answer("Vượt đèn đỏ với xe máy thì bị phạt bao nhiêu tiền?", null);
 
-        verify(retrievalPolicy).buildRequest(anyString(), anyInt());
+        verify(chatClient).prompt();
         verify(answerComposer, never()).composeChitchat();
         verify(answerComposer, never()).composeOffTopicRefusal();
     }
