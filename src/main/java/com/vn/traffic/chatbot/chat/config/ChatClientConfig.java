@@ -1,9 +1,12 @@
 package com.vn.traffic.chatbot.chat.config;
 
+import com.vn.traffic.chatbot.chat.advisor.CitationPostProcessor;
+import com.vn.traffic.chatbot.chat.advisor.CitationStashAdvisor;
 import com.vn.traffic.chatbot.chat.advisor.GroundingGuardInputAdvisor;
 import com.vn.traffic.chatbot.chat.advisor.GroundingGuardOutputAdvisor;
+import com.vn.traffic.chatbot.chat.advisor.LegalQueryAugmenter;
+import com.vn.traffic.chatbot.chat.advisor.PolicyAwareDocumentRetriever;
 import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpPromptCacheAdvisor;
-import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpRetrievalAdvisor;
 import com.vn.traffic.chatbot.chat.advisor.placeholder.NoOpValidationAdvisor;
 import com.vn.traffic.chatbot.common.config.AiModelProperties;
 import io.micrometer.observation.ObservationRegistry;
@@ -14,10 +17,12 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -25,6 +30,7 @@ import org.springframework.web.client.RestClient;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,7 +39,18 @@ import java.util.Map;
  * pointing to 9router at {@code app.ai.base-url} — intentionally separate from the
  * Spring AI auto-configured {@code OpenAiApi} bean used by the embedding model.
  *
- * <p>Pattern follows pacphi/spring-ai-openrouter-example (feature/spring-boot-4-migration).
+ * <p>Phase 9 PR1 (Task 3): {@code NoOpRetrievalAdvisor} placeholder replaced
+ * with a real {@link RetrievalAugmentationAdvisor} bean wired at
+ * {@code HIGHEST_PRECEDENCE + 300}, composed of:
+ * <ul>
+ *   <li>{@link PolicyAwareDocumentRetriever} — per-call
+ *       {@link com.vn.traffic.chatbot.retrieval.RetrievalPolicy} reads (Pitfall 5).</li>
+ *   <li>{@link CitationPostProcessor} — deterministic 1..n label stamping.</li>
+ *   <li>{@link LegalQueryAugmenter} — Vietnamese {@code [Nguồn n]} prompt template.</li>
+ * </ul>
+ * {@link CitationStashAdvisor} at +310 publishes citations/sources to
+ * {@code ChatClientResponse.context()} (Q-01). {@link NoOpPromptCacheAdvisor}
+ * at +500 is preserved (D-07). Chain order unchanged from Phase 8.
  */
 @Slf4j
 @Configuration
@@ -49,11 +66,25 @@ public class ChatClientConfig {
     private RetryTemplate retryTemplate;
 
     @Bean
+    public RetrievalAugmentationAdvisor retrievalAugmentationAdvisor(
+            PolicyAwareDocumentRetriever documentRetriever,
+            CitationPostProcessor citationPostProcessor,
+            LegalQueryAugmenter legalQueryAugmenter) {
+        return RetrievalAugmentationAdvisor.builder()
+                .documentRetriever(documentRetriever)
+                .documentPostProcessors(citationPostProcessor)
+                .queryAugmenter(legalQueryAugmenter)
+                .order(Ordered.HIGHEST_PRECEDENCE + 300)
+                .build();
+    }
+
+    @Bean
     public Map<String, ChatClient> chatClientMap(
             AiModelProperties modelProperties,
             ChatMemory chatMemory,
             GroundingGuardInputAdvisor guardIn,
-            NoOpRetrievalAdvisor noOpRag,
+            RetrievalAugmentationAdvisor ragAdvisor,
+            CitationStashAdvisor citationStash,
             NoOpPromptCacheAdvisor noOpCache,
             NoOpValidationAdvisor noOpValidation,
             GroundingGuardOutputAdvisor guardOut) {
@@ -99,7 +130,8 @@ public class ChatClientConfig {
                     .defaultAdvisors(
                             guardIn,                                              // HIGHEST_PRECEDENCE + 100
                             MessageChatMemoryAdvisor.builder(chatMemory).build(), // HIGHEST_PRECEDENCE + 200
-                            noOpRag,                                              // HIGHEST_PRECEDENCE + 300
+                            ragAdvisor,                                           // HIGHEST_PRECEDENCE + 300
+                            citationStash,                                        // HIGHEST_PRECEDENCE + 310
                             noOpCache,                                            // HIGHEST_PRECEDENCE + 500
                             noOpValidation,                                       // HIGHEST_PRECEDENCE + 1000
                             guardOut                                              // LOWEST_PRECEDENCE  - 100
@@ -111,12 +143,21 @@ public class ChatClientConfig {
         if (map.isEmpty()) {
             log.warn("ChatClientMap is empty — check app.ai.models configuration");
         }
-        log.info("Advisor chain order: {} → Memory(HIGHEST_PRECEDENCE+200) → {} → {} → {} → {}",
+        log.info("Advisor chain order: {} → Memory(+200) → RAG(+300) → {}(+310) → {}(+500) → {}(+1000) → {}",
                 guardIn.getName(),
-                noOpRag.getName(),
+                citationStash.getName(),
                 noOpCache.getName(),
                 noOpValidation.getName(),
                 guardOut.getName());
+        List<Integer> orders = List.of(
+                guardIn.getOrder(),
+                Ordered.HIGHEST_PRECEDENCE + 200,
+                ragAdvisor.getOrder(),
+                citationStash.getOrder(),
+                noOpCache.getOrder(),
+                noOpValidation.getOrder(),
+                guardOut.getOrder());
+        log.info("Advisor orders: {}", orders);
         return Collections.unmodifiableMap(map);
     }
 }
