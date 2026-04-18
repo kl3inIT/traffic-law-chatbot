@@ -12,11 +12,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Live integration tests for {@link IntentClassifier} (D-01, D-09).
  *
- * <p>Covers the GREEN path — unit coverage of the D-02 fail-LEGAL policy lives
- * in {@code IntentClassifierTest}. CI skips this class via the default
- * {@code test} task's {@code excludeTags 'live'} filter and
- * {@code @DisabledIfEnvironmentVariable} when {@code OPENROUTER_API_KEY} is
- * blank. Run locally with: {@code ./gradlew liveTest}.
+ * <p>Plan 08-04 Wave 3 — exercises the real OpenRouter model on three intent
+ * classes (LEGAL, CHITCHAT, OFF_TOPIC) to validate ARCH-03 end-to-end. Unit
+ * coverage of the D-02 fail-LEGAL policy lives in {@code IntentClassifierTest}.
+ *
+ * <p>CI skips this class via the default {@code test} task's {@code excludeTags 'live'}
+ * filter and {@code @DisabledIfEnvironmentVariable} when {@code OPENROUTER_API_KEY}
+ * is blank. Run locally with: {@code ./gradlew liveTest}.
  */
 @SpringBootTest
 @Tag("live")
@@ -30,7 +32,7 @@ class IntentClassifierIT {
     AiModelProperties properties;
 
     @Test
-    void entityIntentDecisionReturnsNonNull() {
+    void legalQuestionClassifiedAsLegal() {
         IntentDecision decision = classifier.classify(
                 "Vượt đèn đỏ đối với xe máy bị phạt bao nhiêu tiền?",
                 properties.chatModel());
@@ -41,14 +43,24 @@ class IntentClassifierIT {
     }
 
     @Test
-    void classifierChitchatIsNotLegal() {
+    void greetingClassifiedAsChitchat() {
         IntentDecision decision = classifier.classify(
                 "Xin chào!",
                 properties.chatModel());
 
         assertThat(decision).isNotNull();
-        // Chitchat greeting must not be classified as LEGAL (the D-02 fallback value),
-        // so even if the classifier is conservative, it must return CHITCHAT here.
+        // A plain greeting must not fall back to LEGAL (the D-02 fail-safe value)
+        // and must not be classified OFF_TOPIC either — it's classic chitchat.
         assertThat(decision.intent()).isEqualTo(IntentDecision.Intent.CHITCHAT);
+    }
+
+    @Test
+    void offTopicQuestionClassifiedAsOffTopic() {
+        IntentDecision decision = classifier.classify(
+                "Giá Bitcoin hôm nay là bao nhiêu?",
+                properties.chatModel());
+
+        assertThat(decision).isNotNull();
+        assertThat(decision.intent()).isEqualTo(IntentDecision.Intent.OFF_TOPIC);
     }
 }
