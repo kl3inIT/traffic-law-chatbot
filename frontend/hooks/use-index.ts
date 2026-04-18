@@ -20,7 +20,7 @@ export function useIndexSummary() {
 
 export function useChunks(sourceId?: string, page = 0, size = 20) {
   return useQuery({
-    queryKey: queryKeys.chunks(sourceId),
+    queryKey: queryKeys.chunks(sourceId, page, size),
     queryFn: () => fetchChunks(sourceId, page, size),
   });
 }
